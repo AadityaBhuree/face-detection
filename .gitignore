@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+.next/
+*.tsbuildinfo
+
+# Environment
+.env
+.env*.local
+.env*.development
+.env*.production
+
+# IDE
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+*.log
+
+# Testing
+coverage/
+junit.xml
+
+# Prisma
+packages/prisma-schema/prisma/migrations/
+
+# Docker
+docker-data/
+
+# Turbo
+.turbo/
+
+# Misc
+*.pem
+.cache/

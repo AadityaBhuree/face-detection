@@ -1,0 +1,183 @@
+import { z } from 'zod';
+
+// ─── Patient Schemas ────────────────────────────────────────────
+
+export const createPatientSchema = z.object({
+  name: z.string().min(1).max(200),
+  dob: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD'),
+  mobile: z.string().regex(/^\+?[1-9]\d{9,14}$/, 'Invalid mobile number'),
+  aadhaarRef: z.string().length(64).optional().nullable(),
+  consentGranted: z.boolean().default(false),
+});
+
+export const updatePatientSchema = createPatientSchema.partial();
+
+export const patientQuerySchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(100).default(20),
+  search: z.string().max(200).optional(),
+  sortBy: z.enum(['name', 'createdAt', 'dob']).default('createdAt'),
+  sortOrder: z.enum(['asc', 'desc']).default('desc'),
+});
+
+// ─── Face Embedding Schema ──────────────────────────────────────
+
+export const faceEmbeddingSchema = z.object({
+  patientId: z.string().uuid(),
+  vector: z.array(z.number()).length(512),
+  capturedAt: z.string().datetime().optional(),
+});
+
+export const faceSearchQuerySchema = z.object({
+  vector: z.array(z.number()).length(512),
+  threshold: z.number().min(0).max(1).default(0.82),
+  limit: z.coerce.number().int().positive().max(10).default(5),
+});
+
+// ─── Symptom Schemas ────────────────────────────────────────────
+
+export const symptomEntrySchema = z.object({
+  name: z.string().min(1).max(300),
+  duration: z.string().min(1).max(100),
+  severity: z.number().int().min(1).max(10),
+});
+
+// ─── Intake Schemas ─────────────────────────────────────────────
+
+export const intakeDataSchema = z.object({
+  chiefComplaint: z.string().min(1).max(2000),
+  symptoms: z.array(symptomEntrySchema).min(0).max(50),
+  associated: z.array(z.string()).max(20),
+  medicationChanges: z.string().max(1000).default(''),
+  allergyUpdates: z.string().max(1000).default(''),
+  patientNotes: z.string().max(5000).default(''),
+});
+
+export const startIntakeSessionSchema = z.object({
+  patientId: z.string().uuid().optional().nullable(),
+  deviceId: z.string().min(1).max(100),
+  metadata: z.record(z.unknown()).optional().default({}),
+});
+
+export const updateIntakeSessionSchema = z.object({
+  status: z.enum([
+    'INITIATED',
+    'FACE_MATCHED',
+    'CONTEXT_LOADED',
+    'INTAKE_IN_PROGRESS',
+    'TRANSCRIBING',
+    'BRIEF_GENERATED',
+    'SYNCED',
+    'COMPLETED',
+    'FAILED',
+    'TIMED_OUT',
+  ]),
+  patientId: z.string().uuid().optional(),
+  metadata: z.record(z.unknown()).optional(),
+});
+
+// ─── Clinical Brief Schema ──────────────────────────────────────
+
+export const clinicalBriefSchema = z.object({
+  summary: z.string().min(1).max(5000),
+  chiefComplaint: z.string().min(1).max(2000),
+  riskFlags: z.array(z.string()).max(20),
+  vitalsToCheck: z.array(z.string()).max(20),
+  suggestedFollowups: z.array(z.string()).max(20),
+  medicationsNote: z.string().max(2000),
+  icd10Hints: z.array(z.string()).max(10),
+});
+
+// ─── Transcript Schema ──────────────────────────────────────────
+
+export const transcriptEntrySchema = z.object({
+  sessionId: z.string().uuid(),
+  speaker: z.enum(['patient', 'ai', 'system']),
+  text: z.string().min(1),
+  timestampMs: z.number().int().nonnegative(),
+});
+
+export const transcriptQuerySchema = z.object({
+  sessionId: z.string().uuid(),
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(500).default(100),
+});
+
+// ─── AI Agent Schemas ───────────────────────────────────────────
+
+export const aiIntakePromptSchema = z.object({
+  sessionId: z.string().uuid(),
+  patientContext: z.string().max(10000),
+  conversationHistory: z.array(
+    z.object({
+      role: z.enum(['assistant', 'user']),
+      content: z.string(),
+    }),
+  ),
+  currentInput: z.string().min(1).max(5000),
+});
+
+export const aiBriefGenerateSchema = z.object({
+  sessionId: z.string().uuid(),
+  patientId: z.string().uuid(),
+  intakeData: intakeDataSchema,
+  transcript: z.string().max(100000),
+  patientHistory: z.string().max(5000),
+});
+
+// ─── WebSocket Schemas ──────────────────────────────────────────
+
+export const wsMessageSchema = z.object({
+  event: z.string(),
+  sessionId: z.string().uuid(),
+  payload: z.record(z.unknown()),
+  timestamp: z.string().datetime().optional(),
+});
+
+// ─── Audio Upload Schema ────────────────────────────────────────
+
+export const audioChunkSchema = z.object({
+  sessionId: z.string().uuid(),
+  chunkIndex: z.number().int().nonnegative(),
+  data: z.instanceof(Blob).or(z.string()),
+  format: z.enum(['opus', 'pcm16']).default('opus'),
+  sampleRate: z.number().int().default(48000),
+});
+
+// ─── PMS/EMR Sync Schema ───────────────────────────────────────
+
+export const pmsSyncSchema = z.object({
+  sessionId: z.string().uuid(),
+  patientId: z.string().uuid(),
+  intakeRecordId: z.string().uuid(),
+  targetSystem: z.enum(['hl7_fhir', 'custom']).default('custom'),
+});
+
+// ─── Audit Log Schema ──────────────────────────────────────────
+
+export const auditLogSchema = z.object({
+  action: z.string().min(1).max(200),
+  actorId: z.string().min(1),
+  actorRole: z.enum(['RECEPTIONIST', 'DOCTOR', 'ADMIN', 'SYSTEM']),
+  resourceType: z.string().min(1).max(100),
+  resourceId: z.string().min(1),
+  details: z.record(z.unknown()).default({}),
+  ipAddress: z.string().ip().or(z.string().max(45)),
+});
+
+// ─── Type Exports ───────────────────────────────────────────────
+
+export type CreatePatientInput = z.infer<typeof createPatientSchema>;
+export type UpdatePatientInput = z.infer<typeof updatePatientSchema>;
+export type FaceEmbeddingInput = z.infer<typeof faceEmbeddingSchema>;
+export type FaceSearchQuery = z.infer<typeof faceSearchQuerySchema>;
+export type StartIntakeSessionInput = z.infer<typeof startIntakeSessionSchema>;
+export type UpdateIntakeSessionInput = z.infer<typeof updateIntakeSessionSchema>;
+export type IntakeDataInput = z.infer<typeof intakeDataSchema>;
+export type ClinicalBriefInput = z.infer<typeof clinicalBriefSchema>;
+export type AiIntakePromptInput = z.infer<typeof aiIntakePromptSchema>;
+export type AiBriefGenerateInput = z.infer<typeof aiBriefGenerateSchema>;
+export type AudioChunkInput = z.infer<typeof audioChunkSchema>;
+export type AuditLogInput = z.infer<typeof auditLogSchema>;
+export type TranscriptEntryInput = z.infer<typeof transcriptEntrySchema>;
+export type PmsSyncInput = z.infer<typeof pmsSyncSchema>;

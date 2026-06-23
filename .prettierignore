@@ -1,0 +1,17 @@
+node_modules
+dist
+.next
+coverage
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.ico
+*.webp
+*.opus
+*.woff
+*.woff2
+Dockerfile
+docker-compose.yml
+pnpm-lock.yaml

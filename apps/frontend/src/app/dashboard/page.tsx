@@ -7,6 +7,7 @@ import { socketService } from '@/services/socket';
 import { Badge, StatusBadge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { DarkModeToggle } from '@/components/ui/dark-mode-toggle';
 import { formatDateTime, formatTime } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import { Plus, CheckCircle2, Pencil, ChevronRight, MessageSquare } from 'lucide-react';
@@ -111,9 +112,6 @@ export default function DashboardPage() {
 
     // Listen for session status updates
     const unsubStatus = socketService.onSessionStatus((data) => {
-      // Backend emits: { event, sessionId, payload: { status }, timestamp }
-      // Socket service types: { status: string } (flat)
-      // Handle both formats gracefully
       const payload = data as Record<string, unknown>;
       const status =
         (payload.payload as Record<string, unknown> | undefined)?.status ??
@@ -128,7 +126,6 @@ export default function DashboardPage() {
 
     // Listen for brief:ready — add to briefs list
     const unsubBrief = socketService.onBriefReady((_data) => {
-      // Refresh briefs list when a new one is generated
       dashboardApi
         .getRecentBriefs(1, 20)
         .then((res) => setRecentBriefs(res.data as BriefRecord[]))
@@ -137,9 +134,6 @@ export default function DashboardPage() {
 
     // Listen for real-time conversation turns
     const unsubTurns = socketService.onConversationTurn((data) => {
-      // Backend emits: { event, sessionId, payload: { speaker, text }, timestamp }
-      // Socket service types: { sessionId, speaker, text } (flat)
-      // Handle both formats gracefully
       const payload = data as Record<string, unknown>;
       const nestedPayload = payload.payload as Record<string, unknown> | undefined;
       const speaker =
@@ -149,7 +143,6 @@ export default function DashboardPage() {
         (payload.sessionId as string) ?? (data as { sessionId?: string }).sessionId ?? '';
       const timestamp = (payload.timestamp as string) ?? new Date().toISOString();
 
-      // Only add turns for the currently selected session
       if (turnSessionId !== selectedSessionId) return;
       if (!speaker || !text) return;
 
@@ -160,7 +153,6 @@ export default function DashboardPage() {
           text,
           timestamp,
         };
-        // Avoid duplicates (same text in the last 3 entries)
         const recent = prev.slice(-3);
         if (recent.some((t) => t.text === text && t.speaker === speaker)) return prev;
         return [...prev, turn];
@@ -177,7 +169,6 @@ export default function DashboardPage() {
       unsubStatus();
       unsubBrief();
       unsubTurns();
-      // Leave all session rooms on unmount
       activeSessions.forEach((s) => socketService.leaveSession(s.id));
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -202,11 +193,9 @@ export default function DashboardPage() {
       setSelectedSessionId(sessionId);
       setSessionTurns([]);
 
-      // Load the brief for this session if it exists
       const brief = recentBriefs.find((b) => b.sessionId === sessionId);
       setSelectedBrief(brief ?? null);
 
-      // Join the session room for live updates
       socketService.joinSession(sessionId);
     },
     [selectedSessionId, recentBriefs],
@@ -217,10 +206,8 @@ export default function DashboardPage() {
       setReviewingId(briefId);
       try {
         await dashboardApi.markBriefReviewed(briefId);
-        // Remove from briefs list
         setRecentBriefs((prev) => prev.filter((b) => b.id !== briefId));
         setSelectedBrief(null);
-        // Update session status in active list
         const brief = recentBriefs.find((b) => b.id === briefId);
         if (brief) {
           setActiveSessions((prev) =>
@@ -270,23 +257,28 @@ export default function DashboardPage() {
   // ─── Render ────────────────────────────────────────────────────
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950">
       {/* Main Content */}
       <div className="flex flex-1 flex-col">
         {/* Header */}
-        <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/80 backdrop-blur-md">
+        <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/80 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/80">
           <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
             <div className="flex items-center gap-3">
               <div className="bg-ayutalk-500 flex h-9 w-9 items-center justify-center rounded-xl shadow-sm">
                 <span className="text-sm font-bold text-white">AC</span>
               </div>
               <div>
-                <h1 className="text-lg font-semibold text-slate-900">Doctor Dashboard</h1>
-                <p className="text-xs text-slate-500">AyuTalk Care — Live clinic intake monitor</p>
+                <h1 className="text-lg font-semibold text-slate-900 dark:text-white">
+                  Doctor Dashboard
+                </h1>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  AyuTalk Care — Live clinic intake monitor
+                </p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="flex items-center gap-1.5 text-xs text-emerald-600">
+            <div className="flex items-center gap-2">
+              <DarkModeToggle />
+              <span className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400">
                 <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
                 Live
               </span>
@@ -311,20 +303,28 @@ export default function DashboardPage() {
                   style={{ animationDelay: `${i * 80}ms` }}
                 >
                   <div className="flex items-center justify-between">
-                    <p className="text-xs font-medium text-slate-500">{stat.label}</p>
+                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                      {stat.label}
+                    </p>
                     <div className={cn('h-2 w-2 rounded-full', stat.color)} />
                   </div>
-                  <p className="mt-2 text-2xl font-bold text-slate-900">{stat.value}</p>
-                  <p className="mt-0.5 text-[11px] text-slate-400">{stat.desc}</p>
+                  <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
+                    {stat.value}
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-slate-400 dark:text-slate-500">
+                    {stat.desc}
+                  </p>
                 </Card>
               ))}
             </div>
 
             {/* Active Sessions */}
             <Card className="animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-              <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-                <h2 className="text-sm font-semibold text-slate-900">Active Intake Sessions</h2>
-                <span className="text-xs text-slate-400">
+              <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4 dark:border-slate-800">
+                <h2 className="text-sm font-semibold text-slate-900 dark:text-white">
+                  Active Intake Sessions
+                </h2>
+                <span className="text-xs text-slate-400 dark:text-slate-500">
                   {activeSessions.length} session
                   {activeSessions.length !== 1 ? 's' : ''}
                 </span>
@@ -344,25 +344,28 @@ export default function DashboardPage() {
                   ))}
                 </div>
               ) : error ? (
-                <div className="px-5 py-8 text-center text-sm text-red-500">
+                <div className="px-5 py-8 text-center text-sm text-red-500 dark:text-red-400">
                   {error}
                   <button
                     onClick={() => window.location.reload()}
-                    className="text-ayutalk-500 ml-2 hover:underline"
+                    className="text-ayutalk-500 dark:text-ayutalk-400 ml-2 hover:underline"
                   >
                     Retry
                   </button>
                 </div>
               ) : activeSessions.length === 0 ? (
-                <div className="px-5 py-8 text-center text-sm text-slate-400">
+                <div className="px-5 py-8 text-center text-sm text-slate-400 dark:text-slate-500">
                   No active sessions at the moment.
                   <br />
-                  <Link href="/" className="text-ayutalk-500 mt-1 inline-block hover:underline">
+                  <Link
+                    href="/"
+                    className="text-ayutalk-500 dark:text-ayutalk-400 mt-1 inline-block hover:underline"
+                  >
                     Start a new intake
                   </Link>
                 </div>
               ) : (
-                <div className="divide-y divide-slate-100">
+                <div className="divide-y divide-slate-100 dark:divide-slate-800">
                   {activeSessions.map((session) => {
                     const isSelected = selectedSessionId === session.id;
                     const hasBrief = recentBriefs.some((b) => b.sessionId === session.id);
@@ -371,22 +374,22 @@ export default function DashboardPage() {
                         key={session.id}
                         onClick={() => handleSelectSession(session.id)}
                         className={cn(
-                          'flex w-full items-center justify-between px-5 py-3 text-left transition-colors hover:bg-slate-50',
-                          isSelected && 'bg-ayutalk-50/50',
+                          'flex w-full items-center justify-between px-5 py-3 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50',
+                          isSelected && 'bg-ayutalk-50/50 dark:bg-ayutalk-900/20',
                         )}
                       >
                         <div className="flex items-center gap-3">
-                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-600">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-400">
                             {session.patient?.name
                               ?.split(' ')
                               .map((n) => n[0])
                               .join('') ?? '?'}
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-slate-900">
+                            <p className="text-sm font-medium text-slate-900 dark:text-white">
                               {session.patient?.name ?? 'Unknown Patient'}
                             </p>
-                            <p className="text-xs text-slate-400">
+                            <p className="text-xs text-slate-400 dark:text-slate-500">
                               {formatDateTime(session.startedAt)}
                               {session.patient?.dob && ` · DOB: ${session.patient.dob}`}
                             </p>
@@ -408,12 +411,14 @@ export default function DashboardPage() {
 
             {/* Ready Briefs */}
             <Card className="animate-fade-in-up" style={{ animationDelay: '300ms' }}>
-              <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-                <h2 className="text-sm font-semibold text-slate-900">Completed Briefs</h2>
+              <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4 dark:border-slate-800">
+                <h2 className="text-sm font-semibold text-slate-900 dark:text-white">
+                  Completed Briefs
+                </h2>
                 {briefsLoading ? (
                   <div className="border-ayutalk-200 border-t-ayutalk-500 h-4 w-4 animate-spin rounded-full border-2" />
                 ) : (
-                  <span className="text-xs text-slate-400">
+                  <span className="text-xs text-slate-400 dark:text-slate-500">
                     {recentBriefs.length} brief
                     {recentBriefs.length !== 1 ? 's' : ''}
                   </span>
@@ -434,15 +439,15 @@ export default function DashboardPage() {
                   ))}
                 </div>
               ) : recentBriefs.length === 0 ? (
-                <div className="px-5 py-8 text-center text-sm text-slate-400">
+                <div className="px-5 py-8 text-center text-sm text-slate-400 dark:text-slate-500">
                   No completed briefs yet.
                   <br />
-                  <span className="text-xs text-slate-300">
+                  <span className="text-xs text-slate-300 dark:text-slate-600">
                     Briefs appear here once an intake conversation is complete
                   </span>
                 </div>
               ) : (
-                <div className="divide-y divide-slate-100">
+                <div className="divide-y divide-slate-100 dark:divide-slate-800">
                   {recentBriefs.map((record) => {
                     const isSelected = selectedBrief?.id === record.id;
                     const patientName =
@@ -456,23 +461,23 @@ export default function DashboardPage() {
                           setSessionTurns([]);
                         }}
                         className={cn(
-                          'flex w-full items-start justify-between px-5 py-4 text-left transition-colors hover:bg-slate-50',
-                          isSelected && 'bg-emerald-50/50',
+                          'flex w-full items-start justify-between px-5 py-4 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50',
+                          isSelected && 'bg-emerald-50/50 dark:bg-emerald-900/20',
                         )}
                       >
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
-                            <h3 className="truncate text-sm font-semibold text-slate-900">
+                            <h3 className="truncate text-sm font-semibold text-slate-900 dark:text-white">
                               {patientName}
                             </h3>
                             <Badge variant="success" size="sm">
                               New
                             </Badge>
                           </div>
-                          <p className="mt-1 line-clamp-2 text-xs text-slate-500">
+                          <p className="mt-1 line-clamp-2 text-xs text-slate-500 dark:text-slate-400">
                             {record.brief.chiefComplaint}
                           </p>
-                          <p className="mt-1 text-[11px] text-slate-400">
+                          <p className="mt-1 text-[11px] text-slate-400 dark:text-slate-500">
                             {formatDateTime(record.generatedAt)}
                           </p>
                           {record.brief.riskFlags && record.brief.riskFlags.length > 0 && (
@@ -480,7 +485,7 @@ export default function DashboardPage() {
                               {record.brief.riskFlags.map((flag) => (
                                 <span
                                   key={flag}
-                                  className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-700"
+                                  className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-700 dark:bg-red-900/30 dark:text-red-400"
                                 >
                                   ⚠ {flag}
                                 </span>
@@ -521,17 +526,17 @@ export default function DashboardPage() {
                 <Card className="p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div className="bg-ayutalk-100 text-ayutalk-600 flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold">
+                      <div className="bg-ayutalk-100 text-ayutalk-600 dark:bg-ayutalk-900/50 dark:text-ayutalk-400 flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold">
                         {selectedSession.patient?.name
                           ?.split(' ')
                           .map((n) => n[0])
                           .join('') ?? '?'}
                       </div>
                       <div>
-                        <h3 className="text-sm font-semibold text-slate-900">
+                        <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
                           {selectedSession.patient?.name ?? 'Unknown Patient'}
                         </h3>
-                        <p className="text-xs text-slate-400">
+                        <p className="text-xs text-slate-400 dark:text-slate-500">
                           {formatDateTime(selectedSession.startedAt)}
                         </p>
                       </div>
@@ -542,12 +547,14 @@ export default function DashboardPage() {
 
                 {/* Real-time Conversation Viewer */}
                 <Card className="flex flex-1 flex-col">
-                  <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+                  <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-800">
                     <div className="flex items-center gap-2">
                       <div className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
-                      <h3 className="text-sm font-semibold text-slate-900">Live Conversation</h3>
+                      <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                        Live Conversation
+                      </h3>
                     </div>
-                    <span className="text-xs text-slate-400">
+                    <span className="text-xs text-slate-400 dark:text-slate-500">
                       {sessionTurns.length} turn
                       {sessionTurns.length !== 1 ? 's' : ''}
                     </span>
@@ -557,9 +564,11 @@ export default function DashboardPage() {
                     {sessionTurns.length === 0 ? (
                       <div className="flex h-full items-center justify-center">
                         <div className="text-center">
-                          <MessageSquare className="mx-auto mb-2 h-8 w-8 text-slate-300" />
-                          <p className="text-xs text-slate-400">Waiting for conversation...</p>
-                          <p className="mt-1 text-[10px] text-slate-300">
+                          <MessageSquare className="mx-auto mb-2 h-8 w-8 text-slate-300 dark:text-slate-600" />
+                          <p className="text-xs text-slate-400 dark:text-slate-500">
+                            Waiting for conversation...
+                          </p>
+                          <p className="mt-1 text-[10px] text-slate-300 dark:text-slate-600">
                             Turns appear here in real-time
                           </p>
                         </div>
@@ -577,13 +586,15 @@ export default function DashboardPage() {
                             {/* AI Message */}
                             {turn.speaker === 'ai' && (
                               <div className="flex max-w-[85%] gap-2">
-                                <div className="bg-ayutalk-100 text-ayutalk-600 mt-1 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold">
+                                <div className="bg-ayutalk-100 text-ayutalk-600 dark:bg-ayutalk-900/50 dark:text-ayutalk-400 mt-1 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold">
                                   AI
                                 </div>
-                                <div className="rounded-xl rounded-tl-sm bg-slate-100 px-3 py-2">
-                                  <p className="text-xs text-slate-700">{turn.text}</p>
+                                <div className="rounded-xl rounded-tl-sm bg-slate-100 px-3 py-2 dark:bg-slate-800">
+                                  <p className="text-xs text-slate-700 dark:text-slate-300">
+                                    {turn.text}
+                                  </p>
                                   {turn.timestamp && (
-                                    <p className="mt-1 text-[10px] text-slate-400">
+                                    <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">
                                       {formatTime(turn.timestamp)}
                                     </p>
                                   )}
@@ -594,7 +605,7 @@ export default function DashboardPage() {
                             {/* Patient Message */}
                             {turn.speaker === 'patient' && (
                               <div className="flex max-w-[85%] flex-row-reverse gap-2">
-                                <div className="mt-1 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-slate-200 text-[10px] font-bold text-slate-600">
+                                <div className="mt-1 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-slate-200 text-[10px] font-bold text-slate-600 dark:bg-slate-700 dark:text-slate-300">
                                   P
                                 </div>
                                 <div className="bg-ayutalk-500 rounded-xl rounded-tr-sm px-3 py-2">
@@ -619,7 +630,7 @@ export default function DashboardPage() {
                 {selectedBrief && (
                   <Card className="p-4">
                     <div className="mb-3 flex items-center justify-between">
-                      <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                         Clinical Brief
                       </h3>
                       <Badge variant="success" size="sm">
@@ -629,17 +640,19 @@ export default function DashboardPage() {
 
                     <div className="space-y-3">
                       <div>
-                        <p className="text-[10px] font-medium uppercase text-slate-400">
+                        <p className="text-[10px] font-medium uppercase text-slate-400 dark:text-slate-500">
                           Chief Complaint
                         </p>
-                        <p className="mt-0.5 text-sm font-medium text-slate-900">
+                        <p className="mt-0.5 text-sm font-medium text-slate-900 dark:text-white">
                           {selectedBrief.brief.chiefComplaint ?? 'N/A'}
                         </p>
                       </div>
 
                       <div>
-                        <p className="text-[10px] font-medium uppercase text-slate-400">Summary</p>
-                        <p className="mt-0.5 text-xs leading-relaxed text-slate-600">
+                        <p className="text-[10px] font-medium uppercase text-slate-400 dark:text-slate-500">
+                          Summary
+                        </p>
+                        <p className="mt-0.5 text-xs leading-relaxed text-slate-600 dark:text-slate-400">
                           {selectedBrief.brief.summary ?? 'No summary'}
                         </p>
                       </div>
@@ -654,7 +667,7 @@ export default function DashboardPage() {
                               {selectedBrief.brief.riskFlags.map((flag) => (
                                 <span
                                   key={flag}
-                                  className="inline-flex items-center rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-medium text-red-700 ring-1 ring-red-200"
+                                  className="inline-flex items-center rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-medium text-red-700 ring-1 ring-red-200 dark:bg-red-900/30 dark:text-red-400 dark:ring-red-800"
                                 >
                                   ⚠ {flag}
                                 </span>
@@ -666,14 +679,14 @@ export default function DashboardPage() {
                       {selectedBrief.brief.vitalsToCheck &&
                         selectedBrief.brief.vitalsToCheck.length > 0 && (
                           <div>
-                            <p className="text-[10px] font-medium uppercase text-slate-400">
+                            <p className="text-[10px] font-medium uppercase text-slate-400 dark:text-slate-500">
                               Vitals to Check
                             </p>
                             <div className="mt-1 flex flex-wrap gap-1">
                               {selectedBrief.brief.vitalsToCheck.map((vital) => (
                                 <span
                                   key={vital}
-                                  className="bg-ayutalk-50 text-ayutalk-700 ring-ayutalk-200 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ring-1"
+                                  className="bg-ayutalk-50 text-ayutalk-700 ring-ayutalk-200 dark:bg-ayutalk-900/30 dark:text-ayutalk-400 dark:ring-ayutalk-800 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ring-1"
                                 >
                                   {vital}
                                 </span>

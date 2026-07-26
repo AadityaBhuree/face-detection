@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useFaceEmbedding } from '@/hooks/useFaceEmbedding';
 import { useFaceStore } from '@/stores/face-store';
 import { faceApi } from '@/services/api';
 
@@ -21,7 +20,6 @@ export function FaceRegistrationDialog({
   onCancel,
   isOpen,
 }: FaceRegistrationDialogProps) {
-  const { registerEmbedding, isSearching } = useFaceEmbedding();
   const livenessStatus = useFaceStore((s) => s.livenessStatus);
 
   const [name, setName] = useState('');
@@ -83,12 +81,12 @@ export function FaceRegistrationDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
+      <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-700 dark:bg-slate-900">
         {/* Header */}
         <div className="mb-5 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-ayutalk-100">
+          <div className="bg-ayutalk-100 dark:bg-ayutalk-900/50 flex h-10 w-10 items-center justify-center rounded-xl">
             <svg
-              className="h-5 w-5 text-ayutalk-600"
+              className="text-ayutalk-600 dark:text-ayutalk-400 h-5 w-5"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -102,10 +100,10 @@ export function FaceRegistrationDialog({
             </svg>
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-slate-900">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
               New Patient Registration
             </h2>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               No matching patient found. Register a new patient.
             </p>
           </div>
@@ -115,7 +113,7 @@ export function FaceRegistrationDialog({
         <div className="space-y-4">
           {/* Name */}
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-slate-700">
+            <label className="mb-1.5 block text-xs font-medium text-slate-700 dark:text-slate-300">
               Full Name
             </label>
             <input
@@ -123,7 +121,7 @@ export function FaceRegistrationDialog({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g., Priya Sharma"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm transition-colors focus:border-ayutalk-500 focus:outline-none focus:ring-1 focus:ring-ayutalk-500"
+              className="focus:border-ayutalk-500 focus:ring-ayutalk-500 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 transition-colors focus:outline-none focus:ring-1 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
               disabled={isRegistering}
               autoFocus
             />
@@ -131,7 +129,7 @@ export function FaceRegistrationDialog({
 
           {/* DOB */}
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-slate-700">
+            <label className="mb-1.5 block text-xs font-medium text-slate-700 dark:text-slate-300">
               Date of Birth
             </label>
             <input
@@ -139,14 +137,14 @@ export function FaceRegistrationDialog({
               value={dob}
               onChange={(e) => setDob(e.target.value)}
               max={new Date().toISOString().split('T')[0]}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm transition-colors focus:border-ayutalk-500 focus:outline-none focus:ring-1 focus:ring-ayutalk-500"
+              className="focus:border-ayutalk-500 focus:ring-ayutalk-500 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 transition-colors focus:outline-none focus:ring-1 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
               disabled={isRegistering}
             />
           </div>
 
           {/* Mobile */}
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-slate-700">
+            <label className="mb-1.5 block text-xs font-medium text-slate-700 dark:text-slate-300">
               Mobile Number
             </label>
             <input
@@ -154,39 +152,38 @@ export function FaceRegistrationDialog({
               value={mobile}
               onChange={(e) => setMobile(e.target.value)}
               placeholder="+919876543210"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm transition-colors focus:border-ayutalk-500 focus:outline-none focus:ring-1 focus:ring-ayutalk-500"
+              className="focus:border-ayutalk-500 focus:ring-ayutalk-500 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 transition-colors focus:outline-none focus:ring-1 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
               disabled={isRegistering}
             />
           </div>
 
           {/* Consent */}
-          <label className="flex items-start gap-3 rounded-lg bg-slate-50 p-3">
+          <label className="flex items-start gap-3 rounded-lg bg-slate-50 p-3 dark:bg-slate-800/50">
             <input
               type="checkbox"
               checked={consent}
               onChange={(e) => setConsent(e.target.checked)}
-              className="mt-0.5 h-4 w-4 rounded border-slate-300 text-ayutalk-500 focus:ring-ayutalk-500"
+              className="text-ayutalk-500 focus:ring-ayutalk-500 mt-0.5 h-4 w-4 rounded border-slate-300 dark:border-slate-600"
               disabled={isRegistering}
             />
-            <span className="text-xs leading-relaxed text-slate-600">
-              I consent to the capture and storage of my facial data for
-              identification purposes during clinic visits. This data will be
-              encrypted and stored securely in accordance with applicable
-              privacy regulations.
+            <span className="text-xs leading-relaxed text-slate-600 dark:text-slate-400">
+              I consent to the capture and storage of my facial data for identification purposes
+              during clinic visits. This data will be encrypted and stored securely in accordance
+              with applicable privacy regulations.
             </span>
           </label>
 
           {/* Liveness warning */}
           {livenessStatus !== 'verified' && (
-            <div className="rounded-lg bg-amber-50 p-3 text-xs text-amber-700 ring-1 ring-amber-200">
-              ⚠ Liveness check required. Please look at the camera and blink
-              naturally when prompted.
+            <div className="rounded-lg bg-amber-50 p-3 text-xs text-amber-700 ring-1 ring-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:ring-amber-800">
+              ⚠ Liveness check required. Please look at the camera and blink naturally when
+              prompted.
             </div>
           )}
 
           {/* Error */}
           {error && (
-            <div className="rounded-lg bg-red-50 p-3 text-xs text-red-600 ring-1 ring-red-200">
+            <div className="rounded-lg bg-red-50 p-3 text-xs text-red-600 ring-1 ring-red-200 dark:bg-red-950/30 dark:text-red-400 dark:ring-red-800">
               {error}
             </div>
           )}
@@ -196,7 +193,7 @@ export function FaceRegistrationDialog({
         <div className="mt-6 flex gap-3">
           <button
             onClick={onCancel}
-            className="flex flex-1 items-center justify-center rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"
+            className="flex flex-1 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-transparent dark:text-slate-400 dark:hover:bg-slate-800"
             disabled={isRegistering}
           >
             Cancel
@@ -204,7 +201,7 @@ export function FaceRegistrationDialog({
           <button
             onClick={handleRegister}
             disabled={isRegistering || !consent || livenessStatus !== 'verified'}
-            className="flex flex-1 items-center justify-center rounded-lg bg-ayutalk-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-ayutalk-600 disabled:cursor-not-allowed disabled:opacity-50"
+            className="bg-ayutalk-500 hover:bg-ayutalk-600 flex flex-1 items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isRegistering ? (
               <span className="flex items-center gap-2">

@@ -26,9 +26,9 @@ export function TranscriptView({ entries, onStartIntake }: TranscriptViewProps) 
     <div className="space-y-3">
       {entries.length === 0 && (
         <div className="flex flex-col items-center justify-center py-12 text-center">
-          <div className="mb-3 rounded-full bg-ayutalk-100 p-3">
+          <div className="bg-ayutalk-100 dark:bg-ayutalk-900/50 mb-3 rounded-full p-3">
             <svg
-              className="h-6 w-6 text-ayutalk-500"
+              className="text-ayutalk-500 dark:text-ayutalk-400 h-6 w-6"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -41,15 +41,15 @@ export function TranscriptView({ entries, onStartIntake }: TranscriptViewProps) 
               />
             </svg>
           </div>
-          <p className="mb-1 text-sm font-medium text-slate-700">
+          <p className="mb-1 text-sm font-medium text-slate-700 dark:text-slate-300">
             Ready to begin the intake conversation
           </p>
-          <p className="mb-4 text-xs text-slate-400">
+          <p className="mb-4 text-xs text-slate-400 dark:text-slate-500">
             The AI assistant will ask about symptoms, duration, and medical history
           </p>
           <button
             onClick={onStartIntake}
-            className="rounded-lg bg-ayutalk-500 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-ayutalk-600"
+            className="bg-ayutalk-500 hover:bg-ayutalk-600 rounded-lg px-4 py-2 text-sm font-medium text-white transition-all"
           >
             Start AI Intake
           </button>
@@ -59,21 +59,18 @@ export function TranscriptView({ entries, onStartIntake }: TranscriptViewProps) 
       {entries.map((entry) => (
         <div
           key={entry.id}
-          className={cn(
-            'flex gap-3',
-            entry.speaker === 'patient' && 'flex-row-reverse',
-          )}
+          className={cn('flex gap-3', entry.speaker === 'patient' && 'flex-row-reverse')}
         >
           {/* Avatar */}
           <div
             className={cn(
               'flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold',
               entry.speaker === 'ai' &&
-                'bg-ayutalk-100 text-ayutalk-600',
+                'bg-ayutalk-100 text-ayutalk-600 dark:bg-ayutalk-900/50 dark:text-ayutalk-400',
               entry.speaker === 'patient' &&
-                'bg-emerald-100 text-emerald-600',
+                'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400',
               entry.speaker === 'system' &&
-                'bg-slate-100 text-slate-500',
+                'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400',
             )}
           >
             {entry.speaker === 'ai' ? 'AI' : entry.speaker === 'patient' ? 'P' : 'S'}
@@ -84,15 +81,15 @@ export function TranscriptView({ entries, onStartIntake }: TranscriptViewProps) 
             className={cn(
               'max-w-[80%] rounded-xl px-4 py-2.5 text-sm',
               entry.speaker === 'ai' &&
-                'rounded-bl-sm bg-ayutalk-50 text-slate-800',
+                'bg-ayutalk-50 dark:bg-ayutalk-950/50 rounded-bl-sm text-slate-800 dark:text-slate-200',
               entry.speaker === 'patient' &&
-                'rounded-br-sm bg-emerald-50 text-slate-800',
+                'rounded-br-sm bg-emerald-50 text-slate-800 dark:bg-emerald-950/50 dark:text-slate-200',
               entry.speaker === 'system' &&
-                'rounded-br-sm bg-slate-100 text-slate-500',
+                'rounded-br-sm bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400',
             )}
           >
             <p className="leading-relaxed">{entry.text}</p>
-            <p className="mt-1 text-[10px] text-slate-400">
+            <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">
               {new Date(entry.timestamp).toLocaleTimeString()}
             </p>
           </div>

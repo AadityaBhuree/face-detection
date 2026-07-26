@@ -100,9 +100,9 @@ export function VoiceInput({
   const displayPlaceholder = isRecording ? 'Listening...' : placeholder;
 
   return (
-    <div className="border-t border-slate-100 bg-white p-4">
+    <div className="border-t border-slate-100 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
       {isComplete ? (
-        <div className="flex items-center justify-center rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700 ring-1 ring-emerald-200">
+        <div className="flex items-center justify-center rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:ring-emerald-800">
           <svg
             className="mr-2 h-4 w-4 flex-shrink-0"
             fill="none"
@@ -128,10 +128,10 @@ export function VoiceInput({
             className={cn(
               'relative flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full transition-all',
               isRecording
-                ? 'animate-pulse-ring bg-red-500 text-white shadow-lg shadow-red-200'
+                ? 'animate-pulse-ring bg-red-500 text-white shadow-lg shadow-red-200 dark:shadow-red-900/50'
                 : micSupported
-                  ? 'hover:text-ayutalk-600 bg-slate-100 text-slate-500 hover:bg-slate-200'
-                  : 'cursor-not-allowed bg-slate-100 text-slate-300',
+                  ? 'hover:text-ayutalk-600 dark:hover:text-ayutalk-400 bg-slate-100 text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700'
+                  : 'cursor-not-allowed bg-slate-100 text-slate-300 dark:bg-slate-800 dark:text-slate-600',
               'disabled:cursor-not-allowed disabled:opacity-50',
             )}
             title={
@@ -205,7 +205,7 @@ export function VoiceInput({
           {/* Text Input */}
           <div className="relative flex-1">
             {disabled && !isRecording && (
-              <div className="absolute inset-0 z-10 flex items-center px-3 text-sm text-slate-400">
+              <div className="absolute inset-0 z-10 flex items-center px-3 text-sm text-slate-400 dark:text-slate-500">
                 <span className="flex items-center gap-2">
                   <span className="flex gap-0.5">
                     <span
@@ -221,13 +221,15 @@ export function VoiceInput({
                       style={{ animationDelay: '300ms' }}
                     />
                   </span>
-                  <span className="text-xs text-slate-400">AI is thinking...</span>
+                  <span className="text-xs text-slate-400 dark:text-slate-500">
+                    AI is thinking...
+                  </span>
                 </span>
               </div>
             )}
 
             {isRecording && interimOverride && (
-              <div className="absolute inset-0 z-10 flex items-center px-3 text-sm italic text-slate-600">
+              <div className="absolute inset-0 z-10 flex items-center px-3 text-sm italic text-slate-600 dark:text-slate-300">
                 <span className="truncate">{interimOverride}</span>
                 <span className="bg-ayutalk-500 ml-0.5 h-4 w-[2px] animate-pulse" />
               </div>
@@ -246,11 +248,11 @@ export function VoiceInput({
               placeholder={displayPlaceholder}
               disabled={disabled || isRecording}
               className={cn(
-                'w-full rounded-lg border bg-slate-50 px-3 py-2 text-sm transition-colors',
-                'placeholder:text-slate-400',
-                'focus:border-ayutalk-400 focus:ring-ayutalk-100 focus:outline-none focus:ring-2',
+                'w-full rounded-lg border bg-slate-50 px-3 py-2 text-sm transition-colors dark:border-slate-700 dark:bg-slate-800',
+                'placeholder:text-slate-400 dark:placeholder:text-slate-500',
+                'focus:border-ayutalk-400 focus:ring-ayutalk-100 dark:focus:ring-ayutalk-900/50 focus:outline-none focus:ring-2',
                 'disabled:cursor-not-allowed disabled:opacity-100',
-                isRecording ? 'text-transparent' : 'text-slate-900',
+                isRecording ? 'text-transparent' : 'text-slate-900 dark:text-slate-100',
                 disabled && 'text-transparent',
               )}
               autoComplete="off"
@@ -259,7 +261,7 @@ export function VoiceInput({
 
           {/* Recording Duration Badge */}
           {isRecording && (
-            <div className="flex flex-shrink-0 items-center gap-1.5 rounded-full bg-red-50 px-2.5 py-1 text-xs font-medium text-red-600 ring-1 ring-red-200">
+            <div className="flex flex-shrink-0 items-center gap-1.5 rounded-full bg-red-50 px-2.5 py-1 text-xs font-medium text-red-600 ring-1 ring-red-200 dark:bg-red-950/30 dark:text-red-400 dark:ring-red-800">
               <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-500" />
               {recordingDurationSec}s
             </div>
@@ -274,7 +276,7 @@ export function VoiceInput({
                 'flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg transition-all',
                 value.trim() && !disabled
                   ? 'bg-ayutalk-500 hover:bg-ayutalk-600 text-white shadow-sm'
-                  : 'bg-slate-100 text-slate-400',
+                  : 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500',
                 'disabled:cursor-not-allowed',
               )}
             >
@@ -296,7 +298,7 @@ export function VoiceInput({
 
           {/* Permission Error Toast */}
           {permissionError && (
-            <div className="absolute bottom-full left-0 right-0 mb-2 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600 shadow-sm ring-1 ring-red-200">
+            <div className="absolute bottom-full left-0 right-0 mb-2 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600 shadow-sm ring-1 ring-red-200 dark:bg-red-950/30 dark:text-red-400 dark:ring-red-800">
               {permissionError}
             </div>
           )}

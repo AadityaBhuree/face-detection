@@ -35,7 +35,11 @@ export class SessionTimeoutWorker extends WorkerHost implements OnModuleInit {
 
   async onModuleInit(): Promise<void> {
     // Remove any stale repeatable jobs from previous runs
-    await this.timeoutQueue.removeRepeatableByKey('session-timeout-sweep');
+    await this.timeoutQueue
+      .removeRepeatable('session-timeout-sweep', { every: 60_000 })
+      .catch(() => {
+        // Expected on first run — no existing repeatable job to clean up
+      });
 
     // Schedule the timeout sweep every 60 seconds
     await this.timeoutQueue.add(

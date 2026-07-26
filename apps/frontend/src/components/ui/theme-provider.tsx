@@ -57,7 +57,7 @@ interface ThemeProviderProps {
 
 export function ThemeProvider({ children, forcedTheme }: ThemeProviderProps) {
   const [theme, setThemeState] = useState<Theme>(() => forcedTheme ?? getStoredTheme() ?? 'system');
-  const [systemPrefersDark, setSystemPrefersDark] = useState(() => getSystemPreference());
+  const [systemPrefersDark, setSystemPrefersDark] = useState(false);
 
   // Compute resolved theme from theme choice + system preference
   const resolvedTheme = useMemo<ResolvedTheme>(() => {
@@ -71,8 +71,12 @@ export function ThemeProvider({ children, forcedTheme }: ThemeProviderProps) {
     applyThemeClass(resolvedTheme);
   }, [resolvedTheme]);
 
-  // Listen for system preference changes only (initial value from lazy useState)
+  // Initialize systemPrefersDark to match client (override SSR false default)
+  // Listen for system preference changes
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSystemPrefersDark(getSystemPreference());
+
     const mq = window.matchMedia(MEDIA_QUERY);
     const handler = (e: MediaQueryListEvent) => {
       setSystemPrefersDark(e.matches);

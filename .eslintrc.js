@@ -1,15 +1,21 @@
 module.exports = {
   root: true,
+  env: {
+    node: true,
+    browser: true,
+    es2022: true,
+  },
   parser: '@typescript-eslint/parser',
   parserOptions: {
     ecmaVersion: 2022,
     sourceType: 'module',
   },
-  plugins: ['@typescript-eslint'],
+  plugins: ['@typescript-eslint', 'react-hooks'],
   extends: [
     'eslint:recommended',
     'plugin:@typescript-eslint/recommended',
     'plugin:@typescript-eslint/strict',
+    'plugin:react-hooks/recommended',
     'prettier',
   ],
   rules: {
@@ -20,20 +26,10 @@ module.exports = {
     '@typescript-eslint/explicit-function-return-type': 'off',
     '@typescript-eslint/explicit-module-boundary-types': 'off',
     '@typescript-eslint/no-explicit-any': 'error',
-    '@typescript-eslint/consistent-type-imports': [
-      'error',
-      { prefer: 'type-imports' },
-    ],
+    '@typescript-eslint/consistent-type-imports': ['error', { prefer: 'type-imports' }],
     '@typescript-eslint/no-non-null-assertion': 'warn',
     'no-console': ['warn', { allow: ['warn', 'error'] }],
     'no-debugger': 'error',
   },
-  ignorePatterns: [
-    'node_modules',
-    'dist',
-    '.next',
-    'coverage',
-    '*.js',
-    '!.eslintrc.js',
-  ],
+  ignorePatterns: ['node_modules', 'dist', '.next', 'coverage', '*.js', '!.eslintrc.js'],
 };

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { useSessionStore } from '@/stores/session-store';
 import { useFaceStore } from '@/stores/face-store';
@@ -9,7 +9,6 @@ import { useFaceDetection } from '@/hooks/useFaceDetection';
 import { useFaceEmbedding } from '@/hooks/useFaceEmbedding';
 import { useLivenessDetection } from '@/hooks/useLivenessDetection';
 import { useIntakeConversation } from '@/hooks/useIntakeConversation';
-import { intakeApi } from '@/services/api';
 import { socketService } from '@/services/socket';
 import { cn } from '@/lib/utils';
 import { TranscriptView } from '@/components/intake/transcript-view';
@@ -23,14 +22,17 @@ type IntakePhase = 'camera' | 'detecting' | 'intake' | 'brief' | 'complete';
 export default function IntakeSessionPage() {
   const params = useParams<{ sessionId: string }>();
   const sessionId = params.sessionId;
-  const { videoRef, isActive, startCamera, stopCamera } =
-    useCamera({ facingMode: 'user' });
+  const { videoRef, isActive, startCamera, stopCamera } = useCamera({ facingMode: 'user' });
 
   const session = useSessionStore();
   const face = useFaceStore();
 
   const [phase, setPhase] = useState<IntakePhase>('camera');
   const [showRegistration, setShowRegistration] = useState(false);
+  const [videoDimensions, setVideoDimensions] = useState({
+    width: 640,
+    height: 480,
+  });
   const registrationAttemptedRef = useRef(false);
   const conversationStartedRef = useRef(false);
 
@@ -61,24 +63,24 @@ export default function IntakeSessionPage() {
   // ─── Face Embedding & Identity Search ────────────────────────
   const {
     embedding,
-    matchResult,
+    matchResult: _matchResult,
     isSearching: isSearchingEmbedding,
-    error: embeddingError,
+    error: _embeddingError,
     searchIdentity,
     generateFromLandmarks,
-    registerEmbedding,
-    reset: resetEmbedding,
+    registerEmbedding: _registerEmbedding,
+    reset: _resetEmbedding,
   } = useFaceEmbedding();
 
   // ─── Liveness Detection ──────────────────────────────────────
   const {
     status: livenessStatus,
     blinkCount,
-    ear,
+    ear: _ear,
     isAlive,
     startChallenge,
     processFrame: processLivenessFrame,
-    reset: resetLiveness,
+    reset: _resetLiveness,
   } = useLivenessDetection({
     requiredBlinks: 2,
     challengeTimeoutMs: 8000,
@@ -112,6 +114,12 @@ export default function IntakeSessionPage() {
       face.setStatus('detecting');
       setPhase('detecting');
 
+      // Store video dimensions for the canvas overlay
+      setVideoDimensions({
+        width: videoRef.current.videoWidth || 640,
+        height: videoRef.current.videoHeight || 480,
+      });
+
       // Auto-start liveness challenge
       setTimeout(() => startChallenge(), 1000);
     } else {
@@ -122,12 +130,7 @@ export default function IntakeSessionPage() {
 
   // ─── Identity Search (when face is stable and liveness verified) ───
   useEffect(() => {
-    if (
-      isAlive &&
-      detectionResult &&
-      isFaceDetected &&
-      !registrationAttemptedRef.current
-    ) {
+    if (isAlive && detectionResult && isFaceDetected && !registrationAttemptedRef.current) {
       registrationAttemptedRef.current = true;
 
       const runIdentitySearch = async () => {
@@ -146,7 +149,7 @@ export default function IntakeSessionPage() {
 
             // Fetch patient details
             try {
-              const brief = await import('@/services/api').then((m) =>
+              await import('@/services/api').then((m) =>
                 m.dashboardApi.getLatestBrief(result.patientId),
               );
               session.setPatient({
@@ -171,10 +174,7 @@ export default function IntakeSessionPage() {
             // Auto-start the AI intake conversation
             if (!conversationStartedRef.current) {
               conversationStartedRef.current = true;
-              conversation.startConversation(
-                result.patientName ?? 'Patient',
-                result.patientId,
-              );
+              conversation.startConversation(result.patientName ?? 'Patient', result.patientId);
             }
             setPhase('intake');
 
@@ -196,7 +196,8 @@ export default function IntakeSessionPage() {
 
   useEffect(() => {
     const unsubStatus = socketService.onSessionStatus((data) => {
-      session.setStatus(data.status as SessionStatus);
+      const statusData = data as { status?: string };
+      session.setStatus((statusData.status ?? 'idle') as never);
     });
 
     const unsubBrief = socketService.onBriefReady((data) => {
@@ -227,16 +228,12 @@ export default function IntakeSessionPage() {
       {/* Header */}
       <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3">
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-ayutalk-500">
+          <div className="bg-ayutalk-500 flex h-8 w-8 items-center justify-center rounded-lg">
             <span className="text-xs font-bold text-white">AC</span>
           </div>
           <div>
-            <h1 className="text-sm font-semibold text-slate-900">
-              Intake Session
-            </h1>
-            <p className="text-xs text-slate-500">
-              {session.patient?.name ?? 'Unknown Patient'}
-            </p>
+            <h1 className="text-sm font-semibold text-slate-900">Intake Session</h1>
+            <p className="text-xs text-slate-500">{session.patient?.name ?? 'Unknown Patient'}</p>
           </div>
         </div>
 
@@ -244,8 +241,7 @@ export default function IntakeSessionPage() {
           <span
             className={cn(
               'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium',
-              session.status === 'intake_in_progress' &&
-                'bg-amber-100 text-amber-700',
+              session.status === 'intake_in_progress' && 'bg-amber-100 text-amber-700',
               session.status === 'face_matched' && 'bg-emerald-100 text-emerald-700',
               session.status === 'ready' && 'bg-blue-100 text-blue-700',
               session.status === 'error' && 'bg-red-100 text-red-700',
@@ -269,14 +265,11 @@ export default function IntakeSessionPage() {
           <div className="relative overflow-hidden rounded-xl bg-black shadow-lg">
             {/* Video */}
             <video
-              ref={videoRef}
+              ref={videoRef as React.RefObject<HTMLVideoElement>}
               autoPlay
               playsInline
               muted
-              className={cn(
-                'h-[320px] w-full object-cover',
-                !isActive && 'hidden',
-              )}
+              className={cn('h-[320px] w-full object-cover', !isActive && 'hidden')}
             />
 
             {/* Camera Placeholder */}
@@ -303,8 +296,8 @@ export default function IntakeSessionPage() {
             {isActive && detectionResult && (
               <FaceDetectionCanvas
                 landmarks={detectionResult.landmarks}
-                videoWidth={videoRef.current?.videoWidth ?? 640}
-                videoHeight={videoRef.current?.videoHeight ?? 480}
+                videoWidth={videoDimensions.width}
+                videoHeight={videoDimensions.height}
                 isFaceDetected={isFaceDetected}
                 matchColor={face.status === 'matched' ? '#22c55e' : '#0c8ee6'}
                 drawLandmarks
@@ -335,9 +328,7 @@ export default function IntakeSessionPage() {
               <div className="absolute inset-0 flex items-center justify-center bg-black/40">
                 <div className="text-center">
                   <div className="mx-auto mb-3 h-10 w-10 animate-spin rounded-full border-4 border-white/20 border-t-white" />
-                  <p className="text-sm font-medium text-white">
-                    Loading face detection model...
-                  </p>
+                  <p className="text-sm font-medium text-white">Loading face detection model...</p>
                 </div>
               </div>
             )}
@@ -351,7 +342,7 @@ export default function IntakeSessionPage() {
                   </div>
                 )}
                 {isSearchingEmbedding && (
-                  <div className="rounded-lg bg-ayutalk-500/80 px-3 py-1.5 text-xs font-medium text-white shadow-lg backdrop-blur-sm">
+                  <div className="bg-ayutalk-500/80 rounded-lg px-3 py-1.5 text-xs font-medium text-white shadow-lg backdrop-blur-sm">
                     Searching identity...
                   </div>
                 )}
@@ -369,7 +360,7 @@ export default function IntakeSessionPage() {
             {!isActive ? (
               <button
                 onClick={startCamera}
-                className="flex flex-1 items-center justify-center rounded-lg bg-ayutalk-500 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-ayutalk-600"
+                className="bg-ayutalk-500 hover:bg-ayutalk-600 flex flex-1 items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition-all"
               >
                 <svg
                   className="mr-2 h-4 w-4"
@@ -426,16 +417,14 @@ export default function IntakeSessionPage() {
                 Identified Patient
               </h3>
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-ayutalk-100 text-sm font-bold text-ayutalk-600">
+                <div className="bg-ayutalk-100 text-ayutalk-600 flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold">
                   {session.patient.name
                     .split(' ')
                     .map((n) => n[0])
                     .join('')}
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-slate-900">
-                    {session.patient.name}
-                  </p>
+                  <p className="text-sm font-semibold text-slate-900">{session.patient.name}</p>
                   <p className="text-xs text-slate-500">
                     DOB: {session.patient.dob} &middot; {session.patient.mobile}
                   </p>
@@ -453,21 +442,30 @@ export default function IntakeSessionPage() {
               <div className="flex flex-1 flex-col rounded-xl border border-slate-200 bg-white shadow-sm">
                 <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
                   <div className="flex items-center gap-2">
-                    <div className={cn(
-                      'h-2 w-2 rounded-full',
-                      conversation.isAiThinking ? 'bg-amber-400 animate-pulse' : 'bg-emerald-500'
-                    )} />
-                    <h3 className="text-sm font-semibold text-slate-900">
-                      AI Voice Intake
-                    </h3>
+                    <div
+                      className={cn(
+                        'h-2 w-2 rounded-full',
+                        conversation.isAiThinking ? 'animate-pulse bg-amber-400' : 'bg-emerald-500',
+                      )}
+                    />
+                    <h3 className="text-sm font-semibold text-slate-900">AI Voice Intake</h3>
                   </div>
                   <div className="flex items-center gap-2">
                     {conversation.isAiThinking && (
                       <span className="flex items-center gap-1.5 text-xs text-amber-600">
                         <span className="flex gap-0.5">
-                          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-amber-400" style={{ animationDelay: '0ms' }} />
-                          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-amber-400" style={{ animationDelay: '150ms' }} />
-                          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-amber-400" style={{ animationDelay: '300ms' }} />
+                          <span
+                            className="h-1.5 w-1.5 animate-bounce rounded-full bg-amber-400"
+                            style={{ animationDelay: '0ms' }}
+                          />
+                          <span
+                            className="h-1.5 w-1.5 animate-bounce rounded-full bg-amber-400"
+                            style={{ animationDelay: '150ms' }}
+                          />
+                          <span
+                            className="h-1.5 w-1.5 animate-bounce rounded-full bg-amber-400"
+                            style={{ animationDelay: '300ms' }}
+                          />
                         </span>
                         Thinking
                       </span>
@@ -492,7 +490,7 @@ export default function IntakeSessionPage() {
                     <div className="flex h-full items-center justify-center">
                       <div className="text-center">
                         <svg
-                          className="mx-auto mb-3 h-10 w-10 text-ayutalk-300"
+                          className="text-ayutalk-300 mx-auto mb-3 h-10 w-10"
                           fill="none"
                           viewBox="0 0 24 24"
                           stroke="currentColor"
@@ -507,14 +505,22 @@ export default function IntakeSessionPage() {
                         <p className="text-sm text-slate-400">
                           {conversation.isAiThinking
                             ? 'AI is preparing your intake conversation...'
-                            : 'Starting AI intake conversation...'
-                          }
+                            : 'Starting AI intake conversation...'}
                         </p>
                         {conversation.isAiThinking && (
                           <div className="mt-3 flex justify-center gap-1">
-                            <span className="h-2 w-2 animate-bounce rounded-full bg-ayutalk-400" style={{ animationDelay: '0ms' }} />
-                            <span className="h-2 w-2 animate-bounce rounded-full bg-ayutalk-400" style={{ animationDelay: '150ms' }} />
-                            <span className="h-2 w-2 animate-bounce rounded-full bg-ayutalk-400" style={{ animationDelay: '300ms' }} />
+                            <span
+                              className="bg-ayutalk-400 h-2 w-2 animate-bounce rounded-full"
+                              style={{ animationDelay: '0ms' }}
+                            />
+                            <span
+                              className="bg-ayutalk-400 h-2 w-2 animate-bounce rounded-full"
+                              style={{ animationDelay: '150ms' }}
+                            />
+                            <span
+                              className="bg-ayutalk-400 h-2 w-2 animate-bounce rounded-full"
+                              style={{ animationDelay: '300ms' }}
+                            />
                           </div>
                         )}
                       </div>
@@ -546,7 +552,7 @@ export default function IntakeSessionPage() {
                 <div className="flex gap-3">
                   <button
                     onClick={handleCompleteIntake}
-                    className="flex flex-1 items-center justify-center rounded-lg bg-ayutalk-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-ayutalk-600 active:scale-[0.98]"
+                    className="bg-ayutalk-500 hover:bg-ayutalk-600 flex flex-1 items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all active:scale-[0.98]"
                   >
                     <svg
                       className="mr-2 h-4 w-4"
@@ -584,7 +590,7 @@ export default function IntakeSessionPage() {
                 />
               ) : (
                 <div className="flex flex-col items-center gap-3 text-center">
-                  <div className="h-12 w-12 animate-spin rounded-full border-4 border-ayutalk-200 border-t-ayutalk-500" />
+                  <div className="border-ayutalk-200 border-t-ayutalk-500 h-12 w-12 animate-spin rounded-full border-4" />
                   <p className="text-sm text-slate-500">Loading clinical brief...</p>
                 </div>
               )}
@@ -607,12 +613,10 @@ export default function IntakeSessionPage() {
                     d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"
                   />
                 </svg>
-                <h3 className="mb-2 text-lg font-semibold text-slate-900">
-                  Start Patient Intake
-                </h3>
+                <h3 className="mb-2 text-lg font-semibold text-slate-900">Start Patient Intake</h3>
                 <p className="text-sm text-slate-500">
-                  Enable your camera to begin the face detection process.
-                  We'll identify the patient automatically.
+                  Enable your camera to begin the face detection process. We'll identify the patient
+                  automatically.
                 </p>
               </div>
             </div>

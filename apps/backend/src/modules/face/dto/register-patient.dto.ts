@@ -1,18 +1,23 @@
-import { IsString, IsBoolean, IsArray, IsNumber, IsOptional, Min, Max } from 'class-validator';
+import { IsString, IsBoolean, IsArray, IsNumber, IsOptional, IsDefined, Min, Max } from 'class-validator';
 
 export class RegisterPatientDto {
+  @IsDefined()
   @IsString()
   name!: string;
 
+  @IsDefined()
   @IsString()
   dob!: string;
 
+  @IsDefined()
   @IsString()
   mobile!: string;
 
+  @IsDefined()
   @IsBoolean()
   consent!: boolean;
 
+  @IsDefined()
   @IsArray()
   @IsNumber({}, { each: true })
   embedding!: number[];
@@ -31,6 +36,7 @@ export class PatientSearchResponseDto {
 }
 
 export class SearchByFaceDto {
+  @IsDefined()
   @IsArray()
   @IsNumber({}, { each: true })
   vector!: number[];

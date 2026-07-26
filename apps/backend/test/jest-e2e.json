@@ -3,14 +3,23 @@
   "rootDir": ".",
   "testEnvironment": "node",
   "testRegex": ".e2e-spec.ts$",
+  "setupFiles": ["reflect-metadata"],
   "transform": {
-    "^.+\\.(t|j)s$": "ts-jest"
+    "^.+\\.(t|j)s$": [
+      "ts-jest",
+      {
+        "tsconfig": "tsconfig.e2e.json"
+      }
+    ]
   },
   "moduleNameMapper": {
+    "^@ayutalk/shared-schemas$": "<rootDir>/../../../packages/shared-schemas/src/index.ts",
+    "^@ayutalk/shared-types$": "<rootDir>/../../../packages/shared-types/src/index.ts",
+    "^@ayutalk/shared-utils$": "<rootDir>/../../../packages/shared-utils/src/index.ts",
     "^@/(.*)$": "<rootDir>/../src/$1",
     "^@common/(.*)$": "<rootDir>/../src/common/$1",
     "^@config/(.*)$": "<rootDir>/../src/config/$1",
     "^@modules/(.*)$": "<rootDir>/../src/modules/$1",
-    "^@prisma/(.*)$": "<rootDir>/../src/prisma/$1"
+    "^@prisma/client$": "<rootDir>/../node_modules/@prisma/client"
   }
 }

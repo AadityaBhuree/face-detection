@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
+import Link from 'next/link';
 import { useSessionStore } from '@/stores/session-store';
 import { useFaceStore } from '@/stores/face-store';
 import { useCamera } from '@/hooks/useCamera';
@@ -11,6 +12,7 @@ import { useLivenessDetection } from '@/hooks/useLivenessDetection';
 import { useIntakeConversation } from '@/hooks/useIntakeConversation';
 import { socketService } from '@/services/socket';
 import { cn } from '@/lib/utils';
+import { DarkModeToggle } from '@/components/ui/dark-mode-toggle';
 import { TranscriptView } from '@/components/intake/transcript-view';
 import { VoiceInput } from '@/components/intake/VoiceInput';
 import { FaceDetectionCanvas } from '@/components/face/FaceDetectionCanvas';
@@ -224,27 +226,38 @@ export default function IntakeSessionPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50">
+    <div className="flex min-h-screen flex-col bg-slate-50 dark:bg-slate-950">
       {/* Header */}
-      <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3">
+      <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3 dark:border-slate-800 dark:bg-slate-900">
         <div className="flex items-center gap-3">
-          <div className="bg-ayutalk-500 flex h-8 w-8 items-center justify-center rounded-lg">
-            <span className="text-xs font-bold text-white">AC</span>
-          </div>
-          <div>
-            <h1 className="text-sm font-semibold text-slate-900">Intake Session</h1>
-            <p className="text-xs text-slate-500">{session.patient?.name ?? 'Unknown Patient'}</p>
-          </div>
+          <Link href="/dashboard" className="flex items-center gap-3">
+            <div className="bg-ayutalk-500 flex h-8 w-8 items-center justify-center rounded-lg">
+              <span className="text-xs font-bold text-white">AC</span>
+            </div>
+            <div>
+              <h1 className="text-sm font-semibold text-slate-900 dark:text-white">
+                Intake Session
+              </h1>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {session.patient?.name ?? 'Unknown Patient'}
+              </p>
+            </div>
+          </Link>
         </div>
 
         <div className="flex items-center gap-2">
+          <DarkModeToggle />
           <span
             className={cn(
               'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium',
-              session.status === 'intake_in_progress' && 'bg-amber-100 text-amber-700',
-              session.status === 'face_matched' && 'bg-emerald-100 text-emerald-700',
-              session.status === 'ready' && 'bg-blue-100 text-blue-700',
-              session.status === 'error' && 'bg-red-100 text-red-700',
+              session.status === 'intake_in_progress' &&
+                'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+              session.status === 'face_matched' &&
+                'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+              session.status === 'ready' &&
+                'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+              session.status === 'error' &&
+                'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
             )}
           >
             {session.status === 'idle' && 'Waiting'}
@@ -385,7 +398,7 @@ export default function IntakeSessionPage() {
             ) : (
               <button
                 onClick={stopCamera}
-                className="flex flex-1 items-center justify-center rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-600 transition-all hover:bg-red-100"
+                className="flex flex-1 items-center justify-center rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-600 transition-all hover:bg-red-100 dark:border-red-800 dark:bg-red-950/30 dark:text-red-400 dark:hover:bg-red-950/50"
               >
                 <svg
                   className="mr-2 h-4 w-4"
@@ -412,20 +425,22 @@ export default function IntakeSessionPage() {
 
           {/* Patient Identity Card */}
           {session.patient && phase !== 'camera' && (
-            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 Identified Patient
               </h3>
               <div className="flex items-center gap-3">
-                <div className="bg-ayutalk-100 text-ayutalk-600 flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold">
+                <div className="bg-ayutalk-100 text-ayutalk-600 dark:bg-ayutalk-900/50 dark:text-ayutalk-400 flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold">
                   {session.patient.name
                     .split(' ')
                     .map((n) => n[0])
                     .join('')}
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-slate-900">{session.patient.name}</p>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                    {session.patient.name}
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
                     DOB: {session.patient.dob} &middot; {session.patient.mobile}
                   </p>
                 </div>
@@ -439,8 +454,8 @@ export default function IntakeSessionPage() {
           {phase === 'intake' && (
             <>
               {/* AI Intake Conversation */}
-              <div className="flex flex-1 flex-col rounded-xl border border-slate-200 bg-white shadow-sm">
-                <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+              <div className="flex flex-1 flex-col rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-800">
                   <div className="flex items-center gap-2">
                     <div
                       className={cn(
@@ -448,11 +463,13 @@ export default function IntakeSessionPage() {
                         conversation.isAiThinking ? 'animate-pulse bg-amber-400' : 'bg-emerald-500',
                       )}
                     />
-                    <h3 className="text-sm font-semibold text-slate-900">AI Voice Intake</h3>
+                    <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                      AI Voice Intake
+                    </h3>
                   </div>
                   <div className="flex items-center gap-2">
                     {conversation.isAiThinking && (
-                      <span className="flex items-center gap-1.5 text-xs text-amber-600">
+                      <span className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
                         <span className="flex gap-0.5">
                           <span
                             className="h-1.5 w-1.5 animate-bounce rounded-full bg-amber-400"
@@ -471,13 +488,13 @@ export default function IntakeSessionPage() {
                       </span>
                     )}
                     {!conversation.isAiThinking && !conversation.isIntakeComplete && (
-                      <span className="flex items-center gap-1 text-xs text-slate-400">
+                      <span className="flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500">
                         <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-400" />
                         In conversation
                       </span>
                     )}
                     {conversation.isIntakeComplete && (
-                      <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                      <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
                         ✓ All info gathered
                       </span>
                     )}
@@ -490,7 +507,7 @@ export default function IntakeSessionPage() {
                     <div className="flex h-full items-center justify-center">
                       <div className="text-center">
                         <svg
-                          className="text-ayutalk-300 mx-auto mb-3 h-10 w-10"
+                          className="text-ayutalk-300 dark:text-ayutalk-700 mx-auto mb-3 h-10 w-10"
                           fill="none"
                           viewBox="0 0 24 24"
                           stroke="currentColor"
@@ -502,7 +519,7 @@ export default function IntakeSessionPage() {
                             d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z"
                           />
                         </svg>
-                        <p className="text-sm text-slate-400">
+                        <p className="text-sm text-slate-400 dark:text-slate-500">
                           {conversation.isAiThinking
                             ? 'AI is preparing your intake conversation...'
                             : 'Starting AI intake conversation...'}
@@ -590,8 +607,10 @@ export default function IntakeSessionPage() {
                 />
               ) : (
                 <div className="flex flex-col items-center gap-3 text-center">
-                  <div className="border-ayutalk-200 border-t-ayutalk-500 h-12 w-12 animate-spin rounded-full border-4" />
-                  <p className="text-sm text-slate-500">Loading clinical brief...</p>
+                  <div className="border-ayutalk-200 border-t-ayutalk-500 dark:border-ayutalk-800 dark:border-t-ayutalk-400 h-12 w-12 animate-spin rounded-full border-4" />
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    Loading clinical brief...
+                  </p>
                 </div>
               )}
             </div>
@@ -601,7 +620,7 @@ export default function IntakeSessionPage() {
             <div className="flex flex-1 items-center justify-center">
               <div className="max-w-md text-center">
                 <svg
-                  className="mx-auto mb-4 h-16 w-16 text-slate-300"
+                  className="mx-auto mb-4 h-16 w-16 text-slate-300 dark:text-slate-600"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -613,8 +632,10 @@ export default function IntakeSessionPage() {
                     d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"
                   />
                 </svg>
-                <h3 className="mb-2 text-lg font-semibold text-slate-900">Start Patient Intake</h3>
-                <p className="text-sm text-slate-500">
+                <h3 className="mb-2 text-lg font-semibold text-slate-900 dark:text-white">
+                  Start Patient Intake
+                </h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400">
                   Enable your camera to begin the face detection process. We'll identify the patient
                   automatically.
                 </p>

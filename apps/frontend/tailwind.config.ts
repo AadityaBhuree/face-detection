@@ -129,6 +129,15 @@ const config: Config = {
           from: { opacity: '0', transform: 'translateX(20px)' },
           to: { opacity: '1', transform: 'translateX(0)' },
         },
+        // Exit animations
+        'fade-out': {
+          from: { opacity: '1' },
+          to: { opacity: '0' },
+        },
+        'fade-out-right': {
+          from: { opacity: '1', transform: 'translateX(0)' },
+          to: { opacity: '0', transform: 'translateX(20px)' },
+        },
         'scale-in': {
           from: { opacity: '0', transform: 'scale(0.95)' },
           to: { opacity: '1', transform: 'scale(1)' },
@@ -196,6 +205,9 @@ const config: Config = {
         'fade-in-right': 'fade-in-right 0.5s ease-out',
         'scale-in': 'scale-in 0.3s ease-out',
         'scale-in-center': 'scale-in-center 0.4s ease-out',
+        // Exit
+        'fade-out': 'fade-out 0.3s ease-out',
+        'fade-out-right': 'fade-out-right 0.3s ease-out',
         // Attention
         'slide-up': 'slide-up 0.3s ease-out',
         'slide-down': 'slide-down 0.3s ease-out',

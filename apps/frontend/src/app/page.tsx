@@ -6,7 +6,7 @@ import { intakeApi } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import {
   Camera,
-  MessageCircleText,
+  MessageSquareText,
   ClipboardList,
   Sparkles,
   Shield,
@@ -56,7 +56,7 @@ export default function HomePage() {
         />
 
         {/* Decorative dots */}
-        <div className="bg-ayutalk-300/40 dark:bg-ayutalk-500/30 absolute left-[15%] top-[20%] h-2 w-2 rounded-full" />
+        <div className="bg-ayutalk-300/40 dark:bg-ayutalk-500/30 animate-float absolute left-[15%] top-[20%] h-2 w-2 rounded-full" />
         <div
           className="absolute right-[25%] top-[15%] h-1.5 w-1.5 rounded-full bg-emerald-300/40 dark:bg-emerald-500/30"
           style={{ animationDelay: '0.5s' }}
@@ -136,15 +136,15 @@ export default function HomePage() {
               icon: Camera,
               title: 'Face Recognition',
               desc: 'Instant patient identification using on-device face detection',
-              color: 'from-ayutalk-500 to-ayutalk-600',
+              accent: '#0c8ee6',
               bgColor: 'bg-ayutalk-50 dark:bg-ayutalk-900/30',
               iconColor: 'text-ayutalk-600 dark:text-ayutalk-400',
             },
             {
-              icon: MessageCircleText,
+              icon: MessageSquareText,
               title: 'AI Voice Intake',
               desc: 'Natural symptom conversation powered by Gemini AI with live transcription',
-              color: 'from-emerald-500 to-emerald-600',
+              accent: '#10b981',
               bgColor: 'bg-emerald-50 dark:bg-emerald-900/30',
               iconColor: 'text-emerald-600 dark:text-emerald-400',
             },
@@ -152,21 +152,21 @@ export default function HomePage() {
               icon: ClipboardList,
               title: 'Clinical Brief',
               desc: 'AI-generated doctor summary with risk flags, vitals, and ICD-10 hints',
-              color: 'from-violet-500 to-violet-600',
+              accent: '#7c3aed',
               bgColor: 'bg-violet-50 dark:bg-violet-900/30',
               iconColor: 'text-violet-600 dark:text-violet-400',
             },
           ].map((feature, i) => (
             <div
               key={feature.title}
-              className="shadow-soft group relative overflow-hidden rounded-xl border border-slate-200/60 bg-white/70 p-5 backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg dark:border-slate-700/50 dark:bg-slate-900/50"
+              className="shadow-soft animate-fade-in-up group relative overflow-hidden rounded-xl border border-slate-200/60 bg-white/70 p-5 backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg dark:border-slate-700/50 dark:bg-slate-900/50"
               style={{ animationDelay: `${i * 150}ms` }}
             >
               {/* Hover gradient accent */}
               <div
-                className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                className="absolute inset-x-0 top-0 h-0.5 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
                 style={{
-                  backgroundImage: `linear-gradient(to right, ${feature.color.replace('from-', '').split(' ')[0]}, ${feature.color.replace('to-', '').split(' ')[0]})`,
+                  background: `linear-gradient(to right, ${feature.accent}, ${feature.accent}88)`,
                 }}
               />
 

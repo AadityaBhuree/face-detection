@@ -165,6 +165,37 @@ export const auditLogSchema = z.object({
   ipAddress: z.string().ip().or(z.string().max(45)),
 });
 
+// ─── Dashboard Query Schemas ────────────────────────────────────
+
+export const paginationQuerySchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(100).default(20),
+});
+
+export const patientHistoryQuerySchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(100).default(10),
+});
+
+export const uuidParamSchema = z.object({
+  id: z.string().uuid(),
+});
+
+export const patientIdParamSchema = z.object({
+  patientId: z.string().uuid(),
+});
+
+export const sessionIdParamSchema = z.object({
+  sessionId: z.string().uuid(),
+});
+
+// ─── Transcription Schemas ───────────────────────────────────────
+
+export const transcribeAudioSchema = z.object({
+  audioUrl: z.string().url().max(2000),
+  sessionId: z.string().uuid(),
+});
+
 // ─── Type Exports ───────────────────────────────────────────────
 
 export type CreatePatientInput = z.infer<typeof createPatientSchema>;
@@ -181,3 +212,6 @@ export type AudioChunkInput = z.infer<typeof audioChunkSchema>;
 export type AuditLogInput = z.infer<typeof auditLogSchema>;
 export type TranscriptEntryInput = z.infer<typeof transcriptEntrySchema>;
 export type PmsSyncInput = z.infer<typeof pmsSyncSchema>;
+export type PaginationQuery = z.infer<typeof paginationQuerySchema>;
+export type PatientHistoryQuery = z.infer<typeof patientHistoryQuerySchema>;
+export type TranscribeAudioInput = z.infer<typeof transcribeAudioSchema>;

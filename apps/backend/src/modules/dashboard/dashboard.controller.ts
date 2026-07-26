@@ -1,6 +1,15 @@
 import { Controller, Get, Param, Query, Patch, HttpCode, HttpStatus } from '@nestjs/common';
 import type { DashboardService } from './dashboard.service';
+import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { Public } from '../../common/decorators/public.decorator';
+import {
+  paginationQuerySchema,
+  patientHistoryQuerySchema,
+  uuidParamSchema,
+  patientIdParamSchema,
+  type PaginationQuery,
+  type PatientHistoryQuery,
+} from '@ayutalk/shared-schemas';
 
 @Controller()
 @Public()
@@ -8,32 +17,49 @@ export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 
   @Get('dashboard/patient/:patientId/latest-brief')
-  async getLatestBrief(@Param('patientId') patientId: string) {
-    return this.dashboardService.getLatestBrief(patientId);
+  async getLatestBrief(
+    @Param(new ZodValidationPipe(patientIdParamSchema))
+    params: {
+      patientId: string;
+    },
+  ) {
+    return this.dashboardService.getLatestBrief(params.patientId);
   }
 
   @Get('dashboard/active-sessions')
-  async getActiveSessions(@Query('page') page = 1, @Query('limit') limit = 20) {
-    return this.dashboardService.getActiveSessions(page, limit);
+  async getActiveSessions(
+    @Query(new ZodValidationPipe(paginationQuerySchema))
+    query: PaginationQuery,
+  ) {
+    return this.dashboardService.getActiveSessions(query.page, query.limit);
   }
 
   @Get('dashboard/recent-briefs')
-  async getRecentBriefs(@Query('page') page = 1, @Query('limit') limit = 20) {
-    return this.dashboardService.getRecentBriefs(page, limit);
+  async getRecentBriefs(
+    @Query(new ZodValidationPipe(paginationQuerySchema))
+    query: PaginationQuery,
+  ) {
+    return this.dashboardService.getRecentBriefs(query.page, query.limit);
   }
 
   @Patch('brief/:id/review')
   @HttpCode(HttpStatus.OK)
-  async markBriefReviewed(@Param('id') id: string) {
-    return this.dashboardService.markBriefReviewed(id);
+  async markBriefReviewed(
+    @Param(new ZodValidationPipe(uuidParamSchema))
+    params: {
+      id: string;
+    },
+  ) {
+    return this.dashboardService.markBriefReviewed(params.id);
   }
 
   @Get('dashboard/patient/:patientId/history')
   async getPatientHistory(
-    @Param('patientId') patientId: string,
-    @Query('page') page = 1,
-    @Query('limit') limit = 10,
+    @Param(new ZodValidationPipe(patientIdParamSchema))
+    params: { patientId: string },
+    @Query(new ZodValidationPipe(patientHistoryQuerySchema))
+    query: PatientHistoryQuery,
   ) {
-    return this.dashboardService.getPatientHistory(patientId, page, limit);
+    return this.dashboardService.getPatientHistory(params.patientId, query.page, query.limit);
   }
 }

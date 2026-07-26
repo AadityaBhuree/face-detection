@@ -1,7 +1,9 @@
 import { Controller, Get, Param, Query, Patch, HttpCode, HttpStatus } from '@nestjs/common';
-import { DashboardService } from './dashboard.service';
+import type { DashboardService } from './dashboard.service';
+import { Public } from '../../common/decorators/public.decorator';
 
 @Controller()
+@Public()
 export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 
@@ -11,18 +13,12 @@ export class DashboardController {
   }
 
   @Get('dashboard/active-sessions')
-  async getActiveSessions(
-    @Query('page') page = 1,
-    @Query('limit') limit = 20,
-  ) {
+  async getActiveSessions(@Query('page') page = 1, @Query('limit') limit = 20) {
     return this.dashboardService.getActiveSessions(page, limit);
   }
 
   @Get('dashboard/recent-briefs')
-  async getRecentBriefs(
-    @Query('page') page = 1,
-    @Query('limit') limit = 20,
-  ) {
+  async getRecentBriefs(@Query('page') page = 1, @Query('limit') limit = 20) {
     return this.dashboardService.getRecentBriefs(page, limit);
   }
 

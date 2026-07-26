@@ -1,6 +1,7 @@
 import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
-import { AiService } from './ai.service';
+import type { AiService } from './ai.service';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
+import { Public } from '../../common/decorators/public.decorator';
 import {
   aiIntakePromptSchema,
   aiBriefGenerateSchema,
@@ -9,6 +10,7 @@ import {
 } from '@ayutalk/shared-schemas';
 
 @Controller('ai')
+@Public()
 export class AiController {
   constructor(private readonly aiService: AiService) {}
 

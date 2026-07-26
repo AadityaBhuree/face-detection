@@ -27,6 +27,7 @@ module.exports = {
     '@typescript-eslint/explicit-module-boundary-types': 'off',
     '@typescript-eslint/no-explicit-any': 'error',
     '@typescript-eslint/consistent-type-imports': ['error', { prefer: 'type-imports' }],
+    '@typescript-eslint/no-extraneous-class': 'off',
     '@typescript-eslint/no-non-null-assertion': 'warn',
     'no-console': ['warn', { allow: ['warn', 'error'] }],
     'no-debugger': 'error',

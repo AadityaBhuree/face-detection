@@ -1,27 +1,18 @@
-import {
-  Controller,
-  Post,
-  Body,
-  Get,
-  Param,
-  HttpCode,
-  HttpStatus,
-} from '@nestjs/common';
-import { FaceService } from './face.service';
-import { FaceRegistrationService } from './face-registration.service';
+import { Controller, Post, Body, Get, Param, HttpCode, HttpStatus } from '@nestjs/common';
+import type { FaceService } from './face.service';
+import type { FaceRegistrationService } from './face-registration.service';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
+import { Public } from '../../common/decorators/public.decorator';
 import {
   faceEmbeddingSchema,
   faceSearchQuerySchema,
   type FaceEmbeddingInput,
   type FaceSearchQuery,
 } from '@ayutalk/shared-schemas';
-import {
-  RegisterPatientDto,
-  SearchByFaceDto,
-} from './dto/register-patient.dto';
+import type { RegisterPatientDto, SearchByFaceDto } from './dto/register-patient.dto';
 
 @Controller('face')
+@Public()
 export class FaceController {
   constructor(
     private readonly faceService: FaceService,
@@ -48,21 +39,13 @@ export class FaceController {
 
   @Post('search-with-details')
   @HttpCode(HttpStatus.OK)
-  async searchWithDetails(
-    @Body() query: SearchByFaceDto,
-  ) {
-    return this.registrationService.searchWithDetails(
-      query.vector,
-      query.threshold,
-      query.limit,
-    );
+  async searchWithDetails(@Body() query: SearchByFaceDto) {
+    return this.registrationService.searchWithDetails(query.vector, query.threshold, query.limit);
   }
 
   @Post('register-patient')
   @HttpCode(HttpStatus.CREATED)
-  async registerPatient(
-    @Body() data: RegisterPatientDto,
-  ) {
+  async registerPatient(@Body() data: RegisterPatientDto) {
     return this.registrationService.registerPatient(data);
   }
 

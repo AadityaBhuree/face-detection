@@ -1,16 +1,9 @@
-import {
-  Controller,
-  Post,
-  Body,
-  Get,
-  Param,
-  Query,
-  HttpCode,
-  HttpStatus,
-} from '@nestjs/common';
-import { TranscriptionService } from './transcription.service';
+import { Controller, Post, Body, Get, Param, Query, HttpCode, HttpStatus } from '@nestjs/common';
+import type { TranscriptionService } from './transcription.service';
+import { Public } from '../../common/decorators/public.decorator';
 
 @Controller('transcribe')
+@Public()
 export class TranscriptionController {
   constructor(private readonly transcriptionService: TranscriptionService) {}
 

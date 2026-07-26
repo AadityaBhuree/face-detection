@@ -1,12 +1,11 @@
 import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
-import { PmsService } from './pms.service';
+import type { PmsService } from './pms.service';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
-import {
-  pmsSyncSchema,
-  type PmsSyncInput,
-} from '@ayutalk/shared-schemas';
+import { Public } from '../../common/decorators/public.decorator';
+import { pmsSyncSchema, type PmsSyncInput } from '@ayutalk/shared-schemas';
 
 @Controller('sync')
+@Public()
 export class PmsController {
   constructor(private readonly pmsService: PmsService) {}
 

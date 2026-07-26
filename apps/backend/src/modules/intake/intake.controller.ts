@@ -1,14 +1,7 @@
-import {
-  Controller,
-  Post,
-  Body,
-  Get,
-  Param,
-  HttpCode,
-  HttpStatus,
-} from '@nestjs/common';
-import { IntakeService } from './intake.service';
+import { Controller, Post, Body, Get, Param, HttpCode, HttpStatus } from '@nestjs/common';
+import type { IntakeService } from './intake.service';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
+import { Public } from '../../common/decorators/public.decorator';
 import {
   startIntakeSessionSchema,
   type StartIntakeSessionInput,
@@ -17,6 +10,7 @@ import {
 } from '@ayutalk/shared-schemas';
 
 @Controller('intake')
+@Public()
 export class IntakeController {
   constructor(private readonly intakeService: IntakeService) {}
 

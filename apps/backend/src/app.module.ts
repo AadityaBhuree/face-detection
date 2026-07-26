@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from './logger/logger.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { AuthModule } from './auth/auth.module';
 import { FaceModule } from './modules/face/face.module';
 import { IntakeModule } from './modules/intake/intake.module';
 import { AiModule } from './modules/ai/ai.module';
@@ -33,6 +34,9 @@ import { configuration } from './config/configuration';
     // ─── Application Modules ───────────────────────────────────
     LoggerModule,
     PrismaModule,
+
+    // ─── Auth ──────────────────────────────────────────────────
+    AuthModule,
 
     // ─── Domain Modules ────────────────────────────────────────
     FaceModule,

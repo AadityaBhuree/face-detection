@@ -9,6 +9,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { formatDateTime, formatTime } from '@/lib/utils';
 import { cn } from '@/lib/utils';
+import { Plus, CheckCircle2, Pencil, ChevronRight, MessageSquare } from 'lucide-react';
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -47,24 +48,6 @@ interface ConversationTurn {
 
 // ─── Status helpers ─────────────────────────────────────────────
 
-function getStatusVariant(
-  status: string,
-): 'success' | 'warning' | 'info' | 'pending' | 'error' {
-  const s = status.toLowerCase().replace(/_/g, ' ');
-  if (
-    s.includes('completed') ||
-    s.includes('ready') ||
-    s.includes('brief_generated')
-  )
-    return 'success';
-  if (s.includes('in_progress') || s.includes('active') || s.includes('initiated'))
-    return 'info';
-  if (s.includes('failed') || s.includes('error') || s.includes('timeout'))
-    return 'error';
-  if (s.includes('transcribing')) return 'warning';
-  return 'pending';
-}
-
 function getSessionStatusText(status: string): string {
   return status
     .replace(/_/g, ' ')
@@ -95,9 +78,7 @@ export default function DashboardPage() {
   useEffect(() => {
     async function load() {
       try {
-        const [sessionsRes] = await Promise.all([
-          dashboardApi.getActiveSessions(1, 50),
-        ]);
+        const [sessionsRes] = await Promise.all([dashboardApi.getActiveSessions(1, 50)]);
         setActiveSessions(sessionsRes.data as ActiveSession[]);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load');
@@ -126,7 +107,7 @@ export default function DashboardPage() {
   // ─── WebSocket Subscriptions ───────────────────────────────────
 
   useEffect(() => {
-    const socket = socketService.connect();
+    socketService.connect();
 
     // Listen for session status updates
     const unsubStatus = socketService.onSessionStatus((data) => {
@@ -141,14 +122,12 @@ export default function DashboardPage() {
       const rawSessionId = typeof payload.sessionId === 'string' ? payload.sessionId : '';
 
       setActiveSessions((prev) =>
-        prev.map((s) =>
-          s.id === rawSessionId ? { ...s, status: status as string } : s,
-        ),
+        prev.map((s) => (s.id === rawSessionId ? { ...s, status: status as string } : s)),
       );
     });
 
     // Listen for brief:ready — add to briefs list
-    const unsubBrief = socketService.onBriefReady((data) => {
+    const unsubBrief = socketService.onBriefReady((_data) => {
       // Refresh briefs list when a new one is generated
       dashboardApi
         .getRecentBriefs(1, 20)
@@ -162,21 +141,12 @@ export default function DashboardPage() {
       // Socket service types: { sessionId, speaker, text } (flat)
       // Handle both formats gracefully
       const payload = data as Record<string, unknown>;
-      const nestedPayload = payload.payload as
-        | Record<string, unknown>
-        | undefined;
+      const nestedPayload = payload.payload as Record<string, unknown> | undefined;
       const speaker =
-        (nestedPayload?.speaker as string) ??
-        (data as { speaker?: string }).speaker ??
-        '';
-      const text =
-        (nestedPayload?.text as string) ??
-        (data as { text?: string }).text ??
-        '';
+        (nestedPayload?.speaker as string) ?? (data as { speaker?: string }).speaker ?? '';
+      const text = (nestedPayload?.text as string) ?? (data as { text?: string }).text ?? '';
       const turnSessionId =
-        (payload.sessionId as string) ??
-        (data as { sessionId?: string }).sessionId ??
-        '';
+        (payload.sessionId as string) ?? (data as { sessionId?: string }).sessionId ?? '';
       const timestamp = (payload.timestamp as string) ?? new Date().toISOString();
 
       // Only add turns for the currently selected session
@@ -192,12 +162,7 @@ export default function DashboardPage() {
         };
         // Avoid duplicates (same text in the last 3 entries)
         const recent = prev.slice(-3);
-        if (
-          recent.some(
-            (t) => t.text === text && t.speaker === speaker,
-          )
-        )
-          return prev;
+        if (recent.some((t) => t.text === text && t.speaker === speaker)) return prev;
         return [...prev, turn];
       });
     });
@@ -247,28 +212,29 @@ export default function DashboardPage() {
     [selectedSessionId, recentBriefs],
   );
 
-  const handleMarkReviewed = useCallback(async (briefId: string) => {
-    setReviewingId(briefId);
-    try {
-      await dashboardApi.markBriefReviewed(briefId);
-      // Remove from briefs list
-      setRecentBriefs((prev) => prev.filter((b) => b.id !== briefId));
-      setSelectedBrief(null);
-      // Update session status in active list
-      const brief = recentBriefs.find((b) => b.id === briefId);
-      if (brief) {
-        setActiveSessions((prev) =>
-          prev.map((s) =>
-            s.id === brief.sessionId ? { ...s, status: 'COMPLETED' } : s,
-          ),
-        );
+  const handleMarkReviewed = useCallback(
+    async (briefId: string) => {
+      setReviewingId(briefId);
+      try {
+        await dashboardApi.markBriefReviewed(briefId);
+        // Remove from briefs list
+        setRecentBriefs((prev) => prev.filter((b) => b.id !== briefId));
+        setSelectedBrief(null);
+        // Update session status in active list
+        const brief = recentBriefs.find((b) => b.id === briefId);
+        if (brief) {
+          setActiveSessions((prev) =>
+            prev.map((s) => (s.id === brief.sessionId ? { ...s, status: 'COMPLETED' } : s)),
+          );
+        }
+      } catch {
+        // Error handled silently
+      } finally {
+        setReviewingId(null);
       }
-    } catch {
-      // Error handled silently
-    } finally {
-      setReviewingId(null);
-    }
-  }, [recentBriefs]);
+    },
+    [recentBriefs],
+  );
 
   // ─── Stats ─────────────────────────────────────────────────────
 
@@ -311,38 +277,21 @@ export default function DashboardPage() {
         <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/80 backdrop-blur-md">
           <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-ayutalk-500 shadow-sm">
+              <div className="bg-ayutalk-500 flex h-9 w-9 items-center justify-center rounded-xl shadow-sm">
                 <span className="text-sm font-bold text-white">AC</span>
               </div>
               <div>
-                <h1 className="text-lg font-semibold text-slate-900">
-                  Doctor Dashboard
-                </h1>
-                <p className="text-xs text-slate-500">
-                  AyuTalk Care — Live clinic intake monitor
-                </p>
+                <h1 className="text-lg font-semibold text-slate-900">Doctor Dashboard</h1>
+                <p className="text-xs text-slate-500">AyuTalk Care — Live clinic intake monitor</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
               <span className="flex items-center gap-1.5 text-xs text-emerald-600">
-                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
                 Live
               </span>
               <Link href="/">
-                <Button variant="ayutalk" size="sm">
-                  <svg
-                    className="mr-1.5 h-3.5 w-3.5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M12 4.5v15m7.5-7.5h-15"
-                    />
-                  </svg>
+                <Button variant="ayutalk" size="sm" leftIcon={<Plus className="h-3.5 w-3.5" />}>
                   New Intake
                 </Button>
               </Link>
@@ -355,30 +304,26 @@ export default function DashboardPage() {
           <div className="flex flex-1 flex-col gap-6">
             {/* Stats Overview */}
             <div className="grid grid-cols-4 gap-4">
-              {stats.map((stat) => (
-                <Card key={stat.label} className="p-4">
+              {stats.map((stat, i) => (
+                <Card
+                  key={stat.label}
+                  className="animate-fade-in-up p-4"
+                  style={{ animationDelay: `${i * 80}ms` }}
+                >
                   <div className="flex items-center justify-between">
-                    <p className="text-xs font-medium text-slate-500">
-                      {stat.label}
-                    </p>
+                    <p className="text-xs font-medium text-slate-500">{stat.label}</p>
                     <div className={cn('h-2 w-2 rounded-full', stat.color)} />
                   </div>
-                  <p className="mt-2 text-2xl font-bold text-slate-900">
-                    {stat.value}
-                  </p>
-                  <p className="mt-0.5 text-[11px] text-slate-400">
-                    {stat.desc}
-                  </p>
+                  <p className="mt-2 text-2xl font-bold text-slate-900">{stat.value}</p>
+                  <p className="mt-0.5 text-[11px] text-slate-400">{stat.desc}</p>
                 </Card>
               ))}
             </div>
 
             {/* Active Sessions */}
-            <Card>
+            <Card className="animate-fade-in-up" style={{ animationDelay: '200ms' }}>
               <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-                <h2 className="text-sm font-semibold text-slate-900">
-                  Active Intake Sessions
-                </h2>
+                <h2 className="text-sm font-semibold text-slate-900">Active Intake Sessions</h2>
                 <span className="text-xs text-slate-400">
                   {activeSessions.length} session
                   {activeSessions.length !== 1 ? 's' : ''}
@@ -386,15 +331,24 @@ export default function DashboardPage() {
               </div>
 
               {sessionsLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-ayutalk-200 border-t-ayutalk-500" />
+                <div className="space-y-3 p-5">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="flex items-center gap-3">
+                      <div className="skeleton h-9 w-9 rounded-full" />
+                      <div className="flex-1 space-y-2">
+                        <div className="skeleton h-4 w-40" />
+                        <div className="skeleton h-3 w-24" />
+                      </div>
+                      <div className="skeleton h-5 w-20 rounded-full" />
+                    </div>
+                  ))}
                 </div>
               ) : error ? (
                 <div className="px-5 py-8 text-center text-sm text-red-500">
                   {error}
                   <button
                     onClick={() => window.location.reload()}
-                    className="ml-2 text-ayutalk-500 hover:underline"
+                    className="text-ayutalk-500 ml-2 hover:underline"
                   >
                     Retry
                   </button>
@@ -403,20 +357,15 @@ export default function DashboardPage() {
                 <div className="px-5 py-8 text-center text-sm text-slate-400">
                   No active sessions at the moment.
                   <br />
-              <Link
-                href="/"
-                className="mt-1 inline-block text-ayutalk-500 hover:underline"
-              >
-                Start a new intake
-              </Link>
+                  <Link href="/" className="text-ayutalk-500 mt-1 inline-block hover:underline">
+                    Start a new intake
+                  </Link>
                 </div>
               ) : (
                 <div className="divide-y divide-slate-100">
                   {activeSessions.map((session) => {
                     const isSelected = selectedSessionId === session.id;
-                    const hasBrief = recentBriefs.some(
-                      (b) => b.sessionId === session.id,
-                    );
+                    const hasBrief = recentBriefs.some((b) => b.sessionId === session.id);
                     return (
                       <button
                         key={session.id}
@@ -439,33 +388,16 @@ export default function DashboardPage() {
                             </p>
                             <p className="text-xs text-slate-400">
                               {formatDateTime(session.startedAt)}
-                              {session.patient?.dob &&
-                                ` · DOB: ${session.patient.dob}`}
+                              {session.patient?.dob && ` · DOB: ${session.patient.dob}`}
                             </p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <StatusBadge
-                            status={getSessionStatusText(session.status)}
-                          />
+                          <StatusBadge status={getSessionStatusText(session.status)} />
                           {hasBrief && (
                             <span className="flex h-2 w-2 rounded-full bg-emerald-500" />
                           )}
-                          {isSelected && (
-                            <svg
-                              className="h-4 w-4 text-ayutalk-500"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                              strokeWidth={2}
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M8.25 4.5l7.5 7.5-7.5 7.5"
-                              />
-                            </svg>
-                          )}
+                          {isSelected && <ChevronRight className="text-ayutalk-500 h-4 w-4" />}
                         </div>
                       </button>
                     );
@@ -475,13 +407,11 @@ export default function DashboardPage() {
             </Card>
 
             {/* Ready Briefs */}
-            <Card>
+            <Card className="animate-fade-in-up" style={{ animationDelay: '300ms' }}>
               <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-                <h2 className="text-sm font-semibold text-slate-900">
-                  Completed Briefs
-                </h2>
+                <h2 className="text-sm font-semibold text-slate-900">Completed Briefs</h2>
                 {briefsLoading ? (
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-ayutalk-200 border-t-ayutalk-500" />
+                  <div className="border-ayutalk-200 border-t-ayutalk-500 h-4 w-4 animate-spin rounded-full border-2" />
                 ) : (
                   <span className="text-xs text-slate-400">
                     {recentBriefs.length} brief
@@ -491,8 +421,17 @@ export default function DashboardPage() {
               </div>
 
               {briefsLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-ayutalk-200 border-t-ayutalk-500" />
+                <div className="space-y-4 p-5">
+                  {Array.from({ length: 2 }).map((_, i) => (
+                    <div key={i} className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <div className="skeleton h-4 w-32" />
+                        <div className="skeleton h-4 w-10 rounded-full" />
+                      </div>
+                      <div className="skeleton h-3 w-56" />
+                      <div className="skeleton h-3 w-20" />
+                    </div>
+                  ))}
                 </div>
               ) : recentBriefs.length === 0 ? (
                 <div className="px-5 py-8 text-center text-sm text-slate-400">
@@ -512,9 +451,7 @@ export default function DashboardPage() {
                       <button
                         key={record.id}
                         onClick={() => {
-                          setSelectedBrief(
-                            selectedBrief?.id === record.id ? null : record,
-                          );
+                          setSelectedBrief(selectedBrief?.id === record.id ? null : record);
                           setSelectedSessionId(record.sessionId);
                           setSessionTurns([]);
                         }}
@@ -538,19 +475,18 @@ export default function DashboardPage() {
                           <p className="mt-1 text-[11px] text-slate-400">
                             {formatDateTime(record.generatedAt)}
                           </p>
-                          {record.brief.riskFlags &&
-                            record.brief.riskFlags.length > 0 && (
-                              <div className="mt-2 flex flex-wrap gap-1">
-                                {record.brief.riskFlags.map((flag) => (
-                                  <span
-                                    key={flag}
-                                    className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-700"
-                                  >
-                                    ⚠ {flag}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
+                          {record.brief.riskFlags && record.brief.riskFlags.length > 0 && (
+                            <div className="mt-2 flex flex-wrap gap-1">
+                              {record.brief.riskFlags.map((flag) => (
+                                <span
+                                  key={flag}
+                                  className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-700"
+                                >
+                                  ⚠ {flag}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </div>
                         <Button
                           variant="success"
@@ -585,7 +521,7 @@ export default function DashboardPage() {
                 <Card className="p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-ayutalk-100 text-xs font-bold text-ayutalk-600">
+                      <div className="bg-ayutalk-100 text-ayutalk-600 flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold">
                         {selectedSession.patient?.name
                           ?.split(' ')
                           .map((n) => n[0])
@@ -600,9 +536,7 @@ export default function DashboardPage() {
                         </p>
                       </div>
                     </div>
-                    <StatusBadge
-                      status={getSessionStatusText(selectedSession.status)}
-                    />
+                    <StatusBadge status={getSessionStatusText(selectedSession.status)} />
                   </div>
                 </Card>
 
@@ -610,10 +544,8 @@ export default function DashboardPage() {
                 <Card className="flex flex-1 flex-col">
                   <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                      <h3 className="text-sm font-semibold text-slate-900">
-                        Live Conversation
-                      </h3>
+                      <div className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
+                      <h3 className="text-sm font-semibold text-slate-900">Live Conversation</h3>
                     </div>
                     <span className="text-xs text-slate-400">
                       {sessionTurns.length} turn
@@ -625,22 +557,8 @@ export default function DashboardPage() {
                     {sessionTurns.length === 0 ? (
                       <div className="flex h-full items-center justify-center">
                         <div className="text-center">
-                          <svg
-                            className="mx-auto mb-2 h-8 w-8 text-slate-300"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            strokeWidth={1}
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z"
-                            />
-                          </svg>
-                          <p className="text-xs text-slate-400">
-                            Waiting for conversation...
-                          </p>
+                          <MessageSquare className="mx-auto mb-2 h-8 w-8 text-slate-300" />
+                          <p className="text-xs text-slate-400">Waiting for conversation...</p>
                           <p className="mt-1 text-[10px] text-slate-300">
                             Turns appear here in real-time
                           </p>
@@ -653,21 +571,17 @@ export default function DashboardPage() {
                             key={`${turn.speaker}-${i}-${turn.timestamp}`}
                             className={cn(
                               'flex gap-2',
-                              turn.speaker === 'ai'
-                                ? 'justify-start'
-                                : 'justify-end',
+                              turn.speaker === 'ai' ? 'justify-start' : 'justify-end',
                             )}
                           >
                             {/* AI Message */}
                             {turn.speaker === 'ai' && (
                               <div className="flex max-w-[85%] gap-2">
-                                <div className="mt-1 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-ayutalk-100 text-[10px] font-bold text-ayutalk-600">
+                                <div className="bg-ayutalk-100 text-ayutalk-600 mt-1 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold">
                                   AI
                                 </div>
                                 <div className="rounded-xl rounded-tl-sm bg-slate-100 px-3 py-2">
-                                  <p className="text-xs text-slate-700">
-                                    {turn.text}
-                                  </p>
+                                  <p className="text-xs text-slate-700">{turn.text}</p>
                                   {turn.timestamp && (
                                     <p className="mt-1 text-[10px] text-slate-400">
                                       {formatTime(turn.timestamp)}
@@ -683,12 +597,10 @@ export default function DashboardPage() {
                                 <div className="mt-1 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-slate-200 text-[10px] font-bold text-slate-600">
                                   P
                                 </div>
-                                <div className="rounded-xl rounded-tr-sm bg-ayutalk-500 px-3 py-2">
-                                  <p className="text-xs text-white">
-                                    {turn.text}
-                                  </p>
+                                <div className="bg-ayutalk-500 rounded-xl rounded-tr-sm px-3 py-2">
+                                  <p className="text-xs text-white">{turn.text}</p>
                                   {turn.timestamp && (
-                                    <p className="mt-1 text-[10px] text-ayutalk-200">
+                                    <p className="text-ayutalk-200 mt-1 text-[10px]">
                                       {formatTime(turn.timestamp)}
                                     </p>
                                   )}
@@ -726,9 +638,7 @@ export default function DashboardPage() {
                       </div>
 
                       <div>
-                        <p className="text-[10px] font-medium uppercase text-slate-400">
-                          Summary
-                        </p>
+                        <p className="text-[10px] font-medium uppercase text-slate-400">Summary</p>
                         <p className="mt-0.5 text-xs leading-relaxed text-slate-600">
                           {selectedBrief.brief.summary ?? 'No summary'}
                         </p>
@@ -763,7 +673,7 @@ export default function DashboardPage() {
                               {selectedBrief.brief.vitalsToCheck.map((vital) => (
                                 <span
                                   key={vital}
-                                  className="inline-flex items-center rounded-full bg-ayutalk-50 px-2 py-0.5 text-[10px] font-medium text-ayutalk-700 ring-1 ring-ayutalk-200"
+                                  className="bg-ayutalk-50 text-ayutalk-700 ring-ayutalk-200 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ring-1"
                                 >
                                   {vital}
                                 </span>
@@ -779,36 +689,15 @@ export default function DashboardPage() {
                           className="flex-1"
                           loading={reviewingId === selectedBrief.id}
                           onClick={() => handleMarkReviewed(selectedBrief.id)}
+                          leftIcon={<CheckCircle2 className="h-3.5 w-3.5" />}
                         >
-                          <svg
-                            className="mr-1.5 h-3.5 w-3.5"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            strokeWidth={2}
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                            />
-                          </svg>
                           Mark as Reviewed
                         </Button>
-                        <Button variant="outline" size="sm">
-                          <svg
-                            className="mr-1.5 h-3.5 w-3.5"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            strokeWidth={2}
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M6.72 14.25l4.46-4.46c.48-.48.48-1.26 0-1.74L9.35 5.36a1.22 1.22 0 00-1.74 0l-4.46 4.46c-.48.48-.48 1.26 0 1.74l1.83 1.83m7.27-5.49L17.7 7.21a1.5 1.5 0 012.12 0l1.5 1.5a1.5 1.5 0 010 2.12l-5.35 5.36-3.18 1.06 1.06-3.18 5.35-5.36z"
-                            />
-                          </svg>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          leftIcon={<Pencil className="h-3.5 w-3.5" />}
+                        >
                           Edit
                         </Button>
                       </div>

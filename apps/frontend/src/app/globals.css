@@ -63,6 +63,77 @@
   .text-balance {
     text-wrap: balance;
   }
+
+  /* ─── Glass Effect (auto-dark) ────────────────────────────── */
+  .glass {
+    @apply bg-white/70 backdrop-blur-xl border border-white/20 shadow-lg
+           dark:bg-slate-900/70 dark:border-slate-700/30;
+  }
+
+  /* ─── Gradient Text ───────────────────────────────────────── */
+  .gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-ayutalk-500 to-ayutalk-700;
+  }
+
+  .gradient-text-success {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 to-emerald-700;
+  }
+
+  /* ─── Shimmer Loading Skeleton ────────────────────────────── */
+  .skeleton {
+    @apply relative overflow-hidden rounded-md bg-slate-200 dark:bg-slate-700;
+  }
+
+  .skeleton::after {
+    content: '';
+    @apply absolute inset-0;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.4),
+      transparent
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s linear infinite;
+  }
+
+  /* ─── Focus Ring ──────────────────────────────────────────── */
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background transition-all;
+  }
+
+  /* ─── Section Styles ──────────────────────────────────────── */
+  .section-title {
+    @apply text-sm font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400;
+  }
+}
+
+/* ─── Smooth Transitions ──────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* ─── Reduced Motion Accessibility ──────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ─── Reduced Transparency Accessibility ────────────────────── */
+@media (prefers-reduced-transparency: reduce) {
+  .glass {
+    @apply bg-white dark:bg-slate-900 backdrop-blur-none;
+  }
 }
 
 /* ─── Scrollbar Styling ──────────────────────────────────────── */
@@ -123,4 +194,69 @@
 .recording-pulse::after {
   content: '';
   @apply absolute inset-0 rounded-full bg-red-500/30 animate-ping;
+}
+
+/* ─── Recording Waveform ──────────────────────────────────────── */
+.waveform-bar {
+  @apply w-1 rounded-full bg-ayutalk-500 transition-all duration-150;
+}
+
+.waveform-bar.active {
+  @apply bg-ayutalk-400;
+}
+
+/* ─── Conversation Message Bubbles ──────────────────────────── */
+.message-bubble-ai {
+  @apply rounded-2xl rounded-tl-sm bg-slate-100 px-4 py-3 text-sm text-slate-700 dark:bg-slate-800 dark:text-slate-300;
+}
+
+.message-bubble-patient {
+  @apply rounded-2xl rounded-tr-sm bg-ayutalk-500 px-4 py-3 text-sm text-white shadow-sm;
+}
+
+/* ─── Animated UI Dots (AI Thinking) ────────────────────────── */
+.thinking-dot {
+  @apply h-2 w-2 rounded-full bg-ayutalk-400 animate-pulse-dot;
+}
+
+.thinking-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.thinking-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+/* ─── Status Pulse Indicator ────────────────────────────────── */
+.status-pulse {
+  @apply relative flex h-2.5 w-2.5;
+}
+
+.status-pulse::before {
+  content: '';
+  @apply absolute inline-flex h-full w-full animate-ping rounded-full opacity-75;
+}
+
+.status-pulse.live::before {
+  @apply bg-emerald-400;
+}
+
+.status-pulse.live {
+  @apply bg-emerald-500;
+}
+
+.status-pulse.away::before {
+  @apply bg-amber-400;
+}
+
+.status-pulse.away {
+  @apply bg-amber-500;
+}
+
+.status-pulse.offline::before {
+  @apply bg-slate-400;
+}
+
+.status-pulse.offline {
+  @apply bg-slate-500;
 }

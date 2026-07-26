@@ -215,3 +215,6 @@ export type PmsSyncInput = z.infer<typeof pmsSyncSchema>;
 export type PaginationQuery = z.infer<typeof paginationQuerySchema>;
 export type PatientHistoryQuery = z.infer<typeof patientHistoryQuerySchema>;
 export type TranscribeAudioInput = z.infer<typeof transcribeAudioSchema>;
+export type SessionIdParam = z.infer<typeof sessionIdParamSchema>;
+export type PatientIdParam = z.infer<typeof patientIdParamSchema>;
+export type UuidParam = z.infer<typeof uuidParamSchema>;

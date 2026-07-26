@@ -12,14 +12,7 @@ export const metadata: Metadata = {
   },
   description:
     'AI-powered smart clinic intake system with face recognition and conversational voice intake',
-  keywords: [
-    'clinic',
-    'intake',
-    'AI',
-    'face recognition',
-    'healthcare',
-    'telemedicine',
-  ],
+  keywords: ['clinic', 'intake', 'AI', 'face recognition', 'healthcare', 'telemedicine'],
   authors: [{ name: 'AyuTalk Care' }],
   manifest: '/manifest.json',
   appleWebApp: {
@@ -47,20 +40,35 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: '#0c8ee6',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#0f172a' },
+  ],
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={inter.variable} suppressHydrationWarning>
       <head>
+        {/* ─── Flash Prevention: applies dark class before paint ──── */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var theme = localStorage.getItem('ayutalk-theme');
+                  var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                  if (theme === 'dark' || (theme !== 'light' && prefersDark)) {
+                    document.documentElement.classList.add('dark');
+                  }
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
       </head>
-      <body className="min-h-screen bg-background font-sans antialiased">
+      <body className="bg-background min-h-screen font-sans antialiased">
         <Providers>{children}</Providers>
       </body>
     </html>

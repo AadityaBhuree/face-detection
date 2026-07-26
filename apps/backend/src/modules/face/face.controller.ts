@@ -1,4 +1,5 @@
 import { Controller, Post, Body, Get, Param, HttpCode, HttpStatus } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import type { FaceService } from './face.service';
 import type { FaceRegistrationService } from './face-registration.service';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
@@ -29,6 +30,7 @@ export class FaceController {
   }
 
   @Post('search')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @HttpCode(HttpStatus.OK)
   async searchByFace(
     @Body(new ZodValidationPipe(faceSearchQuerySchema))
@@ -38,6 +40,7 @@ export class FaceController {
   }
 
   @Post('search-with-details')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @HttpCode(HttpStatus.OK)
   async searchWithDetails(@Body() query: SearchByFaceDto) {
     return this.registrationService.searchWithDetails(query.vector, query.threshold, query.limit);

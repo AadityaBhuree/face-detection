@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { BullModule } from '@nestjs/bullmq';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from './logger/logger.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -30,6 +31,21 @@ import { configuration } from './config/configuration';
         limit: Number(process.env.RATE_LIMIT_MAX_REQUESTS ?? 100),
       },
     ]),
+
+    // ─── BullMQ (Background Jobs) ──────────────────────────────
+    BullModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        connection: {
+          url: config.get<string>('redis.url'),
+        },
+        defaultJobOptions: {
+          removeOnComplete: 100,
+          removeOnFail: 50,
+          attempts: 3,
+        },
+      }),
+    }),
 
     // ─── Application Modules ───────────────────────────────────
     LoggerModule,

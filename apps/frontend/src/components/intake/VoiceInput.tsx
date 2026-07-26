@@ -32,7 +32,7 @@ export function VoiceInput({
   isComplete,
   sessionId,
   placeholder = 'Type your response or tap the mic...',
-  patientName = 'Patient',
+  patientName: _patientName = 'Patient',
 }: VoiceInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
@@ -124,17 +124,15 @@ export function VoiceInput({
           <button
             type="button"
             onClick={micSupported ? toggleRecording : undefined}
-            disabled={
-              disabled || isRequestingPermission || !micSupported || isComplete
-            }
+            disabled={disabled || isRequestingPermission || !micSupported || isComplete}
             className={cn(
               'relative flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full transition-all',
               isRecording
-                ? 'bg-red-500 text-white shadow-lg shadow-red-200 animate-pulse-ring'
+                ? 'animate-pulse-ring bg-red-500 text-white shadow-lg shadow-red-200'
                 : micSupported
-                  ? 'bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-ayutalk-600'
-                  : 'bg-slate-100 text-slate-300 cursor-not-allowed',
-              'disabled:opacity-50 disabled:cursor-not-allowed',
+                  ? 'hover:text-ayutalk-600 bg-slate-100 text-slate-500 hover:bg-slate-200'
+                  : 'cursor-not-allowed bg-slate-100 text-slate-300',
+              'disabled:cursor-not-allowed disabled:opacity-50',
             )}
             title={
               !micSupported
@@ -187,7 +185,7 @@ export function VoiceInput({
                 {Array.from({ length: 20 }).map((_, i) => {
                   const barHeight = Math.max(
                     4,
-                    Math.min(28, audioLevel * 28 * (0.5 + Math.random() * 0.5)),
+                    Math.min(28, audioLevel * 28 * (0.5 + ((i * 7) % 20) / 20)),
                   );
                   return (
                     <div
@@ -211,15 +209,15 @@ export function VoiceInput({
                 <span className="flex items-center gap-2">
                   <span className="flex gap-0.5">
                     <span
-                      className="h-1.5 w-1.5 animate-bounce rounded-full bg-ayutalk-400"
+                      className="bg-ayutalk-400 h-1.5 w-1.5 animate-bounce rounded-full"
                       style={{ animationDelay: '0ms' }}
                     />
                     <span
-                      className="h-1.5 w-1.5 animate-bounce rounded-full bg-ayutalk-400"
+                      className="bg-ayutalk-400 h-1.5 w-1.5 animate-bounce rounded-full"
                       style={{ animationDelay: '150ms' }}
                     />
                     <span
-                      className="h-1.5 w-1.5 animate-bounce rounded-full bg-ayutalk-400"
+                      className="bg-ayutalk-400 h-1.5 w-1.5 animate-bounce rounded-full"
                       style={{ animationDelay: '300ms' }}
                     />
                   </span>
@@ -229,9 +227,9 @@ export function VoiceInput({
             )}
 
             {isRecording && interimOverride && (
-              <div className="absolute inset-0 z-10 flex items-center px-3 text-sm text-slate-600 italic">
+              <div className="absolute inset-0 z-10 flex items-center px-3 text-sm italic text-slate-600">
                 <span className="truncate">{interimOverride}</span>
-                <span className="ml-0.5 h-4 w-[2px] animate-pulse bg-ayutalk-500" />
+                <span className="bg-ayutalk-500 ml-0.5 h-4 w-[2px] animate-pulse" />
               </div>
             )}
 
@@ -250,7 +248,7 @@ export function VoiceInput({
               className={cn(
                 'w-full rounded-lg border bg-slate-50 px-3 py-2 text-sm transition-colors',
                 'placeholder:text-slate-400',
-                'focus:border-ayutalk-400 focus:outline-none focus:ring-2 focus:ring-ayutalk-100',
+                'focus:border-ayutalk-400 focus:ring-ayutalk-100 focus:outline-none focus:ring-2',
                 'disabled:cursor-not-allowed disabled:opacity-100',
                 isRecording ? 'text-transparent' : 'text-slate-900',
                 disabled && 'text-transparent',
@@ -262,7 +260,7 @@ export function VoiceInput({
           {/* Recording Duration Badge */}
           {isRecording && (
             <div className="flex flex-shrink-0 items-center gap-1.5 rounded-full bg-red-50 px-2.5 py-1 text-xs font-medium text-red-600 ring-1 ring-red-200">
-              <div className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
+              <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-500" />
               {recordingDurationSec}s
             </div>
           )}
@@ -275,7 +273,7 @@ export function VoiceInput({
               className={cn(
                 'flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg transition-all',
                 value.trim() && !disabled
-                  ? 'bg-ayutalk-500 text-white shadow-sm hover:bg-ayutalk-600'
+                  ? 'bg-ayutalk-500 hover:bg-ayutalk-600 text-white shadow-sm'
                   : 'bg-slate-100 text-slate-400',
                 'disabled:cursor-not-allowed',
               )}

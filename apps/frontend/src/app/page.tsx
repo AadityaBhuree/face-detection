@@ -3,6 +3,16 @@
 import { useRouter } from 'next/navigation';
 import { useSessionStore } from '@/stores/session-store';
 import { intakeApi } from '@/services/api';
+import { Button } from '@/components/ui/button';
+import {
+  Camera,
+  MessageCircleText,
+  ClipboardList,
+  Sparkles,
+  Shield,
+  Activity,
+  ArrowRight,
+} from 'lucide-react';
 
 export default function HomePage() {
   const router = useRouter();
@@ -21,119 +31,178 @@ export default function HomePage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-ayutalk-50 p-4">
-      <div className="w-full max-w-lg space-y-8 text-center">
-        {/* Logo & Branding */}
-        <div className="space-y-2">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-ayutalk-500 shadow-lg shadow-ayutalk-500/20">
-            <svg
-              className="h-8 w-8 text-white"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={1.5}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342"
-              />
-            </svg>
+    <div className="via-ayutalk-50 dark:via-ayutalk-950 relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-50 to-white dark:from-slate-950 dark:to-slate-900">
+      {/* ─── Animated Background ──────────────────────────────── */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        {/* Gradient orbs */}
+        <div className="animate-float bg-ayutalk-200/30 dark:bg-ayutalk-900/20 absolute -left-32 -top-32 h-96 w-96 rounded-full blur-3xl" />
+        <div
+          className="animate-float absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-emerald-200/20 blur-3xl dark:bg-emerald-900/20"
+          style={{ animationDelay: '1.5s' }}
+        />
+        <div
+          className="animate-float bg-ayutalk-300/20 dark:bg-ayutalk-800/20 absolute left-1/2 top-1/3 h-64 w-64 rounded-full blur-3xl"
+          style={{ animationDelay: '3s' }}
+        />
+
+        {/* Grid pattern overlay */}
+        <div
+          className="absolute inset-0 opacity-[0.015] dark:opacity-[0.03]"
+          style={{
+            backgroundImage:
+              'linear-gradient(rgba(12, 142, 230, 0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(12, 142, 230, 0.3) 1px, transparent 1px)',
+            backgroundSize: '60px 60px',
+          }}
+        />
+
+        {/* Decorative dots */}
+        <div className="bg-ayutalk-300/40 dark:bg-ayutalk-500/30 absolute left-[15%] top-[20%] h-2 w-2 rounded-full" />
+        <div
+          className="absolute right-[25%] top-[15%] h-1.5 w-1.5 rounded-full bg-emerald-300/40 dark:bg-emerald-500/30"
+          style={{ animationDelay: '0.5s' }}
+        />
+        <div
+          className="bg-ayutalk-400/30 dark:bg-ayutalk-500/20 absolute bottom-[30%] left-[20%] h-2 w-2 rounded-full"
+          style={{ animationDelay: '1s' }}
+        />
+        <div
+          className="absolute bottom-[20%] right-[30%] h-1.5 w-1.5 rounded-full bg-emerald-400/30 dark:bg-emerald-500/20"
+          style={{ animationDelay: '2s' }}
+        />
+      </div>
+
+      {/* ─── Main Content ────────────────────────────────────── */}
+      <main className="relative z-10 mx-auto flex min-h-screen max-w-6xl flex-col items-center justify-center px-4 py-20">
+        {/* Brand Pill */}
+        <div className="animate-fade-in-down mb-8">
+          <span className="border-ayutalk-200 bg-ayutalk-50 text-ayutalk-700 dark:border-ayutalk-800 dark:bg-ayutalk-900/50 dark:text-ayutalk-300 inline-flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-xs font-medium shadow-sm">
+            <Sparkles className="h-3.5 w-3.5" />
+            AI-Powered Clinic Intake System
+          </span>
+        </div>
+
+        {/* Hero Section */}
+        <div className="animate-fade-in-up text-center">
+          <div className="from-ayutalk-500 to-ayutalk-700 shadow-ayutalk-500/20 dark:shadow-ayutalk-500/10 mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br shadow-lg">
+            <Camera className="h-8 w-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-            AyuTalk Care
+
+          <h1 className="text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl lg:text-6xl dark:text-white">
+            Welcome to <span className="gradient-text">AyuTalk Care</span>
           </h1>
-          <p className="text-lg text-slate-600">
-            AI-powered smart clinic intake system
+
+          <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-slate-600 sm:text-lg dark:text-slate-400">
+            The smart clinic intake system that uses{' '}
+            <span className="text-ayutalk-600 dark:text-ayutalk-400 font-semibold">
+              face recognition
+            </span>{' '}
+            to identify patients,{' '}
+            <span className="text-ayutalk-600 dark:text-ayutalk-400 font-semibold">
+              AI voice conversations
+            </span>{' '}
+            to collect symptoms, and generates a{' '}
+            <span className="text-ayutalk-600 dark:text-ayutalk-400 font-semibold">
+              clinical brief
+            </span>{' '}
+            before the doctor walks in.
           </p>
         </div>
 
-        {/* Quick Actions */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="mb-6 text-sm text-slate-500">
-            Start a new patient intake session. The system will guide you
-            through face detection, identity verification, and AI-assisted
-            symptom collection.
-          </p>
-          <button
-            onClick={handleStartIntake}
-            className="inline-flex w-full items-center justify-center rounded-lg bg-ayutalk-500 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-ayutalk-600 focus:outline-none focus:ring-2 focus:ring-ayutalk-500 focus:ring-offset-2 active:scale-[0.98]"
-          >
-            <svg
-              className="mr-2 h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
+        {/* CTA Section */}
+        <div className="animate-scale-in-center mt-10">
+          <div className="shadow-soft rounded-2xl border border-slate-200/60 bg-white/50 p-8 backdrop-blur-xl dark:border-slate-700/50 dark:bg-slate-900/50">
+            <p className="mb-6 text-center text-sm text-slate-500 dark:text-slate-400">
+              Start a new patient intake session. The system will guide you through face detection,
+              identity verification, and AI-assisted symptom collection.
+            </p>
+
+            <Button
+              variant="ayutalk"
+              size="xl"
+              onClick={handleStartIntake}
+              className="shadow-glow hover:shadow-glow-lg w-full"
+              rightIcon={<ArrowRight className="h-4 w-4" />}
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"
-              />
-            </svg>
-            Start New Intake Session
-          </button>
+              <Camera className="mr-1.5 h-5 w-5" />
+              Start New Intake Session
+            </Button>
+          </div>
         </div>
 
-        {/* Feature Highlights */}
-        <div className="grid grid-cols-3 gap-4">
+        {/* Feature Cards */}
+        <div className="mt-12 grid w-full max-w-3xl grid-cols-1 gap-4 sm:grid-cols-3">
           {[
             {
-              icon: (
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25Z"
-                />
-              ),
+              icon: Camera,
               title: 'Face Recognition',
-              desc: 'Instant patient identification',
+              desc: 'Instant patient identification using on-device face detection',
+              color: 'from-ayutalk-500 to-ayutalk-600',
+              bgColor: 'bg-ayutalk-50 dark:bg-ayutalk-900/30',
+              iconColor: 'text-ayutalk-600 dark:text-ayutalk-400',
             },
             {
-              icon: (
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M8.625 9.75a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375m-13.5 3.01c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.184-4.183a1.14 1.14 0 0 1 .778-.332 48.294 48.294 0 0 0 5.83-.498c1.585-.233 2.708-1.626 2.708-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z"
-                />
-              ),
+              icon: MessageCircleText,
               title: 'AI Voice Intake',
-              desc: 'Natural symptom conversation',
+              desc: 'Natural symptom conversation powered by Gemini AI with live transcription',
+              color: 'from-emerald-500 to-emerald-600',
+              bgColor: 'bg-emerald-50 dark:bg-emerald-900/30',
+              iconColor: 'text-emerald-600 dark:text-emerald-400',
             },
             {
-              icon: (
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25ZM6.75 12h.008v.008H6.75V12Zm0 3h.008v.008H6.75V15Zm0 3h.008v.008H6.75V18Z"
-                />
-              ),
+              icon: ClipboardList,
               title: 'Clinical Brief',
-              desc: 'AI-generated doctor summary',
+              desc: 'AI-generated doctor summary with risk flags, vitals, and ICD-10 hints',
+              color: 'from-violet-500 to-violet-600',
+              bgColor: 'bg-violet-50 dark:bg-violet-900/30',
+              iconColor: 'text-violet-600 dark:text-violet-400',
             },
-          ].map((feature) => (
+          ].map((feature, i) => (
             <div
               key={feature.title}
-              className="rounded-xl border border-slate-200 bg-white p-4 text-center shadow-sm transition-shadow hover:shadow-md"
+              className="shadow-soft group relative overflow-hidden rounded-xl border border-slate-200/60 bg-white/70 p-5 backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg dark:border-slate-700/50 dark:bg-slate-900/50"
+              style={{ animationDelay: `${i * 150}ms` }}
             >
-              <svg
-                className="mx-auto mb-2 h-6 w-6 text-ayutalk-500"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={1.5}
-              >
-                {feature.icon}
-              </svg>
-              <h3 className="text-xs font-semibold text-slate-900">
-                {feature.title}
-              </h3>
-              <p className="mt-1 text-[10px] text-slate-500">{feature.desc}</p>
+              {/* Hover gradient accent */}
+              <div
+                className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                style={{
+                  backgroundImage: `linear-gradient(to right, ${feature.color.replace('from-', '').split(' ')[0]}, ${feature.color.replace('to-', '').split(' ')[0]})`,
+                }}
+              />
+
+              <div className="relative">
+                <div
+                  className={`mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg ${feature.bgColor}`}
+                >
+                  <feature.icon className={`h-5 w-5 ${feature.iconColor}`} />
+                </div>
+                <h3 className="mb-1.5 text-sm font-semibold text-slate-900 dark:text-white">
+                  {feature.title}
+                </h3>
+                <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+                  {feature.desc}
+                </p>
+              </div>
             </div>
           ))}
         </div>
-      </div>
+
+        {/* Trust Indicators */}
+        <div className="animate-fade-in mt-12 flex flex-wrap items-center justify-center gap-6 text-xs text-slate-400 dark:text-slate-500">
+          <span className="inline-flex items-center gap-1.5">
+            <Shield className="h-3.5 w-3.5" />
+            No raw face images stored
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <Activity className="h-3.5 w-3.5" />
+            HIPAA-compliant architecture
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <Sparkles className="h-3.5 w-3.5" />
+            Powered by Gemini AI
+          </span>
+        </div>
+      </main>
     </div>
   );
 }

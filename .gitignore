@@ -38,6 +38,8 @@ docker-data/
 # Turbo
 .turbo/
 
-# Misc
+# Privates
 *.pem
 .cache/
+memory.md
+nul

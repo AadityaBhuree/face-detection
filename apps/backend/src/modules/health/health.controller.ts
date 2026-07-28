@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, HttpException, HttpStatus } from '@nestjs/common';
 import { Public } from '../../common/decorators/public.decorator';
 import { HealthService } from './health.service';
 
@@ -16,12 +16,20 @@ export class HealthController {
   /** Readiness probe — checks all critical dependencies (DB, Redis, Qdrant) */
   @Get('ready')
   async getReadiness() {
-    return this.healthService.getReadiness();
+    const result = await this.healthService.getReadiness();
+    if (result.status === 'unhealthy') {
+      throw new HttpException(result, HttpStatus.SERVICE_UNAVAILABLE);
+    }
+    return result;
   }
 
   /** Overall health summary */
   @Get()
   async getHealth() {
-    return this.healthService.getHealth();
+    const result = await this.healthService.getHealth();
+    if (result.status === 'unhealthy') {
+      throw new HttpException(result, HttpStatus.SERVICE_UNAVAILABLE);
+    }
+    return result;
   }
 }

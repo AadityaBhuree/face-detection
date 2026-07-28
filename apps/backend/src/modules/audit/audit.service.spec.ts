@@ -15,7 +15,6 @@ const mockPrisma = {
 
 describe('AuditService', () => {
   let service: AuditService;
-  let prisma: typeof mockPrisma;
 
   const validAuditEntry: AuditLogInput = {
     action: 'PATIENT_PROFILE_VIEW',
@@ -38,7 +37,6 @@ describe('AuditService', () => {
     }).compile();
 
     service = module.get<AuditService>(AuditService);
-    prisma = module.get(PrismaService);
   });
 
   // ─── Log PHI Access ──────────────────────────────────────────
@@ -108,9 +106,9 @@ describe('AuditService', () => {
         action,
       });
 
-      expect(mockPrisma.auditLog.create).toHaveBeenCalledWith(
-        expect.objectContaining({ action }),
-      );
+      expect(mockPrisma.auditLog.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ action }),
+      });
     });
 
     it.each(['RECEPTIONIST', 'DOCTOR', 'ADMIN', 'SYSTEM'] as const)(
@@ -123,9 +121,9 @@ describe('AuditService', () => {
           actorRole,
         });
 
-        expect(mockPrisma.auditLog.create).toHaveBeenCalledWith(
-          expect.objectContaining({ actorRole }),
-        );
+        expect(mockPrisma.auditLog.create).toHaveBeenCalledWith({
+          data: expect.objectContaining({ actorRole }),
+        });
       },
     );
   });

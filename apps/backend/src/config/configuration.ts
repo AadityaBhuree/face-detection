@@ -58,6 +58,12 @@ export interface AppConfiguration {
   archival: {
     coldAfterDays: number;
   };
+  pms: {
+    fhirEndpoint: string;
+    customEndpoint: string;
+    apiKey: string;
+    cacheTtlMs: number;
+  };
   logging: {
     level: string;
     format: string;
@@ -146,6 +152,15 @@ export const configuration = (): AppConfiguration => ({
   archival: {
     coldAfterDays: parseInt(
       process.env.ARCHIVAL_COLD_AFTER_DAYS ?? '90',
+      10,
+    ),
+  },
+  pms: {
+    fhirEndpoint: process.env.PMS_FHIR_ENDPOINT ?? '',
+    customEndpoint: process.env.PMS_CUSTOM_ENDPOINT ?? '',
+    apiKey: process.env.PMS_API_KEY ?? '',
+    cacheTtlMs: parseInt(
+      process.env.PMS_CACHE_TTL_MS ?? '86400000',
       10,
     ),
   },

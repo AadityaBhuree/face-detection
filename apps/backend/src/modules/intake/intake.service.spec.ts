@@ -3,6 +3,7 @@ import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { IntakeService } from './intake.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SessionService } from '../session/session.service';
+import { BriefGeneratorService } from '../ai/brief-generator.service';
 
 // ─── Mocks ─────────────────────────────────────────────────────
 
@@ -24,10 +25,20 @@ const mockSessionService = {
   handleInactivityTimeout: jest.fn(),
 };
 
+const mockBriefGeneratorService = {
+  generate: jest.fn().mockResolvedValue({
+    summary: 'Patient presents with Headache and fever for 3 days.',
+    chiefComplaint: 'Headache and fever',
+    riskFlags: [],
+    vitalsToCheck: ['Blood Pressure', 'Heart Rate', 'Temperature'],
+    suggestedFollowups: [],
+    medicationsNote: '',
+    icd10Hints: [],
+  }),
+};
+
 describe('IntakeService', () => {
   let service: IntakeService;
-  let prisma: typeof mockPrisma;
-  let sessionService: typeof mockSessionService;
 
   const validSessionId = '550e8400-e29b-41d4-a716-446655440000';
   const validPatientId = '660e8400-e29b-41d4-a716-446655440001';
@@ -40,12 +51,11 @@ describe('IntakeService', () => {
         IntakeService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: SessionService, useValue: mockSessionService },
+        { provide: BriefGeneratorService, useValue: mockBriefGeneratorService },
       ],
     }).compile();
 
     service = module.get<IntakeService>(IntakeService);
-    prisma = module.get(PrismaService);
-    sessionService = module.get(SessionService);
   });
 
   // ─── Start Session ──────────────────────────────────────────
@@ -65,6 +75,7 @@ describe('IntakeService', () => {
 
       const result = await service.startSession({
         deviceId: 'web-cam-1',
+        metadata: {},
       });
 
       expect(result).toEqual(createdSession);
@@ -88,6 +99,7 @@ describe('IntakeService', () => {
       await service.startSession({
         patientId: validPatientId,
         deviceId: 'kiosk-01',
+        metadata: {},
       });
 
       expect(mockPrisma.intakeSession.create).toHaveBeenCalledWith({
@@ -105,6 +117,7 @@ describe('IntakeService', () => {
 
       await service.startSession({
         deviceId: 'cam-1',
+        metadata: {},
       });
 
       expect(mockPrisma.intakeSession.create).toHaveBeenCalledWith({
@@ -173,8 +186,7 @@ describe('IntakeService', () => {
 
     it('should complete the full intake flow successfully', async () => {
       mockPrisma.intakeSession.findUnique
-        .mockResolvedValueOnce(mockSession)        // first call: check session
-        .mockResolvedValueOnce(mockSession);        // second call (not used directly)
+        .mockResolvedValue(mockSession);             // single call: check session
       mockSessionService.updateStatus.mockResolvedValue(undefined);
       mockPrisma.intakeRecord.create.mockResolvedValue({
         id: 'record-1',
@@ -282,7 +294,7 @@ describe('IntakeService', () => {
       );
 
       await expect(
-        service.startSession({ deviceId: 'cam-1' }),
+        service.startSession({ deviceId: 'cam-1', metadata: {} }),
       ).rejects.toThrow('Database connection failed');
     });
 

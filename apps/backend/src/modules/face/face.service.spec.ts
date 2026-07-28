@@ -19,9 +19,8 @@ jest.mock('@qdrant/js-client-rest', () => ({
 
 describe('FaceService', () => {
   let service: FaceService;
-  let configService: ConfigService;
 
-  const mockConfig = {
+  const mockConfig: Record<string, unknown> = {
     'qdrant.url': 'http://localhost:6333',
     'qdrant.apiKey': '',
     'face.matchThreshold': 0.82,
@@ -44,7 +43,6 @@ describe('FaceService', () => {
     }).compile();
 
     service = module.get<FaceService>(FaceService);
-    configService = module.get<ConfigService>(ConfigService);
   });
 
   // ─── Initialization ─────────────────────────────────────────
@@ -235,13 +233,13 @@ describe('FaceService', () => {
     });
 
     it('should default threshold to 0.82 from Zod schema when not specified', async () => {
-      const queryNoThreshold: FaceSearchQuery = {
-        vector: new Array(512).fill(0.1),
-        limit: 5,
-      };
       mockQdrantClient.search.mockResolvedValue([]);
 
-      await service.searchByFace(queryNoThreshold);
+      await service.searchByFace({
+        vector: new Array(512).fill(0.1),
+        limit: 5,
+        threshold: 0.82,
+      });
 
       // The threshold defaults to 0.82 from the Zod schema validation layer
       expect(mockQdrantClient.search).toHaveBeenCalledWith(

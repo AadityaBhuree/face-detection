@@ -1,5 +1,5 @@
 import { Controller, Post, Body, Get, Param, Query, HttpCode, HttpStatus } from '@nestjs/common';
-import type { TranscriptionService } from './transcription.service';
+import { TranscriptionService } from './transcription.service';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { Public } from '../../common/decorators/public.decorator';
 import {

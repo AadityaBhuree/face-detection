@@ -1,5 +1,5 @@
 import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
-import type { AiService } from './ai.service';
+import { AiService } from './ai.service';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { Public } from '../../common/decorators/public.decorator';
 import {

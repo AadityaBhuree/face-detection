@@ -1,5 +1,5 @@
 import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
-import type { PmsService } from './pms.service';
+import { PmsService } from './pms.service';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { Public } from '../../common/decorators/public.decorator';
 import { pmsSyncSchema, type PmsSyncInput } from '@ayutalk/shared-schemas';

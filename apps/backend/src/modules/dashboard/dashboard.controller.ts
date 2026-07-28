@@ -1,5 +1,5 @@
 import { Controller, Get, Param, Query, Patch, HttpCode, HttpStatus } from '@nestjs/common';
-import type { DashboardService } from './dashboard.service';
+import { DashboardService } from './dashboard.service';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { Public } from '../../common/decorators/public.decorator';
 import {

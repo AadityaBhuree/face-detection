@@ -26,10 +26,8 @@ const mockPrisma = {
 
 describe('SessionService', () => {
   let service: SessionService;
-  let prisma: typeof mockPrisma;
-  let configService: ConfigService;
 
-  const mockConfig = {
+  const mockConfig: Record<string, unknown> = {
     'redis.url': 'redis://localhost:6379',
     'session.inactivityTimeoutMs': 600000,
     'session.autoCloseMs': 600000,
@@ -57,8 +55,6 @@ describe('SessionService', () => {
     }).compile();
 
     service = module.get<SessionService>(SessionService);
-    prisma = module.get(PrismaService);
-    configService = module.get<ConfigService>(ConfigService);
   });
 
   // ─── FSM: Valid Transitions ─────────────────────────────────

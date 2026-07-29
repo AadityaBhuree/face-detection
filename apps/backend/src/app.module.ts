@@ -14,6 +14,7 @@ import { AuditModule } from './modules/audit/audit.module';
 import { PmsModule } from './modules/pms/pms.module';
 import { TranscriptionModule } from './modules/transcription/transcription.module';
 import { HealthModule } from './modules/health/health.module';
+import { OpenTelemetryModule } from './modules/opentelemetry/opentelemetry.module';
 import { configuration } from './config/configuration';
 
 @Module({
@@ -64,6 +65,9 @@ import { configuration } from './config/configuration';
     AuditModule,
     PmsModule,
     TranscriptionModule,
+
+    // ─── OpenTelemetry / Tracing ────────────────────────────────
+    OpenTelemetryModule,
 
     // ─── Health / Observability ────────────────────────────────
     HealthModule,

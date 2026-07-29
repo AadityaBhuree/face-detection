@@ -6,6 +6,14 @@ export interface AppConfiguration {
     frontendUrl: string;
     backendUrl: string;
   };
+  opentelemetry: {
+    enabled: boolean;
+    serviceName: string;
+    exporterType: string;
+    endpoint: string;
+    otlpEndpoint: string;
+    sampleRate: number;
+  };
   database: {
     url: string;
   };
@@ -163,6 +171,14 @@ export const configuration = (): AppConfiguration => ({
       process.env.PMS_CACHE_TTL_MS ?? '86400000',
       10,
     ),
+  },
+  opentelemetry: {
+    enabled: process.env.OTEL_ENABLED !== 'false',
+    serviceName: process.env.OTEL_SERVICE_NAME ?? 'ayutalk-care-api',
+    exporterType: process.env.OTEL_EXPORTER_TYPE ?? 'jaeger',
+    endpoint: process.env.OTEL_ENDPOINT ?? 'http://localhost:14268/api/traces',
+    otlpEndpoint: process.env.OTEL_OTLP_ENDPOINT ?? 'http://localhost:4318/v1/traces',
+    sampleRate: parseFloat(process.env.OTEL_SAMPLE_RATE ?? '1.0'),
   },
   logging: {
     level: process.env.LOG_LEVEL ?? 'debug',

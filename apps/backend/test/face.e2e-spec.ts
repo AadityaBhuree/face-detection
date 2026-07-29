@@ -4,6 +4,7 @@ import request from 'supertest';
 import { FaceModule } from '../src/modules/face/face.module';
 import { FaceService } from '../src/modules/face/face.service';
 import { FaceRegistrationService } from '../src/modules/face/face-registration.service';
+import { PrismaService } from '../src/prisma/prisma.service';
 
 // ─── Qdrant Mock ────────────────────────────────────────────────
 // Prevents FaceService constructor from attempting real Qdrant connection
@@ -53,6 +54,8 @@ describe('FaceController (E2E)', () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [FaceModule],
     })
+      .overrideProvider(PrismaService)
+      .useValue({} as any)
       .overrideProvider(FaceService)
       .useValue(mockFaceService)
       .overrideProvider(FaceRegistrationService)

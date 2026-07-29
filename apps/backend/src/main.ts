@@ -1,3 +1,7 @@
+// ─── MUST be the FIRST import: OpenTelemetry SDK initialization ─
+// This applies auto-instrumentation hooks before any NestJS code runs.
+import './tracing';
+
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';

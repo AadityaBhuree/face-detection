@@ -4,6 +4,7 @@ import request from 'supertest';
 import { ConfigModule } from '@nestjs/config';
 import { DashboardModule } from '../src/modules/dashboard/dashboard.module';
 import { DashboardService } from '../src/modules/dashboard/dashboard.service';
+import { PrismaService } from '../src/prisma/prisma.service';
 
 // ─── Mock Service ──────────────────────────────────────────────
 
@@ -77,6 +78,8 @@ describe('DashboardController (E2E)', () => {
         DashboardModule,
       ],
     })
+      .overrideProvider(PrismaService)
+      .useValue({} as any)
       .overrideProvider(DashboardService)
       .useValue(mockDashboardService)
       .compile();

@@ -1,3 +1,88 @@
+// ─── ioredis Mock ──────────────────────────────────────────────
+// BullMQ uses ioredis internally for queue management. This mock
+// prevents BullMQ from attempting a real Redis connection during
+// E2E tests by providing all the methods BullMQ needs.
+const mockIoRedis = {
+  // Connection lifecycle
+  on: jest.fn().mockReturnThis(),
+  once: jest.fn().mockReturnThis(),
+  connect: jest.fn().mockResolvedValue(undefined),
+  disconnect: jest.fn().mockResolvedValue(undefined),
+  quit: jest.fn().mockResolvedValue('OK'),
+  duplicate: jest.fn().mockReturnThis(),
+  isReady: true,
+  status: 'ready',
+  options: {},
+
+  // Basic operations
+  ping: jest.fn().mockResolvedValue('PONG'),
+  get: jest.fn().mockResolvedValue(null),
+  set: jest.fn().mockResolvedValue('OK'),
+  setex: jest.fn().mockResolvedValue('OK'),
+  del: jest.fn().mockResolvedValue(1),
+  exists: jest.fn().mockResolvedValue(0),
+  expire: jest.fn().mockResolvedValue(1),
+  ttl: jest.fn().mockResolvedValue(-1),
+  incr: jest.fn().mockResolvedValue(1),
+  decr: jest.fn().mockResolvedValue(0),
+
+  // Queue operations (BullMQ needs these)
+  brpoplpush: jest.fn().mockResolvedValue(null),
+  rpoplpush: jest.fn().mockResolvedValue(null),
+  lpush: jest.fn().mockResolvedValue(1),
+  rpush: jest.fn().mockResolvedValue(1),
+  lpop: jest.fn().mockResolvedValue(null),
+  rpop: jest.fn().mockResolvedValue(null),
+  llen: jest.fn().mockResolvedValue(0),
+  lrange: jest.fn().mockResolvedValue([]),
+  lrem: jest.fn().mockResolvedValue(0),
+  ltrim: jest.fn().mockResolvedValue('OK'),
+
+  // Sorted sets (BullMQ rate limiting)
+  zadd: jest.fn().mockResolvedValue(0),
+  zrange: jest.fn().mockResolvedValue([]),
+  zrem: jest.fn().mockResolvedValue(0),
+  zrangebyscore: jest.fn().mockResolvedValue([]),
+  zremrangebyscore: jest.fn().mockResolvedValue(0),
+  zcard: jest.fn().mockResolvedValue(0),
+  zcount: jest.fn().mockResolvedValue(0),
+
+  // Hashes (BullMQ job metadata)
+  hget: jest.fn().mockResolvedValue(null),
+  hset: jest.fn().mockResolvedValue(1),
+  hgetall: jest.fn().mockResolvedValue({}),
+  hdel: jest.fn().mockResolvedValue(1),
+  hlen: jest.fn().mockResolvedValue(0),
+  hkeys: jest.fn().mockResolvedValue([]),
+  hvals: jest.fn().mockResolvedValue([]),
+  hexists: jest.fn().mockResolvedValue(0),
+
+  // Sets
+  sadd: jest.fn().mockResolvedValue(1),
+  srem: jest.fn().mockResolvedValue(1),
+  smembers: jest.fn().mockResolvedValue([]),
+  sismember: jest.fn().mockResolvedValue(0),
+  scard: jest.fn().mockResolvedValue(0),
+
+  // Scripting
+  eval: jest.fn().mockResolvedValue(undefined),
+  evalsha: jest.fn().mockResolvedValue(undefined),
+  script: jest.fn().mockResolvedValue(undefined),
+
+  // Utility
+  keys: jest.fn().mockResolvedValue([]),
+  multi: jest.fn().mockReturnThis(),
+  exec: jest.fn().mockResolvedValue([]),
+  batch: jest.fn().mockReturnThis(),
+  call: jest.fn().mockResolvedValue(undefined),
+  sendCommand: jest.fn().mockResolvedValue(undefined),
+  waitUntilReady: jest.fn().mockResolvedValue(undefined),
+};
+jest.mock('ioredis', () => ({
+  Redis: jest.fn(() => mockIoRedis),
+  default: jest.fn(() => mockIoRedis),
+}));
+
 import { Test, type TestingModule } from '@nestjs/testing';
 import { type INestApplication, ValidationPipe, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import request from 'supertest';
@@ -6,6 +91,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { IntakeModule } from '../src/modules/intake/intake.module';
 import { IntakeService } from '../src/modules/intake/intake.service';
 import { SessionService } from '../src/modules/session/session.service';
+import { PrismaService } from '../src/prisma/prisma.service';
 import { SessionGateway } from '../src/modules/session/session.gateway';
 import { SessionTimeoutWorker } from '../src/modules/session/session-timeout.worker';
 import { AiService } from '../src/modules/ai/ai.service';
@@ -114,6 +200,8 @@ describe('IntakeController (E2E)', () => {
     })
       .overrideProvider(IntakeService)
       .useValue(mockIntakeService)
+      .overrideProvider(PrismaService)
+      .useValue({} as any)
       .overrideProvider(SessionService)
       .useValue({} as any)
       .overrideProvider(SessionGateway)

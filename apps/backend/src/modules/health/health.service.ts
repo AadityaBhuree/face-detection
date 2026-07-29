@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
+import { OpenTelemetryService } from '../opentelemetry/opentelemetry.service';
 import { Redis } from 'ioredis';
 import { QdrantClient } from '@qdrant/js-client-rest';
 
@@ -30,40 +31,43 @@ export class HealthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    private readonly otel: OpenTelemetryService,
   ) {
     this.startupTime = Date.now();
   }
 
   /** Simple liveness — always returns healthy if the process is running */
   getLiveness(): { status: string; uptimeMs: number; timestamp: string } {
-    return {
+    return this.otel.withSpanSync('health.get-liveness', () => ({
       status: 'alive',
       uptimeMs: Date.now() - this.startupTime,
       timestamp: new Date().toISOString(),
-    };
+    }));
   }
 
   /** Detailed readiness — checks all critical dependencies in parallel */
   async getReadiness(): Promise<HealthCheckResult> {
-    const [database, redis, qdrant] = await Promise.all([
-      this.checkDatabase(),
-      this.checkRedis(),
-      this.checkQdrant(),
-    ]);
+    return this.otel.withSpan('health.get-readiness', async () => {
+      const [database, redis, qdrant] = await Promise.all([
+        this.checkDatabase(),
+        this.checkRedis(),
+        this.checkQdrant(),
+      ]);
 
-    const checks: HealthCheckResult['checks'] = {
-      database,
-      redis,
-      qdrant,
-    };
+      const checks: HealthCheckResult['checks'] = {
+        database,
+        redis,
+        qdrant,
+      };
 
-    const allHealthy = Object.values(checks).every((c) => c.status === 'healthy');
+      const allHealthy = Object.values(checks).every((c) => c.status === 'healthy');
 
-    return {
-      status: allHealthy ? 'healthy' : 'unhealthy',
-      checks,
-      timestamp: new Date().toISOString(),
-    };
+      return {
+        status: allHealthy ? 'healthy' : 'unhealthy',
+        checks,
+        timestamp: new Date().toISOString(),
+      };
+    });
   }
 
   /** Overall health — same as readiness but with a simpler response */
@@ -73,19 +77,21 @@ export class HealthService {
     dependencies: string;
     timestamp: string;
   }> {
-    const readiness = await this.getReadiness();
+    return this.otel.withSpan('health.get-health', async () => {
+      const readiness = await this.getReadiness();
 
-    const healthyCount = Object.values(readiness.checks).filter(
-      (c) => c.status === 'healthy',
-    ).length;
-    const totalCount = Object.keys(readiness.checks).length;
+      const healthyCount = Object.values(readiness.checks).filter(
+        (c) => c.status === 'healthy',
+      ).length;
+      const totalCount = Object.keys(readiness.checks).length;
 
-    return {
-      status: readiness.status,
-      uptimeMs: Date.now() - this.startupTime,
-      dependencies: `${healthyCount}/${totalCount} healthy`,
-      timestamp: readiness.timestamp,
-    };
+      return {
+        status: readiness.status,
+        uptimeMs: Date.now() - this.startupTime,
+        dependencies: `${healthyCount}/${totalCount} healthy`,
+        timestamp: readiness.timestamp,
+      };
+    });
   }
 
   // ─── Individual Check Methods ──────────────────────────────────

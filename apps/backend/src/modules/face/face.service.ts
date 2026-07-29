@@ -2,6 +2,7 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { QdrantClient } from '@qdrant/js-client-rest';
 import type { FaceEmbeddingInput, FaceSearchQuery } from '@ayutalk/shared-schemas';
+import { AuditService } from '../audit/audit.service';
 
 const FACE_COLLECTION = 'face_embeddings';
 
@@ -9,7 +10,10 @@ const FACE_COLLECTION = 'face_embeddings';
 export class FaceService {
   private readonly logger = new Logger(FaceService.name);
   private readonly qdrant: QdrantClient;
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly auditService: AuditService,
+  ) {
     this.qdrant = new QdrantClient({
       url: this.configService.get<string>('qdrant.url')!,
       apiKey: this.configService.get<string>('qdrant.apiKey') ?? undefined,
@@ -58,6 +62,16 @@ export class FaceService {
     });
 
     this.logger.debug(`Upserted face embedding for patient ${data.patientId}`);
+
+    await this.auditService.log({
+      action: 'FACE_EMBEDDING_UPSERT',
+      actorId: 'system',
+      actorRole: 'SYSTEM',
+      resourceType: 'face_embedding',
+      resourceId: data.patientId,
+      details: { patientId: data.patientId, vectorDimension: data.vector.length },
+      ipAddress: 'internal',
+    });
   }
 
   async searchByFace(
@@ -68,6 +82,18 @@ export class FaceService {
       limit: query.limit,
       score_threshold: query.threshold,
       with_payload: true,
+    });
+
+    this.logger.debug(`Face search returned ${searchResult.length} results`);
+
+    await this.auditService.log({
+      action: 'FACE_SEARCH',
+      actorId: 'system',
+      actorRole: 'SYSTEM',
+      resourceType: 'face_embedding',
+      resourceId: FACE_COLLECTION,
+      details: { resultCount: searchResult.length, threshold: query.threshold },
+      ipAddress: 'internal',
     });
 
     return searchResult.map((hit) => ({
@@ -99,6 +125,16 @@ export class FaceService {
         `No embeddings found for patient ${patientId}`,
       );
     }
+
+    await this.auditService.log({
+      action: 'FACE_EMBEDDINGS_READ',
+      actorId: 'system',
+      actorRole: 'SYSTEM',
+      resourceType: 'face_embedding',
+      resourceId: patientId,
+      details: { embeddingCount: result.points.length },
+      ipAddress: 'internal',
+    });
 
     return result.points.map((point) => ({
       id: String(point.id),

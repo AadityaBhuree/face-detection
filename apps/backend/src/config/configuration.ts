@@ -1,3 +1,8 @@
+export interface RateLimitConfig {
+  windowMs: number;
+  maxRequests: number;
+}
+
 export interface AppConfiguration {
   app: {
     name: string;
@@ -72,6 +77,7 @@ export interface AppConfiguration {
     apiKey: string;
     cacheTtlMs: number;
   };
+  rateLimit: RateLimitConfig;
   logging: {
     level: string;
     format: string;
@@ -179,6 +185,10 @@ export const configuration = (): AppConfiguration => ({
     endpoint: process.env.OTEL_ENDPOINT ?? 'http://localhost:14268/api/traces',
     otlpEndpoint: process.env.OTEL_OTLP_ENDPOINT ?? 'http://localhost:4318/v1/traces',
     sampleRate: parseFloat(process.env.OTEL_SAMPLE_RATE ?? '1.0'),
+  },
+  rateLimit: {
+    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS ?? '60000', 10),
+    maxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS ?? '100', 10),
   },
   logging: {
     level: process.env.LOG_LEVEL ?? 'debug',

@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { SessionService } from '../session/session.service';
 import { BriefGeneratorService } from '../ai/brief-generator.service';
+import { AuditService } from '../audit/audit.service';
 import type { StartIntakeSessionInput, IntakeDataInput } from '@ayutalk/shared-schemas';
 
 @Injectable()
@@ -17,6 +18,7 @@ export class IntakeService {
     private readonly prisma: PrismaService,
     private readonly sessionService: SessionService,
     private readonly briefGenerator: BriefGeneratorService,
+    private readonly auditService: AuditService,
   ) {}
 
   async startSession(data: StartIntakeSessionInput) {
@@ -30,6 +32,17 @@ export class IntakeService {
     });
 
     this.logger.log(`Intake session started: ${session.id}`);
+
+    await this.auditService.log({
+      action: 'INTAKE_SESSION_STARTED',
+      actorId: 'system',
+      actorRole: 'SYSTEM',
+      resourceType: 'intake_session',
+      resourceId: session.id,
+      details: { deviceId: data.deviceId, hasPatient: !!data.patientId },
+      ipAddress: 'internal',
+    });
+
     return session;
   }
 
@@ -48,6 +61,16 @@ export class IntakeService {
     if (!session) {
       throw new NotFoundException(`Session ${id} not found`);
     }
+
+    await this.auditService.log({
+      action: 'INTAKE_SESSION_VIEW',
+      actorId: 'system',
+      actorRole: 'SYSTEM',
+      resourceType: 'intake_session',
+      resourceId: id,
+      details: { status: session.status, transcriptCount: session.transcripts.length },
+      ipAddress: 'internal',
+    });
 
     return session;
   }
@@ -81,6 +104,17 @@ export class IntakeService {
     await this.sessionService.updateStatus(sessionId, 'BRIEF_GENERATED' as any);
 
     this.logger.log(`Intake completed for session ${sessionId}`);
+
+    await this.auditService.log({
+      action: 'INTAKE_COMPLETED',
+      actorId: 'system',
+      actorRole: 'SYSTEM',
+      resourceType: 'intake_record',
+      resourceId: intakeRecord.id,
+      details: { sessionId, patientId: session.patientId, chiefComplaint: intakeData.chiefComplaint.substring(0, 100) },
+      ipAddress: 'internal',
+    });
+
     return { session, intakeRecord, brief };
   }
 

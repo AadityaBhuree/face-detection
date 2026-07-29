@@ -4,6 +4,7 @@ import { IntakeService } from './intake.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SessionService } from '../session/session.service';
 import { BriefGeneratorService } from '../ai/brief-generator.service';
+import { AuditService } from '../audit/audit.service';
 
 // ─── Mocks ─────────────────────────────────────────────────────
 
@@ -52,6 +53,7 @@ describe('IntakeService', () => {
         { provide: PrismaService, useValue: mockPrisma },
         { provide: SessionService, useValue: mockSessionService },
         { provide: BriefGeneratorService, useValue: mockBriefGeneratorService },
+        { provide: AuditService, useValue: { log: jest.fn().mockResolvedValue(undefined) } },
       ],
     }).compile();
 

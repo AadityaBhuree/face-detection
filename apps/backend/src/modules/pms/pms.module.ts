@@ -3,8 +3,10 @@ import { PmsService } from './pms.service';
 import { PmsController } from './pms.controller';
 import { HL7FHIRAdapter } from './adapters/hl7-fhir.adapter';
 import { CustomApiAdapter } from './adapters/custom-api.adapter';
+import { AuditModule } from '../audit/audit.module';
 
 @Module({
+  imports: [AuditModule],
   controllers: [PmsController],
   providers: [PmsService, HL7FHIRAdapter, CustomApiAdapter],
   exports: [PmsService],

@@ -1,11 +1,15 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { AuditService } from '../audit/audit.service';
 
 @Injectable()
 export class DashboardService {
   private readonly logger = new Logger(DashboardService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditService: AuditService,
+  ) {}
 
   async getLatestBrief(patientId: string) {
     const record = await this.prisma.intakeRecord.findFirst({
@@ -27,6 +31,16 @@ export class DashboardService {
         `No intake records found for patient ${patientId}`,
       );
     }
+
+    await this.auditService.log({
+      action: 'DASHBOARD_BRIEF_VIEW',
+      actorId: 'system',
+      actorRole: 'SYSTEM',
+      resourceType: 'intake_record',
+      resourceId: record.id,
+      details: { patientId, sessionId: record.sessionId },
+      ipAddress: 'internal',
+    });
 
     return {
       id: record.id,
@@ -69,6 +83,16 @@ export class DashboardService {
       }),
     ]);
 
+    await this.auditService.log({
+      action: 'DASHBOARD_ACTIVE_SESSIONS_VIEW',
+      actorId: 'system',
+      actorRole: 'SYSTEM',
+      resourceType: 'dashboard',
+      resourceId: 'active-sessions',
+      details: { sessionCount: sessions.length, total, page, limit },
+      ipAddress: 'internal',
+    });
+
     return {
       data: sessions,
       pagination: {
@@ -106,6 +130,16 @@ export class DashboardService {
       this.prisma.intakeRecord.count(),
     ]);
 
+    await this.auditService.log({
+      action: 'DASHBOARD_RECENT_BRIEFS_VIEW',
+      actorId: 'system',
+      actorRole: 'SYSTEM',
+      resourceType: 'dashboard',
+      resourceId: 'recent-briefs',
+      details: { briefCount: records.length, total, page, limit },
+      ipAddress: 'internal',
+    });
+
     return {
       data: records,
       pagination: {
@@ -134,6 +168,16 @@ export class DashboardService {
 
     this.logger.log(`Brief ${briefId} reviewed, session ${record.sessionId} completed`);
 
+    await this.auditService.log({
+      action: 'DASHBOARD_BRIEF_REVIEWED',
+      actorId: 'system',
+      actorRole: 'SYSTEM',
+      resourceType: 'intake_record',
+      resourceId: briefId,
+      details: { sessionId: record.sessionId, patientId: record.patientId },
+      ipAddress: 'internal',
+    });
+
     return { success: true, message: 'Brief marked as reviewed' };
   }
 
@@ -158,6 +202,16 @@ export class DashboardService {
         where: { patientId },
       }),
     ]);
+
+    await this.auditService.log({
+      action: 'DASHBOARD_PATIENT_HISTORY_VIEW',
+      actorId: 'system',
+      actorRole: 'SYSTEM',
+      resourceType: 'patient',
+      resourceId: patientId,
+      details: { recordCount: records.length, total, page, limit },
+      ipAddress: 'internal',
+    });
 
     return {
       data: records,

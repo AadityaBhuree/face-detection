@@ -1,6 +1,7 @@
 import { Injectable, Logger, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { FaceService } from './face.service';
+import { AuditService } from '../audit/audit.service';
 import type { RegisterPatientDto } from './dto/register-patient.dto';
 
 @Injectable()
@@ -10,6 +11,7 @@ export class FaceRegistrationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly faceService: FaceService,
+    private readonly auditService: AuditService,
   ) {}
 
   /**
@@ -55,6 +57,16 @@ export class FaceRegistrationService {
     this.logger.log(
       `Registered patient ${patient.id} (${patient.name}) with face embedding`,
     );
+
+    await this.auditService.log({
+      action: 'PATIENT_REGISTERED',
+      actorId: 'system',
+      actorRole: 'SYSTEM',
+      resourceType: 'patient',
+      resourceId: patient.id,
+      details: { name: patient.name, mobile: patient.mobile, consent: data.consent },
+      ipAddress: 'internal',
+    });
 
     return {
       id: patient.id,
@@ -107,6 +119,16 @@ export class FaceRegistrationService {
           mobile: patient.mobile,
         };
       });
+
+    await this.auditService.log({
+      action: 'PATIENT_SEARCH_WITH_DETAILS',
+      actorId: 'system',
+      actorRole: 'SYSTEM',
+      resourceType: 'patient',
+      resourceId: 'batch',
+      details: { matchCount: matches.length, resultCount: results.length, threshold },
+      ipAddress: 'internal',
+    });
 
     return { matches: results, total: results.length };
   }

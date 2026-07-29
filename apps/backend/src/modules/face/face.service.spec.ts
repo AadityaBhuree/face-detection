@@ -1,6 +1,7 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { FaceService } from './face.service';
+import { AuditService } from '../audit/audit.service';
 import type { FaceEmbeddingInput, FaceSearchQuery } from '@ayutalk/shared-schemas';
 
 // ─── Mocks ─────────────────────────────────────────────────────
@@ -39,6 +40,7 @@ describe('FaceService', () => {
             get: jest.fn((key: string) => mockConfig[key]),
           },
         },
+        { provide: AuditService, useValue: { log: jest.fn().mockResolvedValue(undefined) } },
       ],
     }).compile();
 

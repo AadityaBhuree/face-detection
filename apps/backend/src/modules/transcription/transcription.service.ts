@@ -1,6 +1,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
+import { AuditService } from '../audit/audit.service';
 
 @Injectable()
 export class TranscriptionService {
@@ -11,6 +12,7 @@ export class TranscriptionService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    private readonly auditService: AuditService,
   ) {
     this.whisperApiUrl = this.configService.get<string>(
       'openai.whisperApiUrl',
@@ -40,6 +42,16 @@ export class TranscriptionService {
       },
     });
 
+    await this.auditService.log({
+      action: 'TRANSCRIPTION_CREATED',
+      actorId: 'system',
+      actorRole: 'SYSTEM',
+      resourceType: 'session_transcript',
+      resourceId: data.sessionId,
+      details: { audioUrl: data.audioUrl, isPlaceholder: true },
+      ipAddress: 'internal',
+    });
+
     return { sessionId: data.sessionId, text, isFinal: true };
   }
 
@@ -64,12 +76,33 @@ export class TranscriptionService {
         },
       });
 
+      await this.auditService.log({
+        action: 'TRANSCRIPTION_BUFFER_COMPLETED',
+        actorId: 'system',
+        actorRole: 'SYSTEM',
+        resourceType: 'session_transcript',
+        resourceId: sessionId,
+        details: { audioSizeBytes: audioBuffer.length, textLength: text.length },
+        ipAddress: 'internal',
+      });
+
       return { text, isFinal: true };
     } catch (error) {
       this.logger.error(
         `Whisper transcription failed for session ${sessionId}`,
         error,
       );
+
+      await this.auditService.log({
+        action: 'TRANSCRIPTION_FAILED',
+        actorId: 'system',
+        actorRole: 'SYSTEM',
+        resourceType: 'session_transcript',
+        resourceId: sessionId,
+        details: { error: error instanceof Error ? error.message : 'Unknown error', audioSizeBytes: audioBuffer.length },
+        ipAddress: 'internal',
+      });
+
       throw error;
     }
   }
@@ -151,6 +184,16 @@ export class TranscriptionService {
         where: { sessionId },
       }),
     ]);
+
+    await this.auditService.log({
+      action: 'TRANSCRIPT_VIEW',
+      actorId: 'system',
+      actorRole: 'SYSTEM',
+      resourceType: 'session_transcript',
+      resourceId: sessionId,
+      details: { transcriptCount: transcripts.length, total, page, limit },
+      ipAddress: 'internal',
+    });
 
     return {
       data: transcripts,

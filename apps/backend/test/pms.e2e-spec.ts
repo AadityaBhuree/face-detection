@@ -4,6 +4,7 @@ import request from 'supertest';
 import { ConfigModule } from '@nestjs/config';
 import { PmsModule } from '../src/modules/pms/pms.module';
 import { PmsService } from '../src/modules/pms/pms.service';
+import { PrismaService } from '../src/prisma/prisma.service';
 
 // ─── Mock Service ──────────────────────────────────────────────
 
@@ -64,6 +65,8 @@ describe('PmsController (E2E)', () => {
         PmsModule,
       ],
     })
+      .overrideProvider(PrismaService)
+      .useValue({} as any)
       .overrideProvider(PmsService)
       .useValue(mockPmsService)
       .compile();

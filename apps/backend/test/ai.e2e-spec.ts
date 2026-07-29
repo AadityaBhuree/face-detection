@@ -1,3 +1,40 @@
+// ─── ioredis Mock ──────────────────────────────────────────────
+// BullMQ uses ioredis internally. This mock prevents BullMQ from
+// attempting a real Redis connection during E2E tests.
+const mockIoRedis = {
+  on: jest.fn().mockReturnThis(),
+  once: jest.fn().mockReturnThis(),
+  connect: jest.fn().mockResolvedValue(undefined),
+  disconnect: jest.fn().mockResolvedValue(undefined),
+  quit: jest.fn().mockResolvedValue('OK'),
+  duplicate: jest.fn().mockReturnThis(),
+  isReady: true,
+  status: 'ready',
+  options: {},
+  ping: jest.fn().mockResolvedValue('PONG'),
+  get: jest.fn().mockResolvedValue(null),
+  set: jest.fn().mockResolvedValue('OK'),
+  setex: jest.fn().mockResolvedValue('OK'),
+  del: jest.fn().mockResolvedValue(1),
+  brpoplpush: jest.fn().mockResolvedValue(null),
+  lpush: jest.fn().mockResolvedValue(1),
+  llen: jest.fn().mockResolvedValue(0),
+  lrange: jest.fn().mockResolvedValue([]),
+  lrem: jest.fn().mockResolvedValue(0),
+  zadd: jest.fn().mockResolvedValue(0),
+  zrange: jest.fn().mockResolvedValue([]),
+  zrem: jest.fn().mockResolvedValue(0),
+  multi: jest.fn().mockReturnThis(),
+  exec: jest.fn().mockResolvedValue([]),
+  call: jest.fn().mockResolvedValue(undefined),
+  sendCommand: jest.fn().mockResolvedValue(undefined),
+  waitUntilReady: jest.fn().mockResolvedValue(undefined),
+};
+jest.mock('ioredis', () => ({
+  Redis: jest.fn(() => mockIoRedis),
+  default: jest.fn(() => mockIoRedis),
+}));
+
 import { Test, type TestingModule } from '@nestjs/testing';
 import { type INestApplication, ValidationPipe, Logger } from '@nestjs/common';
 import request from 'supertest';
@@ -6,6 +43,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { AiModule } from '../src/modules/ai/ai.module';
 import { AiService } from '../src/modules/ai/ai.service';
 import { SessionService } from '../src/modules/session/session.service';
+import { PrismaService } from '../src/prisma/prisma.service';
 import { SessionGateway } from '../src/modules/session/session.gateway';
 import { SessionTimeoutWorker } from '../src/modules/session/session-timeout.worker';
 import { TranscriptionService } from '../src/modules/transcription/transcription.service';
@@ -83,6 +121,8 @@ describe('AiController (E2E)', () => {
         AiModule,
       ],
     })
+      .overrideProvider(PrismaService)
+      .useValue({} as any)
       .overrideProvider(AiService)
       .useValue(mockAiService)
       .overrideProvider(SessionService)

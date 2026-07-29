@@ -1,8 +1,10 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { BullModule } from '@nestjs/bullmq';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from './logger/logger.module';
+import { CustomThrottlerGuard } from './common/guards/throttler.guard';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { FaceModule } from './modules/face/face.module';
@@ -27,12 +29,15 @@ import { configuration } from './config/configuration';
     }),
 
     // ─── Rate Limiting ─────────────────────────────────────────
-    ThrottlerModule.forRoot([
-      {
-        ttl: Number(process.env.RATE_LIMIT_WINDOW_MS ?? 60000),
-        limit: Number(process.env.RATE_LIMIT_MAX_REQUESTS ?? 100),
-      },
-    ]),
+    ThrottlerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => [
+        {
+          ttl: config.get<number>('rateLimit.windowMs')!,
+          limit: config.get<number>('rateLimit.maxRequests')!,
+        },
+      ],
+    }),
 
     // ─── BullMQ (Background Jobs) ──────────────────────────────
     BullModule.forRootAsync({
@@ -66,11 +71,21 @@ import { configuration } from './config/configuration';
     PmsModule,
     TranscriptionModule,
 
-    // ─── OpenTelemetry / Tracing ────────────────────────────────
+    // ─── Rate Limiting Guard ───────────────────────────────────┐
+    // Chained after JwtAuthGuard. Public routes (decorated with │
+    // @Public) have throttling skipped via @SkipThrottle().      │
+    //                                                            │
+    // ─── OpenTelemetry / Tracing ────────────────────────────────┘
     OpenTelemetryModule,
 
     // ─── Health / Observability ────────────────────────────────
     HealthModule,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: CustomThrottlerGuard,
+    },
   ],
 })
 export class AppModule {}

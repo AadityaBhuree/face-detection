@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
+import { AuditService } from '../audit/audit.service';
 import type { PmsSyncInput } from '@ayutalk/shared-schemas';
 import type { PatientContext } from '@ayutalk/shared-types';
 import type { PmsSyncAdapter, SyncResult } from './adapters/pms-sync-adapter';
@@ -16,6 +17,7 @@ export class PmsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    private readonly auditService: AuditService,
     hl7FhirAdapter: HL7FHIRAdapter,
     customApiAdapter: CustomApiAdapter,
   ) {
@@ -38,6 +40,17 @@ export class PmsService {
     const adapter = this.adapters.get(data.targetSystem);
     if (!adapter) {
       this.logger.error(`Unknown target system: ${data.targetSystem}`);
+
+      await this.auditService.log({
+        action: 'PMS_SYNC_FAILED',
+        actorId: 'system',
+        actorRole: 'SYSTEM',
+        resourceType: 'pms_sync',
+        resourceId: data.intakeRecordId,
+        details: { targetSystem: data.targetSystem, error: 'Unknown target system', availableAdapters: Array.from(this.adapters.keys()) },
+        ipAddress: 'internal',
+      });
+
       return {
         synced: false,
         target: data.targetSystem,
@@ -56,6 +69,26 @@ export class PmsService {
         externalId: result.externalId,
         durationMs: result.durationMs,
       });
+
+      await this.auditService.log({
+        action: 'PMS_SYNC_SUCCESS',
+        actorId: 'system',
+        actorRole: 'SYSTEM',
+        resourceType: 'pms_sync',
+        resourceId: data.intakeRecordId,
+        details: { targetSystem: data.targetSystem, patientId: data.patientId, externalId: result.externalId, durationMs: result.durationMs },
+        ipAddress: 'internal',
+      });
+    } else {
+      await this.auditService.log({
+        action: 'PMS_SYNC_FAILED',
+        actorId: 'system',
+        actorRole: 'SYSTEM',
+        resourceType: 'pms_sync',
+        resourceId: data.intakeRecordId,
+        details: { targetSystem: data.targetSystem, patientId: data.patientId, error: result.error },
+        ipAddress: 'internal',
+      });
     }
 
     return result;
@@ -70,6 +103,17 @@ export class PmsService {
     const cached = await this.readCache(patientId);
     if (cached) {
       this.logger.debug(`Cache hit for patient ${patientId}`);
+
+      await this.auditService.log({
+        action: 'PMS_CONTEXT_CACHE_HIT',
+        actorId: 'system',
+        actorRole: 'SYSTEM',
+        resourceType: 'patient_context',
+        resourceId: patientId,
+        details: { source: 'cache' },
+        ipAddress: 'internal',
+      });
+
       return cached as unknown as PatientContext;
     }
 
@@ -102,6 +146,16 @@ export class PmsService {
 
     // Write-through: persist loaded context to cache
     await this.writeCache(patientId, context as unknown as Record<string, unknown>);
+
+    await this.auditService.log({
+      action: 'PMS_CONTEXT_LOADED',
+      actorId: 'system',
+      actorRole: 'SYSTEM',
+      resourceType: 'patient_context',
+      resourceId: patientId,
+      details: { source: 'database' },
+      ipAddress: 'internal',
+    });
 
     return context;
   }

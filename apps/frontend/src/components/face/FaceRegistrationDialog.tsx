@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useFaceStore } from '@/stores/face-store';
 import { faceApi } from '@/services/api';
+import { cn } from '@/lib/utils';
+import { CheckCircle2, User, Calendar, Phone, ShieldCheck, ArrowRight, ArrowLeft } from 'lucide-react';
 
 interface FaceRegistrationDialogProps {
   /** The face embedding from the detection pipeline */
@@ -14,6 +16,30 @@ interface FaceRegistrationDialogProps {
   isOpen: boolean;
 }
 
+type RegistrationStep = 'name' | 'details' | 'consent' | 'success';
+
+function formatMobile(value: string): string {
+  // Strip non-digit chars except leading +
+  const cleaned = value.replace(/[^\d+]/g, '');
+  // Ensure + prefix for international format
+  if (cleaned.length > 0 && !cleaned.startsWith('+')) {
+    return '+' + cleaned.replace(/^0+/, '');
+  }
+  return cleaned;
+}
+
+function isValidAge(dob: string): boolean {
+  if (!dob) return false;
+  const birthDate = new Date(dob);
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age >= 0 && age <= 120;
+}
+
 export function FaceRegistrationDialog({
   embedding,
   onRegistered,
@@ -22,31 +48,113 @@ export function FaceRegistrationDialog({
 }: FaceRegistrationDialogProps) {
   const livenessStatus = useFaceStore((s) => s.livenessStatus);
 
+  const [step, setStep] = useState<RegistrationStep>('name');
   const [name, setName] = useState('');
   const [dob, setDob] = useState('');
   const [mobile, setMobile] = useState('');
   const [consent, setConsent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isRegistering, setIsRegistering] = useState(false);
+  const [registeredName, setRegisteredName] = useState('');
+
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const dobInputRef = useRef<HTMLInputElement>(null);
+  const mobileInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-focus first field on step change
+  useEffect(() => {
+    if (step === 'name') nameInputRef.current?.focus();
+    if (step === 'details') dobInputRef.current?.focus();
+  }, [step]);
+
+  // Close on Escape
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape' && step !== 'success') onCancel();
+    }
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onCancel, step]);
+
+  const resetForm = useCallback(() => {
+    setStep('name');
+    setName('');
+    setDob('');
+    setMobile('');
+    setConsent(false);
+    setError(null);
+    setIsRegistering(false);
+    setRegisteredName('');
+  }, []);
+
+  // Reset form when dialog opens
+  useEffect(() => {
+    if (isOpen) resetForm();
+  }, [isOpen, resetForm]);
 
   if (!isOpen) return null;
+
+  // ─── Step Validators ────────────────────────────────────────────
+
+  function validateName(): boolean {
+    setError(null);
+    if (!name.trim()) {
+      setError('Patient name is required');
+      return false;
+    }
+    if (name.trim().length < 2) {
+      setError('Name must be at least 2 characters');
+      return false;
+    }
+    if (name.trim().length > 200) {
+      setError('Name is too long (max 200 characters)');
+      return false;
+    }
+    if (!/^[a-zA-Z\s'-]+$/.test(name.trim())) {
+      setError('Name contains invalid characters');
+      return false;
+    }
+    return true;
+  }
+
+  function validateDetails(): boolean {
+    setError(null);
+
+    if (!dob) {
+      setError('Date of birth is required');
+      return false;
+    }
+    if (!isValidAge(dob)) {
+      setError('Patient age must be between 0 and 120 years');
+      return false;
+    }
+
+    const formattedMobile = formatMobile(mobile);
+    if (!/^\+?[1-9]\d{9,14}$/.test(formattedMobile)) {
+      setError('Enter a valid mobile number (e.g., +919876543210)');
+      return false;
+    }
+    if (formattedMobile.replace(/\D/g, '').length < 10) {
+      setError('Mobile number must have at least 10 digits');
+      return false;
+    }
+
+    return true;
+  }
+
+  // ─── Step Handlers ──────────────────────────────────────────────
+
+  function handleNameContinue() {
+    if (validateName()) setStep('details');
+  }
+
+  function handleDetailsContinue() {
+    if (validateDetails()) setStep('consent');
+  }
 
   async function handleRegister() {
     setError(null);
 
-    // Validation
-    if (!name.trim()) {
-      setError('Patient name is required');
-      return;
-    }
-    if (!dob) {
-      setError('Date of birth is required');
-      return;
-    }
-    if (!/^\+?[1-9]\d{9,14}$/.test(mobile)) {
-      setError('Valid mobile number is required (e.g., +919876543210)');
-      return;
-    }
     if (!consent) {
       setError('Patient consent is required to store facial data');
       return;
@@ -62,146 +170,259 @@ export function FaceRegistrationDialog({
 
     setIsRegistering(true);
     try {
-      // Register patient via API client
       const result = await faceApi.registerPatient({
         name: name.trim(),
         dob,
-        mobile,
+        mobile: formatMobile(mobile),
         consent,
         embedding,
       });
 
-      onRegistered(result.id, result.name);
+      setRegisteredName(result.name);
+      setStep('success');
+
+      // Auto-transition to intake after showing success for 2 seconds
+      setTimeout(() => {
+        onRegistered(result.id, result.name);
+      }, 2000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Registration failed');
+      const message = err instanceof Error ? err.message : 'Registration failed';
+      setError(message);
     } finally {
       setIsRegistering(false);
     }
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-700 dark:bg-slate-900">
-        {/* Header */}
-        <div className="mb-5 flex items-center gap-3">
-          <div className="bg-ayutalk-100 dark:bg-ayutalk-900/50 flex h-10 w-10 items-center justify-center rounded-xl">
-            <svg
-              className="text-ayutalk-600 dark:text-ayutalk-400 h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"
-              />
-            </svg>
+  // ─── Step Indicators ────────────────────────────────────────────
+
+  const steps = [
+    { key: 'name', label: 'Name', icon: User },
+    { key: 'details', label: 'Details', icon: Calendar },
+    { key: 'consent', label: 'Consent', icon: ShieldCheck },
+  ] as const;
+
+  function getStepIndex(s: RegistrationStep): number {
+    return steps.findIndex((st) => st.key === s);
+  }
+
+  const currentStepIndex = getStepIndex(step);
+
+  // ─── Render: Step 1 - Name ──────────────────────────────────────
+  function renderNameStep() {
+    return (
+      <div className="animate-fade-in space-y-4">
+        <div className="text-center">
+          <div className="bg-ayutalk-100 dark:bg-ayutalk-900/50 mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl">
+            <User className="text-ayutalk-600 dark:text-ayutalk-400 h-6 w-6" />
           </div>
-          <div>
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-              New Patient Registration
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              No matching patient found. Register a new patient.
-            </p>
-          </div>
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+            What is your name?
+          </h3>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            Enter the patient&apos;s full name as it appears on their ID
+          </p>
         </div>
 
-        {/* Form */}
-        <div className="space-y-4">
-          {/* Name */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-slate-700 dark:text-slate-300">
-              Full Name
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g., Priya Sharma"
-              className="focus:border-ayutalk-500 focus:ring-ayutalk-500 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 transition-colors focus:outline-none focus:ring-1 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
-              disabled={isRegistering}
-              autoFocus
-            />
-          </div>
+        <input
+          ref={nameInputRef}
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleNameContinue()}
+          placeholder="e.g., Priya Sharma"
+          maxLength={200}
+          className="focus:border-ayutalk-500 focus:ring-ayutalk-500 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 transition-all focus:outline-none focus:ring-2 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
+          disabled={isRegistering}
+        />
 
-          {/* DOB */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-slate-700 dark:text-slate-300">
-              Date of Birth
-            </label>
-            <input
-              type="date"
-              value={dob}
-              onChange={(e) => setDob(e.target.value)}
-              max={new Date().toISOString().split('T')[0]}
-              className="focus:border-ayutalk-500 focus:ring-ayutalk-500 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 transition-colors focus:outline-none focus:ring-1 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
-              disabled={isRegistering}
-            />
-          </div>
-
-          {/* Mobile */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-slate-700 dark:text-slate-300">
-              Mobile Number
-            </label>
-            <input
-              type="tel"
-              value={mobile}
-              onChange={(e) => setMobile(e.target.value)}
-              placeholder="+919876543210"
-              className="focus:border-ayutalk-500 focus:ring-ayutalk-500 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 transition-colors focus:outline-none focus:ring-1 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
-              disabled={isRegistering}
-            />
-          </div>
-
-          {/* Consent */}
-          <label className="flex items-start gap-3 rounded-lg bg-slate-50 p-3 dark:bg-slate-800/50">
-            <input
-              type="checkbox"
-              checked={consent}
-              onChange={(e) => setConsent(e.target.checked)}
-              className="text-ayutalk-500 focus:ring-ayutalk-500 mt-0.5 h-4 w-4 rounded border-slate-300 dark:border-slate-600"
-              disabled={isRegistering}
-            />
-            <span className="text-xs leading-relaxed text-slate-600 dark:text-slate-400">
-              I consent to the capture and storage of my facial data for identification purposes
-              during clinic visits. This data will be encrypted and stored securely in accordance
-              with applicable privacy regulations.
-            </span>
-          </label>
-
-          {/* Liveness warning */}
-          {livenessStatus !== 'verified' && (
-            <div className="rounded-lg bg-amber-50 p-3 text-xs text-amber-700 ring-1 ring-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:ring-amber-800">
-              ⚠ Liveness check required. Please look at the camera and blink naturally when
-              prompted.
-            </div>
-          )}
-
-          {/* Error */}
-          {error && (
-            <div className="rounded-lg bg-red-50 p-3 text-xs text-red-600 ring-1 ring-red-200 dark:bg-red-950/30 dark:text-red-400 dark:ring-red-800">
-              {error}
-            </div>
-          )}
-        </div>
-
-        {/* Actions */}
-        <div className="mt-6 flex gap-3">
+        <div className="flex gap-3">
           <button
             onClick={onCancel}
-            className="flex flex-1 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-transparent dark:text-slate-400 dark:hover:bg-slate-800"
+            className="flex flex-1 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-transparent dark:text-slate-400 dark:hover:bg-slate-800"
             disabled={isRegistering}
           >
             Cancel
           </button>
           <button
+            onClick={handleNameContinue}
+            className="bg-ayutalk-500 hover:bg-ayutalk-600 focus:ring-ayutalk-500 flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-sm transition-all focus:outline-none focus:ring-2"
+          >
+            Continue
+            <ArrowRight className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Render: Step 2 - DOB & Mobile ──────────────────────────────
+  function renderDetailsStep() {
+    return (
+      <div className="animate-fade-in space-y-4">
+        <div className="text-center">
+          <div className="bg-emerald-100 dark:bg-emerald-900/50 mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl">
+            <Calendar className="text-emerald-600 dark:text-emerald-400 h-6 w-6" />
+          </div>
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+            Patient Details
+          </h3>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            Date of birth and contact information
+          </p>
+        </div>
+
+        {/* DOB */}
+        <div>
+          <label htmlFor="reg-dob" className="mb-1.5 block text-xs font-medium text-slate-700 dark:text-slate-300">
+            Date of Birth
+          </label>
+          <input
+            id="reg-dob"
+            ref={dobInputRef}
+            type="date"
+            value={dob}
+            onChange={(e) => setDob(e.target.value)}
+            max={new Date().toISOString().split('T')[0]}
+            min="1900-01-01"
+            className="focus:border-ayutalk-500 focus:ring-ayutalk-500 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 transition-all focus:outline-none focus:ring-2 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+            disabled={isRegistering}
+          />
+          {dob && !isValidAge(dob) && (
+            <p className="mt-1 text-xs text-red-500">
+              Age must be between 0 and 120 years
+            </p>
+          )}
+        </div>
+
+        {/* Mobile */}
+        <div>
+          <label htmlFor="reg-mobile" className="mb-1.5 block text-xs font-medium text-slate-700 dark:text-slate-300">
+            Mobile Number
+          </label>
+          <div className="relative">
+            <Phone className="text-slate-400 absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
+            <input
+              id="reg-mobile"
+              ref={mobileInputRef}
+              type="tel"
+              value={mobile}
+              onChange={(e) => setMobile(formatMobile(e.target.value))}
+              placeholder="+919876543210"
+              maxLength={15}
+              className="focus:border-ayutalk-500 focus:ring-ayutalk-500 w-full rounded-xl border border-slate-300 bg-white py-3 pl-10 pr-4 text-sm text-slate-900 transition-all focus:outline-none focus:ring-2 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
+              disabled={isRegistering}
+            />
+          </div>
+        </div>
+
+        {/* Navigation */}
+        <div className="flex gap-3 pt-1">
+          <button
+            onClick={() => setStep('name')}
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-transparent dark:text-slate-400 dark:hover:bg-slate-800"
+            disabled={isRegistering}
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back
+          </button>
+          <button
+            onClick={handleDetailsContinue}
+            disabled={isRegistering}
+            className="bg-ayutalk-500 hover:bg-ayutalk-600 focus:ring-ayutalk-500 flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-sm transition-all focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Continue
+            <ArrowRight className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Render: Step 3 - Consent ───────────────────────────────────
+  function renderConsentStep() {
+    return (
+      <div className="animate-fade-in space-y-5">
+        <div className="text-center">
+          <div className="bg-violet-100 dark:bg-violet-900/50 mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl">
+            <ShieldCheck className="text-violet-600 dark:text-violet-400 h-6 w-6" />
+          </div>
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+            Review & Consent
+          </h3>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            Please review the information and provide consent
+          </p>
+        </div>
+
+        {/* Summary Card */}
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-slate-500 dark:text-slate-400">Name</span>
+              <span className="font-medium text-slate-900 dark:text-white">{name.trim()}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-slate-500 dark:text-slate-400">Date of Birth</span>
+              <span className="font-medium text-slate-900 dark:text-white">
+                {new Date(dob).toLocaleDateString('en-IN', {
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric',
+                })}
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-slate-500 dark:text-slate-400">Mobile</span>
+              <span className="font-medium text-slate-900 dark:text-white">
+                {formatMobile(mobile)}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Liveness Warning */}
+        {livenessStatus !== 'verified' && (
+          <div className="rounded-xl bg-amber-50 p-3 text-xs text-amber-700 ring-1 ring-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:ring-amber-800">
+            ⚠ Liveness check required. Please look at the camera and blink naturally when
+            prompted.
+          </div>
+        )}
+
+        {/* Consent Checkbox */}
+        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800/50 dark:hover:bg-slate-800">
+          <input
+            type="checkbox"
+            checked={consent}
+            onChange={(e) => setConsent(e.target.checked)}
+            className="text-ayutalk-500 focus:ring-ayutalk-500 mt-0.5 h-5 w-5 rounded border-slate-300 dark:border-slate-600"
+            disabled={isRegistering}
+          />
+          <div>
+            <span className="text-sm font-medium text-slate-900 dark:text-white">
+              I give my consent
+            </span>
+            <p className="mt-0.5 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+              I authorize the capture and storage of my facial data for identification purposes
+              during clinic visits. This data will be encrypted and stored securely in accordance
+              with applicable privacy regulations. I understand I can withdraw consent at any time.
+            </p>
+          </div>
+        </label>
+
+        {/* Navigation */}
+        <div className="flex gap-3 pt-1">
+          <button
+            onClick={() => setStep('details')}
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-transparent dark:text-slate-400 dark:hover:bg-slate-800"
+            disabled={isRegistering}
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back
+          </button>
+          <button
             onClick={handleRegister}
             disabled={isRegistering || !consent || livenessStatus !== 'verified'}
-            className="bg-ayutalk-500 hover:bg-ayutalk-600 flex flex-1 items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all disabled:cursor-not-allowed disabled:opacity-50"
+            className="bg-emerald-500 hover:bg-emerald-600 focus:ring-emerald-500 flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-sm transition-all focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isRegistering ? (
               <span className="flex items-center gap-2">
@@ -209,9 +430,109 @@ export function FaceRegistrationDialog({
                 Registering...
               </span>
             ) : (
-              'Register Patient'
+              <>
+                <CheckCircle2 className="h-4 w-4" />
+                Confirm & Register
+              </>
             )}
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Render: Step 4 - Success ───────────────────────────────────
+  function renderSuccessStep() {
+    return (
+      <div className="animate-scale-in-center flex flex-col items-center py-6 text-center">
+        {/* Animated success circle */}
+        <div className="relative mb-6">
+          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/40">
+            <CheckCircle2 className="h-10 w-10 text-emerald-500" />
+          </div>
+          {/* Animated rings */}
+          <div className="animate-ping absolute inset-0 rounded-full bg-emerald-400/20" />
+          <div
+            className="absolute inset-0 rounded-full bg-emerald-400/10"
+            style={{ animation: 'ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite', animationDelay: '0.3s' }}
+          />
+        </div>
+
+        <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+          Welcome, {registeredName}!
+        </h3>
+        <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+          Patient registered successfully. Redirecting to intake...
+        </p>
+
+        {/* Progress bar */}
+        <div className="mt-6 h-1.5 w-48 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+          <div className="h-full animate-[shimmer_2s_linear_infinite] rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600" />
+        </div>
+        <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
+          Preparing AI intake conversation...
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      <div className="relative w-full max-w-md animate-scale-in-center overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900">
+        {/* Step Progress Bar */}
+        {step !== 'success' && (
+          <div className="flex items-center gap-1.5 px-6 pb-0 pt-6">
+            {steps.map((s, i) => (
+              <div key={s.key} className="flex flex-1 items-center gap-1.5">
+                <div
+                  className={cn(
+                    'flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium transition-all duration-300',
+                    i < currentStepIndex
+                      ? 'bg-emerald-500 text-white'
+                      : i === currentStepIndex
+                        ? 'bg-ayutalk-500 text-white ring-2 ring-ayutalk-200 dark:ring-ayutalk-800'
+                        : 'bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-400',
+                  )}
+                >
+                  {i < currentStepIndex ? (
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                  ) : (
+                    i + 1
+                  )}
+                </div>
+                {i < steps.length - 1 && (
+                  <div
+                    className={cn(
+                      'h-0.5 flex-1 rounded-full transition-all duration-300',
+                      i < currentStepIndex
+                        ? 'bg-emerald-400'
+                        : 'bg-slate-200 dark:bg-slate-700',
+                    )}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Body */}
+        <div className="px-6 py-6">
+          {/* Error */}        {error && (
+            <div
+              role="alert"
+              className={cn(
+              'mb-4 rounded-xl p-3 text-xs ring-1',
+              'bg-red-50 text-red-600 ring-red-200 dark:bg-red-950/30 dark:text-red-400 dark:ring-red-800',
+            )}
+          >
+              {error}
+            </div>
+          )}
+
+          {step === 'name' && renderNameStep()}
+          {step === 'details' && renderDetailsStep()}
+          {step === 'consent' && renderConsentStep()}
+          {step === 'success' && renderSuccessStep()}
         </div>
       </div>
     </div>

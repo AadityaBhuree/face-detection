@@ -115,6 +115,7 @@ export const aiIntakePromptSchema = z.object({
     }),
   ),
   currentInput: z.string().min(1).max(5000),
+  language: z.enum(['en', 'hi', 'mr', 'es']).default('en'),
 });
 
 export const aiBriefGenerateSchema = z.object({
@@ -123,6 +124,7 @@ export const aiBriefGenerateSchema = z.object({
   intakeData: intakeDataSchema,
   transcript: z.string().max(100000),
   patientHistory: z.string().max(5000),
+  language: z.enum(['en', 'hi', 'mr', 'es']).default('en'),
 });
 
 // ─── WebSocket Schemas ──────────────────────────────────────────

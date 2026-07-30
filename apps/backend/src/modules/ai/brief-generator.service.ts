@@ -4,6 +4,13 @@ import { withRetry } from '@ayutalk/shared-utils';
 import type { AiBriefGenerateInput } from '@ayutalk/shared-schemas';
 import type { ClinicalBrief } from '@ayutalk/shared-types';
 
+const LANGUAGE_MAP: Record<string, string> = {
+  en: 'Generate the brief in English.',
+  hi: 'कृपया हिंदी में ब्रीफ तैयार करें। (Generate the brief in Hindi.)',
+  mr: 'कृपया मराठीतून ब्रीफ तयार करा. (Generate the brief in Marathi.)',
+  es: 'Genere el informe en español. (Generate the brief in Spanish.)',
+};
+
 const BRIEF_SYSTEM_PROMPT = `You are a clinical AI assistant that generates structured intake briefs for doctors. Given a patient's intake data, transcript, and medical history, produce a concise clinical brief following this schema:
 
 {
@@ -52,6 +59,7 @@ export class BriefGeneratorService {
   }
 
   private buildPrompt(data: AiBriefGenerateInput): string {
+    const langInstruction = LANGUAGE_MAP[data.language ?? 'en'] ?? LANGUAGE_MAP['en']!;
     return `
 Patient History: ${data.patientHistory}
 
@@ -64,6 +72,9 @@ Intake Data:
 - Patient Notes: ${data.intakeData.patientNotes}
 
 Full Transcript: ${data.transcript.slice(0, 10000)}
+
+Patient language preference: ${data.language ?? 'en'}
+${langInstruction}
 
 Generate a structured clinical brief based on this information.`;
   }

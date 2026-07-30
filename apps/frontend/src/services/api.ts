@@ -168,6 +168,7 @@ export const aiApi = {
     patientContext: string;
     conversationHistory: Array<{ role: string; content: string }>;
     currentInput: string;
+    language?: string;
   }) =>
     request<{ response: string; intakeComplete: boolean }>('/ai/intake-agent', {
       method: 'POST',
@@ -180,6 +181,7 @@ export const aiApi = {
     intakeData: Record<string, unknown>;
     transcript: string;
     patientHistory: string;
+    language?: string;
   }) =>
     request<Record<string, unknown>>('/ai/brief', {
       method: 'POST',

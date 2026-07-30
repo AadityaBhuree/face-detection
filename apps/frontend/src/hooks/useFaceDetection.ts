@@ -29,6 +29,10 @@ interface UseFaceDetectionOptions {
   modelAssetPath?: string;
   /** Whether detection should auto-start when video is active (default: true) */
   autoStart?: boolean;
+  /** Use CPU delegate instead of GPU (for mobile devices with limited GPU). Default: false */
+  useCPUDelegate?: boolean;
+  /** Optional WebAssembly fileset path override (for CDN fallback) */
+  wasmPath?: string;
 }
 
 interface UseFaceDetectionReturn {
@@ -62,6 +66,8 @@ export function useFaceDetection(
     minTrackingConfidence = 0.5,
     modelAssetPath = DEFAULT_MODEL_URL,
     autoStart = true,
+    useCPUDelegate = false,
+    wasmPath = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm',
   } = options;
 
   const [result, setResult] = useState<DetectionResult | null>(null);
@@ -77,6 +83,7 @@ export function useFaceDetection(
   const frameCountRef = useRef(0);
   const lastFpsTimeRef = useRef(performance.now());
   const lastVideoTimeRef = useRef(-1);
+  const delegateRef = useRef<'GPU' | 'CPU'>(useCPUDelegate ? 'CPU' : 'GPU');
 
   // Initialize FaceLandmarker
   useEffect(() => {
@@ -86,18 +93,18 @@ export function useFaceDetection(
       try {
         setIsLoading(true);
 
-        const vision = await FilesetResolver.forVisionTasks(
-          'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm',
-        );
+        const vision = await FilesetResolver.forVisionTasks(wasmPath);
 
         if (!mounted) return;
+
+        const delegate = delegateRef.current;
 
         faceLandmarkerRef.current = await FaceLandmarker.createFromOptions(
           vision,
           {
             baseOptions: {
               modelAssetPath,
-              delegate: 'GPU',
+              delegate,
             },
             runningMode: 'VIDEO',
             outputFaceBlendshapes: outputBlendshapes,
@@ -111,11 +118,12 @@ export function useFaceDetection(
         setIsLoading(false);
       } catch (err) {
         if (mounted) {
-          setError(
-            err instanceof Error
-              ? `MediaPipe init failed: ${err.message}`
-              : 'MediaPipe initialization failed',
-          );
+          // If GPU delegate failed on mobile, recommend CPU fallback
+      const message = err instanceof Error ? err.message : 'MediaPipe initialization failed';
+      const suggestion = delegateRef.current === 'GPU' && useCPUDelegate === false
+        ? ' Try enabling CPU mode on mobile devices.'
+        : '';
+      setError(message + suggestion);
           setIsLoading(false);
         }
       }

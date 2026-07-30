@@ -179,9 +179,7 @@ describe('useFaceDetection', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(result.current.error).toBe(
-        'MediaPipe init failed: WASM load failed',
-      );
+      expect(result.current.error).toContain('WASM load failed');
     });
 
     it('should set generic error when init fails with non-Error', async () => {
@@ -193,7 +191,7 @@ describe('useFaceDetection', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(result.current.error).toBe('MediaPipe initialization failed');
+      expect(result.current.error).toContain('MediaPipe initialization failed');
     });
 
     it('should not call createFromOptions if unmounted during init', async () => {

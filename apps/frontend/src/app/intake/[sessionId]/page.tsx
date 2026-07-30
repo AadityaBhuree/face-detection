@@ -10,6 +10,7 @@ import { useFaceDetection } from '@/hooks/useFaceDetection';
 import { useFaceEmbedding } from '@/hooks/useFaceEmbedding';
 import { useLivenessDetection } from '@/hooks/useLivenessDetection';
 import { useIntakeConversation } from '@/hooks/useIntakeConversation';
+import { useMobileDetection } from '@/hooks/useMobileDetection';
 import { socketService } from '@/services/socket';
 import { cn } from '@/lib/utils';
 import { DarkModeToggle } from '@/components/ui/dark-mode-toggle';
@@ -18,13 +19,28 @@ import { VoiceInput } from '@/components/intake/VoiceInput';
 import { FaceDetectionCanvas } from '@/components/face/FaceDetectionCanvas';
 import { FaceRegistrationDialog } from '@/components/face/FaceRegistrationDialog';
 import { BriefCard } from '@/components/intake/brief-card';
+import { CameraSelector } from '@/components/camera/CameraSelector';
 
 type IntakePhase = 'camera' | 'detecting' | 'intake' | 'brief' | 'complete';
 
 export default function IntakeSessionPage() {
   const params = useParams<{ sessionId: string }>();
   const sessionId = params.sessionId;
-  const { videoRef, isActive, startCamera, stopCamera } = useCamera({ facingMode: 'user' });
+  const mobileInfo = useMobileDetection();
+  const {
+    videoRef,
+    isActive,
+    startCamera,
+    stopCamera,
+    currentFacingMode,
+    toggleCamera,
+    devices,
+    hasMultipleCameras: _hasMultipleCameras,
+    error: cameraError,
+  } = useCamera({
+    facingMode: mobileInfo.isMobile ? 'environment' : 'user',
+    isMobile: mobileInfo.isMobile,
+  });
 
   const session = useSessionStore();
   const face = useFaceStore();
@@ -60,6 +76,7 @@ export default function IntakeSessionPage() {
     outputBlendshapes: false,
     outputFaceMatrix: false,
     autoStart: true,
+    useCPUDelegate: mobileInfo.hasLimitedGPU,
   });
 
   // ─── Face Embedding & Identity Search ────────────────────────
@@ -271,9 +288,9 @@ export default function IntakeSessionPage() {
         </div>
       </header>
 
-      <main className="flex flex-1 gap-6 p-6">
+      <main className={cn('flex flex-1 gap-6 p-6', mobileInfo.isMobile && 'flex-col')}>
         {/* Left Panel — Camera + Face Detection */}
-        <div className="flex w-[420px] flex-col gap-4">
+        <div className={cn('flex flex-col gap-4', mobileInfo.isMobile ? 'w-full' : 'w-[420px]')}>
           {/* Camera Feed */}
           <div className="relative overflow-hidden rounded-xl bg-black shadow-lg">
             {/* Video */}
@@ -368,60 +385,17 @@ export default function IntakeSessionPage() {
             )}
           </div>
 
-          {/* Camera Controls */}
-          <div className="flex gap-2">
-            {!isActive ? (
-              <button
-                onClick={startCamera}
-                className="bg-ayutalk-500 hover:bg-ayutalk-600 flex flex-1 items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition-all"
-              >
-                <svg
-                  className="mr-2 h-4 w-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15M2.25 18V9.574c0-1.067.75-1.994 1.802-2.169a47.865 47.865 0 0 1 1.134-.175 2.31 2.31 0 0 0 1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="m16.5 12.75-4.198-4.197a4.5 4.5 0 0 0-6.364 6.364l1.5 1.5m6.5-6.5 4.198 4.197a4.5 4.5 0 0 1-6.364 6.364l-1.5-1.5"
-                  />
-                </svg>
-                Start Camera
-              </button>
-            ) : (
-              <button
-                onClick={stopCamera}
-                className="flex flex-1 items-center justify-center rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-600 transition-all hover:bg-red-100 dark:border-red-800 dark:bg-red-950/30 dark:text-red-400 dark:hover:bg-red-950/50"
-              >
-                <svg
-                  className="mr-2 h-4 w-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M3 9a2 2 0 0 1 2-2h.93a2 2 0 0 0 1.664-.89l.812-1.22A2 2 0 0 1 10.07 4h3.86a2 2 0 0 1 1.664.89l.812 1.22A2 2 0 0 0 18.07 7H19a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M15 13a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
-                  />
-                </svg>
-                Stop Camera
-              </button>
-            )}
-          </div>
+          {/* Camera Controls — Mobile-aware */}
+          <CameraSelector
+            currentFacingMode={currentFacingMode}
+            devices={devices}
+            isActive={isActive}
+            error={cameraError}
+            onToggleCamera={toggleCamera}
+            onStartCamera={startCamera}
+            onStopCamera={stopCamera}
+            isMobile={mobileInfo.isMobile}
+          />
 
           {/* Patient Identity Card */}
           {session.patient && phase !== 'camera' && (

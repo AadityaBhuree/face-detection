@@ -11,9 +11,11 @@ import { useFaceEmbedding } from '@/hooks/useFaceEmbedding';
 import { useLivenessDetection } from '@/hooks/useLivenessDetection';
 import { useIntakeConversation } from '@/hooks/useIntakeConversation';
 import { useMobileDetection } from '@/hooks/useMobileDetection';
+import { useLanguage } from '@/hooks/useLanguage';
 import { socketService } from '@/services/socket';
 import { cn } from '@/lib/utils';
 import { DarkModeToggle } from '@/components/ui/dark-mode-toggle';
+import { LanguageSelector } from '@/components/ui/language-selector';
 import { TranscriptView } from '@/components/intake/transcript-view';
 import { VoiceInput } from '@/components/intake/VoiceInput';
 import { FaceDetectionCanvas } from '@/components/face/FaceDetectionCanvas';
@@ -27,6 +29,7 @@ export default function IntakeSessionPage() {
   const params = useParams<{ sessionId: string }>();
   const sessionId = params.sessionId;
   const mobileInfo = useMobileDetection();
+  const { locale, setLocale } = useLanguage();
   const {
     videoRef,
     isActive,
@@ -193,7 +196,7 @@ export default function IntakeSessionPage() {
             // Auto-start the AI intake conversation
             if (!conversationStartedRef.current) {
               conversationStartedRef.current = true;
-              conversation.startConversation(result.patientName ?? 'Patient', result.patientId);
+              conversation.startConversation(result.patientName ?? 'Patient', result.patientId, locale);
             }
             setPhase('intake');
 
@@ -262,7 +265,12 @@ export default function IntakeSessionPage() {
           </Link>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
+          <LanguageSelector
+            currentLocale={locale}
+            onLocaleChange={setLocale}
+            compact
+          />
           <DarkModeToggle />
           <span
             className={cn(

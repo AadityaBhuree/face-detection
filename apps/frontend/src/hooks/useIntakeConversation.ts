@@ -18,7 +18,7 @@ interface UseIntakeConversationReturn {
   patientInput: string;
   setPatientInput: (input: string) => void;
   sendPatientMessage: (text: string) => Promise<void>;
-  startConversation: (patientName: string, patientContext?: string) => Promise<void>;
+  startConversation: (patientName: string, patientContext?: string, language?: string) => Promise<void>;
   completeIntake: () => Promise<void>;
   reset: () => void;
 }
@@ -42,12 +42,14 @@ export function useIntakeConversation(
   const addTranscript = useSessionStore((s) => s.addTranscript);
   const setStatus = useSessionStore((s) => s.setStatus);
   const setBrief = useSessionStore((s) => s.setBrief);
+  const languageRef = useRef('en');
   const patientNameRef = useRef('');
   const turnsRef = useRef<ConversationTurn[]>([]);
 
   const startConversation = useCallback(
-    async (patientName: string, patientContext?: string) => {
+    async (patientName: string, patientContext?: string, language?: string) => {
       patientNameRef.current = patientName;
+      if (language) languageRef.current = language;
       setStatus('intake_in_progress');
       setIsAiThinking(true);
 
@@ -62,6 +64,7 @@ export function useIntakeConversation(
           },
         ],
         currentInput: 'Start the conversation.',
+        language: languageRef.current,
       });
 
       const aiTurn: ConversationTurn = {
@@ -124,6 +127,7 @@ export function useIntakeConversation(
           patientContext: `Patient: ${patientNameRef.current}`,
           conversationHistory,
           currentInput: text.trim(),
+          language: languageRef.current,
         });
 
         const aiTurn: ConversationTurn = {
@@ -222,6 +226,7 @@ export function useIntakeConversation(
     setPatientInput('');
     turnsRef.current = [];
     patientNameRef.current = '';
+    languageRef.current = 'en';
   }, []);
 
   return {

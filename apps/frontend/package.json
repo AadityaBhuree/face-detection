@@ -8,11 +8,14 @@
     "start": "next start",
     "lint": "next lint --fix",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:cov": "vitest run --coverage",
     "clean": "rm -rf .next"
   },
   "dependencies": {
-    "@ayutalk/shared-types": "workspace:*",
     "@ayutalk/shared-schemas": "workspace:*",
+    "@ayutalk/shared-types": "workspace:*",
     "@ayutalk/shared-utils": "workspace:*",
     "@mediapipe/tasks-vision": "^0.10.18",
     "@radix-ui/react-avatar": "^1.1.1",
@@ -42,14 +45,20 @@
     "zustand": "^5.0.2"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.6.0",
+    "@testing-library/react": "^16.1.0",
+    "@testing-library/user-event": "^14.5.0",
     "@types/node": "^22.10.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.0",
     "autoprefixer": "^10.4.20",
     "eslint": "^8.57.0",
     "eslint-config-next": "14.2.21",
+    "jsdom": "^25.0.0",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.0"
   }
 }

@@ -643,6 +643,11 @@ export default function IntakeSessionPage() {
               dob: '',
               mobile: '',
             });
+            socketService.joinSession(sessionId);
+            if (!conversationStartedRef.current) {
+              conversationStartedRef.current = true;
+              conversation.startConversation(patientName, patientId, locale);
+            }
             setPhase('intake');
           }}
           onCancel={() => {

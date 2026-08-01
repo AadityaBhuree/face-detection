@@ -480,7 +480,9 @@ export function t(locale: SupportedLocale, key: keyof Translations, params?: Rec
   let value = translations[locale][key] ?? translations.en[key] ?? `[${key}]`;
   if (params) {
     Object.entries(params).forEach(([k, v]) => {
-      value = value.replace(`{${k}}`, String(v));
+      // split/join replaces every occurrence — some strings (e.g. Spanish
+      // camerasAvailable) repeat a placeholder more than once.
+      value = value.split(`{${k}}`).join(String(v));
     });
   }
   return value;

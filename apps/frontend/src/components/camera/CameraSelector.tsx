@@ -78,12 +78,17 @@ export function CameraSelector({
               <button
                 onClick={handleToggle}
                 disabled={isSwitching}
-                className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm font-medium text-slate-700 transition-all hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                aria-label={
+                  currentFacingMode === 'user'
+                    ? 'Switch to rear camera'
+                    : 'Switch to front camera'
+                }
                 title={
                   currentFacingMode === 'user'
                     ? 'Switch to rear camera'
                     : 'Switch to front camera'
                 }
+                className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm font-medium text-slate-700 transition-all hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
               >
                 <RotateCw
                   className={cn(
@@ -120,7 +125,10 @@ export function CameraSelector({
 
       {/* Error message */}
       {cameraError && (
-        <div className="rounded-xl bg-red-50 p-3 text-xs text-red-600 ring-1 ring-red-200 dark:bg-red-950/30 dark:text-red-400 dark:ring-red-800">
+        <div
+          role="alert"
+          className="rounded-xl bg-red-50 p-3 text-xs text-red-600 ring-1 ring-red-200 dark:bg-red-950/30 dark:text-red-400 dark:ring-red-800"
+        >
           {cameraError}
         </div>
       )}

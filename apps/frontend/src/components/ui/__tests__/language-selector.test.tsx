@@ -108,3 +108,74 @@ describe('LanguageSelector — accessibility', () => {
     expect(defaultProps.onLocaleChange).toHaveBeenCalledWith('es');
   });
 });
+
+describe('LanguageSelector — behavior', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  // ─── Click-outside behavior ───────────────────────────────────
+
+  it('closes the menu when clicking outside', () => {
+    render(
+      <div>
+        <button>Outside</button>
+        <LanguageSelector {...defaultProps} />
+      </div>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /select language/i }));
+    expect(screen.getByRole('menu')).toBeDefined();
+
+    fireEvent.mouseDown(screen.getByRole('button', { name: /outside/i }));
+    expect(screen.queryByRole('menu')).toBeNull();
+  });
+
+  it('keeps the menu open when clicking inside it', () => {
+    render(<LanguageSelector {...defaultProps} />);
+    fireEvent.click(screen.getByRole('button', { name: /select language/i }));
+
+    fireEvent.mouseDown(screen.getByRole('menuitemradio', { name: /english/i }));
+    expect(screen.getByRole('menu')).toBeDefined();
+  });
+
+  it('keeps the menu open when mousing down on the trigger itself', () => {
+    render(<LanguageSelector {...defaultProps} />);
+    const trigger = screen.getByRole('button', { name: /select language/i });
+    fireEvent.click(trigger);
+    fireEvent.mouseDown(trigger);
+    expect(screen.getByRole('menu')).toBeDefined();
+  });
+
+  // ─── Compact vs full mode ─────────────────────────────────────
+
+  it('renders the full trigger with flag and native language name', () => {
+    render(<LanguageSelector {...defaultProps} />);
+    const trigger = screen.getByRole('button', { name: /select language/i });
+    expect(trigger).toHaveTextContent('🇬🇧');
+    expect(trigger).toHaveTextContent('English');
+  });
+
+  it('renders the compact trigger with flag but no native name', () => {
+    render(<LanguageSelector {...defaultProps} compact />);
+    const trigger = screen.getByRole('button', { name: /select language/i });
+    expect(trigger).toHaveTextContent('🇬🇧');
+    expect(trigger).not.toHaveTextContent('English');
+  });
+
+  it('hides the English label sub-text in compact menu items', () => {
+    render(<LanguageSelector {...defaultProps} compact />);
+    fireEvent.click(screen.getByRole('button', { name: /select language/i }));
+    const hindiItem = screen.getByRole('menuitemradio', { name: /हिन्दी/i });
+    expect(hindiItem).not.toHaveTextContent('Hindi');
+  });
+
+  // ─── Locale-change callback in compact mode ───────────────────
+
+  it('calls onLocaleChange when selecting in compact mode', async () => {
+    const user = userEvent.setup();
+    render(<LanguageSelector {...defaultProps} compact />);
+    fireEvent.click(screen.getByRole('button', { name: /select language/i }));
+    await user.click(screen.getByRole('menuitemradio', { name: /मराठी/i }));
+    expect(defaultProps.onLocaleChange).toHaveBeenCalledWith('mr');
+  });
+});

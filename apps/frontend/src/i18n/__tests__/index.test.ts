@@ -122,4 +122,136 @@ describe('i18n', () => {
       }
     });
   });
+
+  describe('parameter interpolation in Hindi', () => {
+    it('interpolates confidencePercent', () => {
+      expect(t('hi', 'confidencePercent', { percent: 85 })).toBe('85% विश्वास');
+    });
+
+    it('interpolates blinksNeeded', () => {
+      expect(t('hi', 'blinksNeeded', { remaining: 2 })).toBe(
+        'कृपया प्राकृतिक रूप से पलक झपकाएं (2 पलकें आवश्यक)',
+      );
+    });
+
+    it('interpolates faceMatched', () => {
+      expect(t('hi', 'faceMatched', { percent: 95 })).toBe('चेहरा मिला — 95%');
+    });
+
+    it('interpolates welcomeMessage', () => {
+      expect(t('hi', 'welcomeMessage', { name: 'प्रिया' })).toBe('स्वागत है, प्रिया!');
+    });
+
+    it('interpolates camerasAvailable with multiple params', () => {
+      // The dictionary stores the singular base 'कैमरा{plural}'; interpolation
+      // appends the plural matra without merging, so the output is 'कैमराों'.
+      expect(t('hi', 'camerasAvailable', { count: 3, plural: 'ों' })).toBe(
+        '3 कैमराों उपलब्ध',
+      );
+    });
+  });
+
+  describe('parameter interpolation in Marathi', () => {
+    it('interpolates confidencePercent', () => {
+      expect(t('mr', 'confidencePercent', { percent: 85 })).toBe('85% विश्वास');
+    });
+
+    it('interpolates blinksNeeded', () => {
+      expect(t('mr', 'blinksNeeded', { remaining: 2 })).toBe(
+        'कृपया नैसर्गिकरीत्या डोळे मिचकावा (2 डोळे मिचकावणे आवश्यक)',
+      );
+    });
+
+    it('interpolates faceMatched', () => {
+      expect(t('mr', 'faceMatched', { percent: 95 })).toBe('चेहरा जुळला — 95%');
+    });
+
+    it('interpolates welcomeMessage', () => {
+      expect(t('mr', 'welcomeMessage', { name: 'प्रिया' })).toBe('स्वागत आहे, प्रिया!');
+    });
+
+    it('interpolates camerasAvailable with multiple params', () => {
+      // Same base-plus-matra behaviour as Hindi: 'कॅमेरा{plural}' → 'कॅमेराे'
+      expect(t('mr', 'camerasAvailable', { count: 3, plural: 'े' })).toBe(
+        '3 कॅमेराे उपलब्ध',
+      );
+    });
+  });
+
+  describe('parameter interpolation in Spanish', () => {
+    it('interpolates confidencePercent', () => {
+      expect(t('es', 'confidencePercent', { percent: 85 })).toBe('85% de confianza');
+    });
+
+    it('interpolates blinksNeeded', () => {
+      expect(t('es', 'blinksNeeded', { remaining: 2 })).toBe(
+        'Parpadee naturalmente (2 parpadeos necesarios)',
+      );
+    });
+
+    it('interpolates faceMatched', () => {
+      expect(t('es', 'faceMatched', { percent: 95 })).toBe('Rostro coincidente — 95%');
+    });
+
+    it('interpolates welcomeMessage', () => {
+      expect(t('es', 'welcomeMessage', { name: 'María' })).toBe('¡Bienvenido/a, María!');
+    });
+
+    it('replaces repeated placeholders (cámaras disponibles)', () => {
+      // Spanish repeats {plural}; every occurrence must be replaced
+      expect(t('es', 'camerasAvailable', { count: 3, plural: 's' })).toBe(
+        '3 cámaras disponibles',
+      );
+    });
+  });
+
+  describe('missing-key fallback', () => {
+    const locales: SupportedLocale[] = ['en', 'hi', 'mr', 'es'];
+
+    for (const locale of locales) {
+      it(`${locale} returns the bracketed key when the key does not exist`, () => {
+        expect(t(locale, 'nonexistent_key' as any)).toBe('[nonexistent_key]');
+      });
+    }
+
+    it('returns the bracketed key even when params are passed', () => {
+      expect(t('hi', 'nonexistent_key' as any, { count: 5 })).toBe('[nonexistent_key]');
+    });
+
+    it('keeps placeholders intact when params are not provided', () => {
+      expect(t('en', 'camerasAvailable')).toBe('{count} camera{plural} available');
+    });
+  });
+
+  describe('translated content in non-English locales', () => {
+    it('Hindi has translated content for common UI keys', () => {
+      expect(t('hi', 'continue_')).toBe('जारी रखें');
+      expect(t('hi', 'clinicalBrief')).toBe('क्लिनिकल इंटेक ब्रीफ');
+      expect(t('hi', 'riskFlags')).toBe('जोखिम संकेत');
+      expect(t('hi', 'thinking')).toBe('सोच रहे हैं');
+      expect(t('hi', 'aiThinking')).toBe('एआई सोच रहा है...');
+    });
+
+    it('Marathi has translated content for common UI keys', () => {
+      expect(t('mr', 'continue_')).toBe('पुढे');
+      expect(t('mr', 'clinicalBrief')).toBe('क्लिनिकल इंटेक ब्रीफ');
+      expect(t('mr', 'riskFlags')).toBe('जोखीम निर्देशक');
+      expect(t('mr', 'thinking')).toBe('विचार करत आहे');
+      expect(t('mr', 'aiThinking')).toBe('एआय विचार करत आहे...');
+    });
+
+    it('Spanish has translated content for common UI keys', () => {
+      expect(t('es', 'continue_')).toBe('Continuar');
+      expect(t('es', 'clinicalBrief')).toBe('Informe Clínico de Admisión');
+      expect(t('es', 'riskFlags')).toBe('Señales de Riesgo');
+      expect(t('es', 'thinking')).toBe('Pensando');
+      expect(t('es', 'aiThinking')).toBe('La IA está pensando...');
+    });
+
+    it('non-English translations differ from English for core labels', () => {
+      expect(t('hi', 'thinking')).not.toBe(t('en', 'thinking'));
+      expect(t('mr', 'thinking')).not.toBe(t('en', 'thinking'));
+      expect(t('es', 'thinking')).not.toBe(t('en', 'thinking'));
+    });
+  });
 });

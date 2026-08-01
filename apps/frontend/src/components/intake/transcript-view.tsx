@@ -19,7 +19,8 @@ export function TranscriptView({ entries, onStartIntake }: TranscriptViewProps) 
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Optional-call guard: jsdom (and some older webviews) don't implement scrollIntoView
+    bottomRef.current?.scrollIntoView?.({ behavior: 'smooth' });
   }, [entries]);
 
   return (
@@ -28,6 +29,7 @@ export function TranscriptView({ entries, onStartIntake }: TranscriptViewProps) 
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <div className="bg-ayutalk-100 dark:bg-ayutalk-900/50 mb-3 rounded-full p-3">
             <svg
+              aria-hidden="true"
               className="text-ayutalk-500 dark:text-ayutalk-400 h-6 w-6"
               fill="none"
               viewBox="0 0 24 24"
@@ -56,45 +58,56 @@ export function TranscriptView({ entries, onStartIntake }: TranscriptViewProps) 
         </div>
       )}
 
-      {entries.map((entry) => (
-        <div
-          key={entry.id}
-          className={cn('flex gap-3', entry.speaker === 'patient' && 'flex-row-reverse')}
-        >
-          {/* Avatar */}
+      {/* Live region: announces new AI questions / patient messages to screen readers */}
+      <div aria-live="polite" aria-atomic="false" className="space-y-3">
+        {entries.map((entry) => (
           <div
-            className={cn(
-              'flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold',
-              entry.speaker === 'ai' &&
-                'bg-ayutalk-100 text-ayutalk-600 dark:bg-ayutalk-900/50 dark:text-ayutalk-400',
-              entry.speaker === 'patient' &&
-                'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400',
-              entry.speaker === 'system' &&
-                'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400',
-            )}
+            key={entry.id}
+            className={cn('flex gap-3', entry.speaker === 'patient' && 'flex-row-reverse')}
           >
-            {entry.speaker === 'ai' ? 'AI' : entry.speaker === 'patient' ? 'P' : 'S'}
-          </div>
+            {/* Avatar */}
+            <div
+              aria-hidden="true"
+              className={cn(
+                'flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold',
+                entry.speaker === 'ai' &&
+                  'bg-ayutalk-100 text-ayutalk-600 dark:bg-ayutalk-900/50 dark:text-ayutalk-400',
+                entry.speaker === 'patient' &&
+                  'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400',
+                entry.speaker === 'system' &&
+                  'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400',
+              )}
+            >
+              {entry.speaker === 'ai' ? 'AI' : entry.speaker === 'patient' ? 'P' : 'S'}
+            </div>
 
-          {/* Message */}
-          <div
-            className={cn(
-              'max-w-[80%] rounded-xl px-4 py-2.5 text-sm',
-              entry.speaker === 'ai' &&
-                'bg-ayutalk-50 dark:bg-ayutalk-950/50 rounded-bl-sm text-slate-800 dark:text-slate-200',
-              entry.speaker === 'patient' &&
-                'rounded-br-sm bg-emerald-50 text-slate-800 dark:bg-emerald-950/50 dark:text-slate-200',
-              entry.speaker === 'system' &&
-                'rounded-br-sm bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400',
-            )}
-          >
-            <p className="leading-relaxed">{entry.text}</p>
-            <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">
-              {new Date(entry.timestamp).toLocaleTimeString()}
-            </p>
+            {/* Message */}
+            <div
+              className={cn(
+                'max-w-[80%] rounded-xl px-4 py-2.5 text-sm',
+                entry.speaker === 'ai' &&
+                  'bg-ayutalk-50 dark:bg-ayutalk-950/50 rounded-bl-sm text-slate-800 dark:text-slate-200',
+                entry.speaker === 'patient' &&
+                  'rounded-br-sm bg-emerald-50 text-slate-800 dark:bg-emerald-950/50 dark:text-slate-200',
+                entry.speaker === 'system' &&
+                  'rounded-br-sm bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400',
+              )}
+            >
+              <span className="sr-only">
+                {entry.speaker === 'ai'
+                  ? 'AI assistant: '
+                  : entry.speaker === 'patient'
+                    ? 'You: '
+                    : 'System: '}
+              </span>
+              <p className="leading-relaxed">{entry.text}</p>
+              <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">
+                {new Date(entry.timestamp).toLocaleTimeString()}
+              </p>
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
       <div ref={bottomRef} />
     </div>
   );

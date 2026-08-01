@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useFaceStore } from '@/stores/face-store';
 import { faceApi } from '@/services/api';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { cn } from '@/lib/utils';
 import { CheckCircle2, User, Calendar, Phone, ShieldCheck, ArrowRight, ArrowLeft } from 'lucide-react';
 
@@ -60,6 +61,7 @@ export function FaceRegistrationDialog({
   const nameInputRef = useRef<HTMLInputElement>(null);
   const dobInputRef = useRef<HTMLInputElement>(null);
   const mobileInputRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useFocusTrap<HTMLDivElement>(isOpen);
 
   // Auto-focus first field on step change
   useEffect(() => {
@@ -225,12 +227,16 @@ export function FaceRegistrationDialog({
 
         <input
           ref={nameInputRef}
+          id="reg-name"
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleNameContinue()}
           placeholder="e.g., Priya Sharma"
           maxLength={200}
+          aria-label="Full name"
+          aria-invalid={!!error}
+          aria-describedby={error ? 'face-reg-dialog-error' : undefined}
           className="focus:border-ayutalk-500 focus:ring-ayutalk-500 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 transition-all focus:outline-none focus:ring-2 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
           disabled={isRegistering}
         />
@@ -284,6 +290,8 @@ export function FaceRegistrationDialog({
             onChange={(e) => setDob(e.target.value)}
             max={new Date().toISOString().split('T')[0]}
             min="1900-01-01"
+            aria-invalid={!!error}
+            aria-describedby={error ? 'face-reg-dialog-error' : undefined}
             className="focus:border-ayutalk-500 focus:ring-ayutalk-500 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 transition-all focus:outline-none focus:ring-2 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
             disabled={isRegistering}
           />
@@ -309,6 +317,8 @@ export function FaceRegistrationDialog({
               onChange={(e) => setMobile(formatMobile(e.target.value))}
               placeholder="+919876543210"
               maxLength={15}
+              aria-invalid={!!error}
+              aria-describedby={error ? 'face-reg-dialog-error' : undefined}
               className="focus:border-ayutalk-500 focus:ring-ayutalk-500 w-full rounded-xl border border-slate-300 bg-white py-3 pl-10 pr-4 text-sm text-slate-900 transition-all focus:outline-none focus:ring-2 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
               disabled={isRegistering}
             />
@@ -444,7 +454,11 @@ export function FaceRegistrationDialog({
   // ─── Render: Step 4 - Success ───────────────────────────────────
   function renderSuccessStep() {
     return (
-      <div className="animate-scale-in-center flex flex-col items-center py-6 text-center">
+      <div
+        role="status"
+        aria-live="polite"
+        className="animate-scale-in-center flex flex-col items-center py-6 text-center"
+      >
         {/* Animated success circle */}
         <div className="relative mb-6">
           <div className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/40">
@@ -478,13 +492,25 @@ export function FaceRegistrationDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="relative w-full max-w-md animate-scale-in-center overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="face-reg-dialog-title"
+        aria-describedby={error ? 'face-reg-dialog-error' : 'face-reg-dialog-desc'}
+        className="relative w-full max-w-md animate-scale-in-center overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900"
+      >
         {/* Step Progress Bar */}
         {step !== 'success' && (
-          <div className="flex items-center gap-1.5 px-6 pb-0 pt-6">
+          <div
+            role="list"
+            aria-label="Registration progress"
+            className="flex items-center gap-1.5 px-6 pb-0 pt-6"
+          >
             {steps.map((s, i) => (
-              <div key={s.key} className="flex flex-1 items-center gap-1.5">
+              <div key={s.key} role="listitem" className="flex flex-1 items-center gap-1.5">
                 <div
+                  aria-hidden="true"
                   className={cn(
                     'flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium transition-all duration-300',
                     i < currentStepIndex
@@ -500,6 +526,11 @@ export function FaceRegistrationDialog({
                     i + 1
                   )}
                 </div>
+                <span className="sr-only" aria-current={i === currentStepIndex ? 'step' : undefined}>
+                  Step {i + 1}: {s.label}
+                  {i < currentStepIndex ? ' (completed)' : ''}
+                  {i === currentStepIndex ? ' (current)' : ''}
+                </span>
                 {i < steps.length - 1 && (
                   <div
                     className={cn(
@@ -517,14 +548,20 @@ export function FaceRegistrationDialog({
 
         {/* Body */}
         <div className="px-6 py-6">
-          {/* Error */}        {error && (
+          {/* Visually-hidden description for screen readers */}
+          <p id="face-reg-dialog-desc" className="sr-only">
+            Patient registration with name, date of birth, and mobile number
+          </p>
+          {/* Error */}
+          {error && (
             <div
+              id="face-reg-dialog-error"
               role="alert"
               className={cn(
-              'mb-4 rounded-xl p-3 text-xs ring-1',
-              'bg-red-50 text-red-600 ring-red-200 dark:bg-red-950/30 dark:text-red-400 dark:ring-red-800',
-            )}
-          >
+                'mb-4 rounded-xl p-3 text-xs ring-1',
+                'bg-red-50 text-red-600 ring-red-200 dark:bg-red-950/30 dark:text-red-400 dark:ring-red-800',
+              )}
+            >
               {error}
             </div>
           )}

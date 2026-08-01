@@ -57,8 +57,18 @@ describe('BriefCard', () => {
 
   it('should render all risk flags', () => {
     render(<BriefCard brief={mockBrief} />);
-    expect(screen.getByText('⚠ Chest pain reported')).toBeInTheDocument();
-    expect(screen.getByText('⚠ Shortness of breath')).toBeInTheDocument();
+    expect(screen.getByText('Chest pain reported')).toBeInTheDocument();
+    expect(screen.getByText('Shortness of breath')).toBeInTheDocument();
+  });
+
+  it('should provide a screen-reader prefix for risk flags', () => {
+    render(<BriefCard brief={mockBrief} />);
+    const prefixes = Array.from(document.querySelectorAll('.sr-only')).map(
+      (el) => el.textContent,
+    );
+    expect(prefixes.filter((t) => t === 'Risk flag: ')).toHaveLength(
+      mockBrief.riskFlags.length,
+    );
   });
 
   it('should highlight risk flags in red', () => {

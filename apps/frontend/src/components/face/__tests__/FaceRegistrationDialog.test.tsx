@@ -411,4 +411,64 @@ describe('FaceRegistrationDialog', () => {
     expect(screen.getByText(/what is your name/i)).toBeDefined();
     expect(screen.getByText('1')).toBeDefined();
   });
+
+  // ─── Accessibility ──────────────────────────────────────────────
+
+  it('should expose dialog semantics to assistive technology', () => {
+    render(<FaceRegistrationDialog {...defaultProps} />);
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toHaveAttribute('aria-modal', 'true');
+    expect(dialog).toHaveAttribute('aria-labelledby');
+    expect(dialog).toHaveAttribute('aria-describedby');
+  });
+
+  it('should provide an accessible name for the name input', () => {
+    render(<FaceRegistrationDialog {...defaultProps} />);
+    expect(screen.getByLabelText(/full name/i)).toBeDefined();
+  });
+
+  it('should expose the current step via aria-current', () => {
+    render(<FaceRegistrationDialog {...defaultProps} />);
+    expect(screen.getByRole('list', { name: /registration progress/i })).toBeDefined();
+    expect(document.querySelector('[aria-current="step"]')).toBeDefined();
+  });
+
+  it('should keep focus trapped inside the dialog when pressing Tab', () => {
+    render(<FaceRegistrationDialog {...defaultProps} />);
+    const dialog = screen.getByRole('dialog');
+    const firstFocusable = dialog.querySelector('button, input, [tabindex]') as HTMLElement;
+    firstFocusable?.focus();
+
+    // Press Tab several times — focus must never leave the dialog
+    for (let i = 0; i < 6; i++) {
+      fireEvent.keyDown(document, { key: 'Tab' });
+      expect(dialog.contains(document.activeElement)).toBe(true);
+    }
+  });
+
+  it('should announce successful registration via a live region', async () => {
+    const mockRegister = vi.mocked(faceApi.registerPatient);
+    mockRegister.mockResolvedValueOnce({
+      id: 'test-uuid-123',
+      name: 'Priya Sharma',
+      message: 'Patient registered successfully',
+    });
+
+    render(<FaceRegistrationDialog {...defaultProps} />);
+    await fillNameStep();
+    await waitFor(() => {
+      expect(screen.getByText(/patient details/i)).toBeDefined();
+    });
+    await fillDetailsStep();
+    await waitFor(() => {
+      expect(screen.getByText(/review & consent/i)).toBeDefined();
+    });
+
+    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByRole('button', { name: /confirm & register/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('status')).toHaveTextContent(/welcome/i);
+    });
+  });
 });

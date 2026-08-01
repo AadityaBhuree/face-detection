@@ -19,10 +19,14 @@ interface BriefCardProps {
 
 export function BriefCard({ brief, className }: BriefCardProps) {
   return (
-    <div className={cn('w-full max-w-2xl space-y-4', className)}>
+    <div
+      role="region"
+      aria-label="Clinical intake brief"
+      className={cn('w-full max-w-2xl space-y-4', className)}
+    >
       {/* Header */}
       <div className="flex items-center gap-2">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100">
+        <div aria-hidden="true" className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100">
           <svg
             className="h-4 w-4 text-emerald-600"
             fill="none"
@@ -81,7 +85,9 @@ export function BriefCard({ brief, className }: BriefCardProps) {
                   key={flag}
                   className="inline-flex items-center rounded-full bg-red-50 px-3 py-1 text-xs font-medium text-red-700 ring-1 ring-red-200"
                 >
-                  ⚠ {flag}
+                  <span aria-hidden="true" className="mr-1">⚠</span>
+                  <span className="sr-only">Risk flag: </span>
+                  {flag}
                 </span>
               ))}
             </div>
@@ -102,6 +108,7 @@ export function BriefCard({ brief, className }: BriefCardProps) {
                   className="flex items-center gap-2 text-sm text-slate-700"
                 >
                   <svg
+                    aria-hidden="true"
                     className="h-3.5 w-3.5 flex-shrink-0 text-ayutalk-500"
                     fill="none"
                     viewBox="0 0 24 24"
@@ -132,6 +139,7 @@ export function BriefCard({ brief, className }: BriefCardProps) {
                   className="flex items-center gap-2 text-sm text-slate-700"
                 >
                   <svg
+                    aria-hidden="true"
                     className="h-3.5 w-3.5 flex-shrink-0 text-violet-500"
                     fill="none"
                     viewBox="0 0 24 24"
@@ -171,7 +179,10 @@ export function BriefCard({ brief, className }: BriefCardProps) {
                   key={followup}
                   className="flex items-start gap-2 text-sm text-slate-700"
                 >
-                  <span className="mt-1 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-ayutalk-100 text-[10px] font-bold text-ayutalk-600">
+                  <span
+                    aria-hidden="true"
+                    className="mt-1 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-ayutalk-100 text-[10px] font-bold text-ayutalk-600"
+                  >
                     ?
                   </span>
                   {followup}

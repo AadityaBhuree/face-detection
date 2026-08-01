@@ -26,6 +26,17 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Keep <html lang> in sync so screen readers switch pronunciation/
+  // prosody to the active language. Restores the original value on unmount.
+  useEffect(() => {
+    const html = document.documentElement;
+    const prevLang = html.lang;
+    html.lang = locale;
+    return () => {
+      html.lang = prevLang;
+    };
+  }, [locale]);
+
   const setLocale = useCallback((newLocale: SupportedLocale) => {
     setLocaleState(newLocale);
     try {

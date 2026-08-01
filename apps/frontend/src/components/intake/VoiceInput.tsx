@@ -99,8 +99,19 @@ export function VoiceInput({
   const displayValue = isRecording && interimOverride ? interimOverride : value;
   const displayPlaceholder = isRecording ? 'Listening...' : placeholder;
 
+  // Screen-reader status announcements (role="status" = polite live region)
+  const statusMessage = isRecording
+    ? 'Recording started. Speak your symptoms now.'
+    : disabled
+      ? 'AI is thinking'
+      : '';
+
   return (
     <div className="border-t border-slate-100 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+      {/* Screen-reader live region for recording / thinking state */}
+      <p role="status" aria-live="polite" className="sr-only">
+        {statusMessage}
+      </p>
       {isComplete ? (
         <div className="flex items-center justify-center rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:ring-emerald-800">
           <svg
@@ -125,15 +136,14 @@ export function VoiceInput({
             type="button"
             onClick={micSupported ? toggleRecording : undefined}
             disabled={disabled || isRequestingPermission || !micSupported || isComplete}
-            className={cn(
-              'relative flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full transition-all',
-              isRecording
-                ? 'animate-pulse-ring bg-red-500 text-white shadow-lg shadow-red-200 dark:shadow-red-900/50'
-                : micSupported
-                  ? 'hover:text-ayutalk-600 dark:hover:text-ayutalk-400 bg-slate-100 text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700'
-                  : 'cursor-not-allowed bg-slate-100 text-slate-300 dark:bg-slate-800 dark:text-slate-600',
-              'disabled:cursor-not-allowed disabled:opacity-50',
-            )}
+            aria-label={
+              !micSupported
+                ? 'Voice input not supported in this browser'
+                : isRecording
+                  ? 'Stop recording'
+                  : 'Start voice input'
+            }
+            aria-pressed={isRecording}
             title={
               !micSupported
                 ? 'Voice input not supported in this browser'
@@ -172,7 +182,7 @@ export function VoiceInput({
 
             {/* Recording indicator dot */}
             {isRecording && (
-              <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-red-500">
+              <span aria-hidden="true" className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-red-500">
                 <span className="absolute inset-0 animate-ping rounded-full bg-red-400" />
               </span>
             )}
@@ -246,6 +256,7 @@ export function VoiceInput({
               }}
               onKeyDown={handleKeyDown}
               placeholder={displayPlaceholder}
+              aria-label="Type your response"
               disabled={disabled || isRecording}
               className={cn(
                 'w-full rounded-lg border bg-slate-50 px-3 py-2 text-sm transition-colors dark:border-slate-700 dark:bg-slate-800',
@@ -271,6 +282,7 @@ export function VoiceInput({
           {!isRecording && (
             <button
               type="submit"
+              aria-label="Send message"
               disabled={!value.trim() || disabled}
               className={cn(
                 'flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg transition-all',
@@ -298,7 +310,10 @@ export function VoiceInput({
 
           {/* Permission Error Toast */}
           {permissionError && (
-            <div className="absolute bottom-full left-0 right-0 mb-2 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600 shadow-sm ring-1 ring-red-200 dark:bg-red-950/30 dark:text-red-400 dark:ring-red-800">
+            <div
+              role="alert"
+              className="absolute bottom-full left-0 right-0 mb-2 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600 shadow-sm ring-1 ring-red-200 dark:bg-red-950/30 dark:text-red-400 dark:ring-red-800"
+            >
               {permissionError}
             </div>
           )}

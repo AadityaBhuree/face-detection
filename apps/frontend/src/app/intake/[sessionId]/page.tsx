@@ -247,6 +247,14 @@ export default function IntakeSessionPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50 dark:bg-slate-950">
+      {/* Skip link for keyboard users */}
+      <a
+        href="#intake-main"
+        className="sr-only z-[60] focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:rounded-lg focus:bg-ayutalk-500 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white focus:shadow-lg"
+      >
+        Skip to main content
+      </a>
+
       {/* Header */}
       <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3 dark:border-slate-800 dark:bg-slate-900">
         <div className="flex items-center gap-3">
@@ -273,6 +281,8 @@ export default function IntakeSessionPage() {
           />
           <DarkModeToggle />
           <span
+            role="status"
+            aria-live="polite"
             className={cn(
               'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium',
               session.status === 'intake_in_progress' &&
@@ -296,7 +306,7 @@ export default function IntakeSessionPage() {
         </div>
       </header>
 
-      <main className={cn('flex flex-1 gap-6 p-6', mobileInfo.isMobile && 'flex-col')}>
+      <main id="intake-main" className={cn('flex flex-1 gap-6 p-6', mobileInfo.isMobile && 'flex-col')}>
         {/* Left Panel — Camera + Face Detection */}
         <div className={cn('flex flex-col gap-4', mobileInfo.isMobile ? 'w-full' : 'w-[420px]')}>
           {/* Camera Feed */}
@@ -307,6 +317,7 @@ export default function IntakeSessionPage() {
               autoPlay
               playsInline
               muted
+              aria-label="Live camera feed for face identification"
               className={cn('h-[320px] w-full object-cover', !isActive && 'hidden')}
             />
 
@@ -346,26 +357,43 @@ export default function IntakeSessionPage() {
 
             {/* Liveness Status Overlay */}
             {phase === 'detecting' && livenessStatus === 'waiting_for_blink' && (
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
+              <div
+                role="status"
+                aria-live="polite"
+                className="absolute bottom-4 left-1/2 -translate-x-1/2"
+              >
                 <div className="rounded-full bg-black/60 px-4 py-2 text-xs font-medium text-white backdrop-blur-sm">
-                  👁 Please blink naturally ({Math.max(0, 2 - blinkCount)} blinks needed)
+                  <span aria-hidden="true">👁 </span>
+                  Please blink naturally ({Math.max(0, 2 - blinkCount)} blinks needed)
                 </div>
               </div>
             )}
 
             {livenessStatus === 'blink_detected' && (
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
+              <div
+                role="status"
+                aria-live="polite"
+                className="absolute bottom-4 left-1/2 -translate-x-1/2"
+              >
                 <div className="rounded-full bg-emerald-500/80 px-4 py-2 text-xs font-medium text-white backdrop-blur-sm">
-                  ✓ Blink detected!
+                  <span aria-hidden="true">✓ </span>
+                  Blink detected!
                 </div>
               </div>
             )}
 
             {/* Loading Overlay */}
             {phase === 'detecting' && mpLoading && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+              <div
+                role="status"
+                aria-live="polite"
+                className="absolute inset-0 flex items-center justify-center bg-black/40"
+              >
                 <div className="text-center">
-                  <div className="mx-auto mb-3 h-10 w-10 animate-spin rounded-full border-4 border-white/20 border-t-white" />
+                  <div
+                    aria-hidden="true"
+                    className="mx-auto mb-3 h-10 w-10 animate-spin rounded-full border-4 border-white/20 border-t-white"
+                  />
                   <p className="text-sm font-medium text-white">Loading face detection model...</p>
                 </div>
               </div>
@@ -380,12 +408,18 @@ export default function IntakeSessionPage() {
                   </div>
                 )}
                 {isSearchingEmbedding && (
-                  <div className="bg-ayutalk-500/80 rounded-lg px-3 py-1.5 text-xs font-medium text-white shadow-lg backdrop-blur-sm">
+                  <div
+                    role="status"
+                    className="bg-ayutalk-500/80 rounded-lg px-3 py-1.5 text-xs font-medium text-white shadow-lg backdrop-blur-sm"
+                  >
                     Searching identity...
                   </div>
                 )}
                 {mpError && (
-                  <div className="rounded-lg bg-red-500/80 px-3 py-1.5 text-xs font-medium text-white shadow-lg backdrop-blur-sm">
+                  <div
+                    role="alert"
+                    className="rounded-lg bg-red-500/80 px-3 py-1.5 text-xs font-medium text-white shadow-lg backdrop-blur-sm"
+                  >
                     {mpError}
                   </div>
                 )}
@@ -440,6 +474,7 @@ export default function IntakeSessionPage() {
                 <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-800">
                   <div className="flex items-center gap-2">
                     <div
+                      aria-hidden="true"
                       className={cn(
                         'h-2 w-2 rounded-full',
                         conversation.isAiThinking ? 'animate-pulse bg-amber-400' : 'bg-emerald-500',

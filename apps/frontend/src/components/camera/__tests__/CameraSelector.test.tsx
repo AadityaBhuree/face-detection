@@ -110,4 +110,24 @@ describe('CameraSelector', () => {
     render(<CameraSelector {...defaultProps} error="Camera permission denied" />);
     expect(screen.getByText(/camera permission denied/i)).toBeDefined();
   });
+
+  // ─── Accessibility ─────────────────────────────────────────────
+
+  it('should render camera errors as alerts for screen readers', () => {
+    render(<CameraSelector {...defaultProps} error="Camera permission denied" />);
+    expect(screen.getByRole('alert')).toHaveTextContent(/camera permission denied/i);
+  });
+
+  it('should expose an accessible name on the camera toggle button', () => {
+    render(<CameraSelector {...defaultProps} isActive={true} />);
+    expect(screen.getByRole('button', { name: /switch to rear camera/i })).toBeDefined();
+  });
+
+  it('should expose accessible names on the start and stop buttons', () => {
+    const { rerender } = render(<CameraSelector {...defaultProps} />);
+    expect(screen.getByRole('button', { name: /start camera/i })).toBeDefined();
+
+    rerender(<CameraSelector {...defaultProps} isActive={true} />);
+    expect(screen.getByRole('button', { name: /stop camera/i })).toBeDefined();
+  });
 });

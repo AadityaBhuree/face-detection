@@ -32,5 +32,18 @@ module.exports = {
     'no-console': ['warn', { allow: ['warn', 'error'] }],
     'no-debugger': 'error',
   },
+  overrides: [
+    {
+      // NestJS uses emitDecoratorMetadata: classes injected via DI must be runtime VALUE imports.
+      // This rule's autofix (applied by the pre-commit hook via `eslint --fix`) converts them to
+      // `import type`, silently breaking NestJS metadata reflection (design:paramtypes -> Object).
+      // Disable the rule for the NestJS backend; it stays enforced for frontend + shared packages,
+      // where ESM/Next.js builds make `import type` both safe and desirable.
+      files: ['apps/backend/**/*.ts'],
+      rules: {
+        '@typescript-eslint/consistent-type-imports': 'off',
+      },
+    },
+  ],
   ignorePatterns: ['node_modules', 'dist', '.next', 'coverage', '*.js', '!.eslintrc.js'],
 };

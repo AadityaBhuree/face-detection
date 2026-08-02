@@ -14,7 +14,7 @@ FROM base AS builder
 COPY . .
 RUN pnpm install --frozen-lockfile
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN pnpm --filter @ayutalk/frontend build
+RUN pnpm --filter @jeevandata/frontend build
 
 # ─── Production ───────────────────────────────
 FROM base AS runner

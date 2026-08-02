@@ -1,8 +1,8 @@
 {
-  "name": "ayutalk-care",
+  "name": "jeevandata",
   "version": "0.1.0",
   "private": true,
-  "description": "AyuTalk Care — AI-powered smart clinic intake system",
+  "description": "Jeevandata — AI-powered smart clinic intake system",
   "engines": {
     "node": ">=20.0.0",
     "pnpm": ">=9.0.0"
@@ -19,10 +19,10 @@
     "test": "turbo test",
     "test:e2e": "turbo test:e2e",
     "clean": "turbo clean && rm -rf node_modules",
-    "db:generate": "pnpm --filter @ayutalk/backend prisma generate",
-    "db:push": "pnpm --filter @ayutalk/backend prisma db push",
-    "db:migrate": "pnpm --filter @ayutalk/backend prisma migrate dev",
-    "db:seed": "pnpm --filter @ayutalk/backend prisma db seed",
+    "db:generate": "pnpm --filter @jeevandata/backend prisma generate",
+    "db:push": "pnpm --filter @jeevandata/backend prisma db push",
+    "db:migrate": "pnpm --filter @jeevandata/backend prisma migrate dev",
+    "db:seed": "pnpm --filter @jeevandata/backend prisma db seed",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
     "prepare": "husky",

@@ -1,14 +1,16 @@
-import {
-  Injectable,
-  Logger,
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+// NOTE: the service imports below MUST stay as value imports (not
+// `import type`) — NestJS DI relies on the emitted runtime metadata
+// (emitDecoratorMetadata) to resolve constructor dependencies.
+/* eslint-disable @typescript-eslint/consistent-type-imports */
 import { PrismaService } from '../../prisma/prisma.service';
 import { SessionService } from '../session/session.service';
 import { BriefGeneratorService } from '../ai/brief-generator.service';
 import { AuditService } from '../audit/audit.service';
+/* eslint-enable @typescript-eslint/consistent-type-imports */
 import type { StartIntakeSessionInput, IntakeDataInput } from '@ayutalk/shared-schemas';
+import type { SessionStatus } from '@ayutalk/shared-types';
+import type { Prisma } from '@prisma/client';
 
 @Injectable()
 export class IntakeService {
@@ -27,7 +29,7 @@ export class IntakeService {
         patientId: data.patientId ?? null,
         status: 'INITIATED',
         deviceId: data.deviceId,
-        metadata: (data.metadata ?? {}) as any,
+        metadata: (data.metadata ?? {}) as Prisma.InputJsonValue,
       },
     });
 
@@ -88,7 +90,7 @@ export class IntakeService {
       throw new BadRequestException('Session is already completed');
     }
 
-    await this.sessionService.updateStatus(sessionId, 'TRANSCRIBING' as any);
+    await this.sessionService.updateStatus(sessionId, 'TRANSCRIBING' as SessionStatus);
 
     const brief = await this.generateBrief(session, intakeData);
 
@@ -96,12 +98,12 @@ export class IntakeService {
       data: {
         sessionId,
         patientId: session.patientId ?? '',
-        brief: brief as any,
-        intakeData: intakeData as any,
+        brief: brief as unknown as Prisma.InputJsonValue,
+        intakeData: intakeData as Prisma.InputJsonValue,
       },
     });
 
-    await this.sessionService.updateStatus(sessionId, 'BRIEF_GENERATED' as any);
+    await this.sessionService.updateStatus(sessionId, 'BRIEF_GENERATED' as SessionStatus);
 
     this.logger.log(`Intake completed for session ${sessionId}`);
 
@@ -111,7 +113,11 @@ export class IntakeService {
       actorRole: 'SYSTEM',
       resourceType: 'intake_record',
       resourceId: intakeRecord.id,
-      details: { sessionId, patientId: session.patientId, chiefComplaint: intakeData.chiefComplaint.substring(0, 100) },
+      details: {
+        sessionId,
+        patientId: session.patientId,
+        chiefComplaint: intakeData.chiefComplaint.substring(0, 100),
+      },
       ipAddress: 'internal',
     });
 
@@ -132,12 +138,21 @@ export class IntakeService {
   }
 
   private async generateBrief(
-    session: { id: string; patientId: string | null },
+    session: {
+      id: string;
+      patientId: string | null;
+      // Prisma stores JSON metadata as JsonValue.
+      metadata?: unknown;
+    },
     intakeData: IntakeDataInput,
   ) {
     // Build transcript from the conversation turns
     // In production, this would be fetched from the database
     const transcript = await this.buildTranscript(session.id);
+
+    // Language preference is captured at session start and stored in
+    // the session metadata; default to English when absent.
+    const language = this.extractLanguage(session.metadata);
 
     return this.briefGenerator.generate({
       sessionId: session.id,
@@ -145,7 +160,19 @@ export class IntakeService {
       intakeData,
       transcript,
       patientHistory: '', // Could be populated from EHR/previous visits
+      language,
     });
+  }
+
+  private extractLanguage(metadata: unknown): 'en' | 'hi' | 'mr' | 'es' {
+    const candidate =
+      metadata && typeof metadata === 'object'
+        ? (metadata as Record<string, unknown>).language
+        : undefined;
+    if (candidate === 'hi' || candidate === 'mr' || candidate === 'es') {
+      return candidate;
+    }
+    return 'en';
   }
 
   private async buildTranscript(sessionId: string): Promise<string> {
@@ -155,9 +182,7 @@ export class IntakeService {
         orderBy: { timestampMs: 'asc' },
         take: 200,
       });
-      return entries
-        .map((e) => `${e.speaker.toUpperCase()}: ${e.text}`)
-        .join('\n');
+      return entries.map((e) => `${e.speaker.toUpperCase()}: ${e.text}`).join('\n');
     } catch {
       this.logger.warn(
         `Could not fetch transcript for session ${sessionId}, using empty transcript`,

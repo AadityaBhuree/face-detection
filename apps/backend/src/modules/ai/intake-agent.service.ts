@@ -1,1 +1,137 @@
-import { Injectable, Logger } from '@nestjs/common';\r\nimport { ConfigService } from '@nestjs/config';\r\nimport { withRetry } from '@ayutalk/shared-utils';\r\nimport type { AiIntakePromptInput } from '@ayutalk/shared-schemas';\r\n\r\nconst BASE_SYSTEM_PROMPT = `You are a warm, professional medical intake assistant conducting a symptom intake conversation with a patient at a clinic. Your role is to gather structured clinical information through natural conversation.\r\n\r\nRequired information to collect:\r\n1. Chief complaint (primary reason for visit)\r\n2. Symptom onset and duration\r\n3. Severity (1-10 scale)\r\n4. Associated symptoms\r\n5. Recent changes in medications or habits\r\n6. Allergy status updates\r\n\r\nGuidelines:\r\n- Speak in a warm, empathetic tone\r\n- Ask one question at a time\r\n- Use the patient's history to ask context-aware follow-ups\r\n- Never make a diagnosis or prescribe treatment\r\n- If the patient reports emergency symptoms (chest pain, difficulty breathing, severe bleeding), escalate immediately\r\n- Once all required information is gathered, summarize and confirm with the patient`;\r\n\r\nconst LANGUAGE_MAP: Record<string, string> = {\r\n  en: 'Respond in English.',\r\n  hi: 'कृपया हिंदी में बात करें। (Please respond in Hindi.)',\r\n  mr: 'कृपया मराठीतून बोला. (Please respond in Marathi.)',\r\n  es: 'Responda en español. (Please respond in Spanish.)',\r\n};\r\n\r\n@Injectable()\r\nexport class IntakeAgentService {\r\n  private readonly logger = new Logger(IntakeAgentService.name);\r\n  private readonly apiKey: string;\r\n  private readonly model: string;\r\n\r\n  constructor(private readonly configService: ConfigService) {\r\n    this.apiKey = this.configService.get<string>('google.apiKey')!;\r\n    this.model = this.configService.get<string>('google.model', 'gemini-2.0-flash');\r\n  }\r\n\r\n  private buildSystemPrompt(language: string): string {\r\n    const langInstruction = LANGUAGE_MAP[language] ?? LANGUAGE_MAP['en']!;\r\n    return `${BASE_SYSTEM_PROMPT}\r\n\r\n---\r\n\r\nPatient language preference: ${language}\r\n${langInstruction}`;\r\n  }\r\n\r\n  async processTurn(\r\n    data: AiIntakePromptInput,\r\n  ): Promise<{ response: string; intakeComplete: boolean }> {\r\n    const systemPrompt = this.buildSystemPrompt(data.language ?? 'en');\r\n\r\n    const messages = [\r\n      { role: 'assistant' as const, content: systemPrompt },\r\n      ...data.conversationHistory,\r\n      { role: 'user' as const, content: data.currentInput },\r\n    ];\r\n\r\n    try {\r\n      const result = await withRetry(() => this.callGemini(messages, systemPrompt), {\r\n        maxAttempts: 3,\r\n        baseDelayMs: 1000,\r\n      });\r\n\r\n      return result;\r\n    } catch (error) {\r\n      this.logger.error(\r\n        `Intake agent conversation failed for session ${data.sessionId}`,\r\n        error,\r\n      );\r\n      throw error;\r\n    }\r\n  }\r\n\r\n  private async callGemini(\r\n    messages: Array<{ role: string; content: string }>,\r\n    systemPrompt: string,\r\n  ): Promise<{ response: string; intakeComplete: boolean }> {\r\n    if (!this.apiKey) {\r\n      // Fallback for development without API key\r\n      return {\r\n        response:\r\n          \"I understand. Could you please tell me more about what brings you in today?\",\r\n        intakeComplete: false,\r\n      };\r\n    }\r\n\r\n    // Gemini uses 'model' role instead of 'assistant'\r\n    const contents = messages.map((m) => ({\r\n      role: m.role === 'assistant' ? 'model' : m.role,\r\n      parts: [{ text: m.content }],\r\n    }));\r\n\r\n    const response = await fetch(\r\n      `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`,\r\n      {\r\n        method: 'POST',\r\n        headers: {\r\n          'Content-Type': 'application/json',\r\n        },\r\n        body: JSON.stringify({\r\n          contents,\r\n          systemInstruction: {\r\n            parts: [{ text: systemPrompt }],\r\n          },\r\n          generationConfig: {\r\n            maxOutputTokens: 1024,\r\n          },\r\n        }),\r\n      },\r\n    );\r\n\r\n    if (!response.ok) {\r\n      const errBody = await response.text().catch(() => '');\r\n      throw new Error(\r\n        `Gemini API error: ${response.status} ${response.statusText} — ${errBody}`,\r\n      );\r\n    }\r\n\r\n    const result = (await response.json()) as {\r\n      candidates?: Array<{\r\n        content?: { parts?: Array<{ text: string }> };\r\n        finishReason?: string;\r\n      }>;\r\n    };\r\n\r\n    const candidate = result.candidates?.[0];\r\n    const responseText = candidate?.content?.parts?.[0]?.text ?? '';\r\n    const finishReason = candidate?.finishReason ?? '';\r\n    // On Gemini, 'STOP' indicates the model naturally finished (intake complete)\r\n    const intakeComplete = finishReason === 'STOP';\r\n\r\n    return { response: responseText, intakeComplete };\r\n  }\r\n}\r\n
+import { Injectable, Logger } from '@nestjs/common';
+// ConfigService must stay a VALUE import: NestJS DI resolves constructor
+// dependencies via emitDecoratorMetadata, which needs the runtime class.
+/* eslint-disable @typescript-eslint/consistent-type-imports */
+import { ConfigService } from '@nestjs/config';
+/* eslint-enable @typescript-eslint/consistent-type-imports */
+import { withRetry } from '@ayutalk/shared-utils';
+import type { AiIntakePromptInput } from '@ayutalk/shared-schemas';
+
+const BASE_SYSTEM_PROMPT = `You are a warm, professional medical intake assistant conducting a symptom intake conversation with a patient at a clinic. Your role is to gather structured clinical information through natural conversation.
+
+Required information to collect:
+1. Chief complaint (primary reason for visit)
+2. Symptom onset and duration
+3. Severity (1-10 scale)
+4. Associated symptoms
+5. Recent changes in medications or habits
+6. Allergy status updates
+
+Guidelines:
+- Speak in a warm, empathetic tone
+- Ask one question at a time
+- Use the patient's history to ask context-aware follow-ups
+- Never make a diagnosis or prescribe treatment
+- If the patient reports emergency symptoms (chest pain, difficulty breathing, severe bleeding), escalate immediately
+- Once all required information is gathered, summarize and confirm with the patient`;
+
+const LANGUAGE_MAP: Record<string, string> = {
+  en: 'Respond in English.',
+  hi: 'कृपया हिंदी में बात करें। (Please respond in Hindi.)',
+  mr: 'कृपया मराठीतून बोला. (Please respond in Marathi.)',
+  es: 'Responda en español. (Please respond in Spanish.)',
+};
+
+@Injectable()
+export class IntakeAgentService {
+  private readonly logger = new Logger(IntakeAgentService.name);
+  private readonly apiKey: string;
+  private readonly model: string;
+
+  constructor(private readonly configService: ConfigService) {
+    this.apiKey = this.configService.get<string>('google.apiKey')!;
+    this.model = this.configService.get<string>('google.model', 'gemini-2.0-flash');
+  }
+
+  private buildSystemPrompt(language: string): string {
+    const langInstruction = LANGUAGE_MAP[language] ?? LANGUAGE_MAP['en']!;
+    return `${BASE_SYSTEM_PROMPT}
+
+---
+
+Patient language preference: ${language}
+${langInstruction}`;
+  }
+
+  async processTurn(
+    data: AiIntakePromptInput,
+  ): Promise<{ response: string; intakeComplete: boolean }> {
+    const systemPrompt = this.buildSystemPrompt(data.language ?? 'en');
+
+    const messages = [
+      { role: 'assistant' as const, content: systemPrompt },
+      ...data.conversationHistory,
+      { role: 'user' as const, content: data.currentInput },
+    ];
+
+    try {
+      const result = await withRetry(() => this.callGemini(messages, systemPrompt), {
+        maxAttempts: 3,
+        baseDelayMs: 1000,
+      });
+
+      return result;
+    } catch (error) {
+      this.logger.error(`Intake agent conversation failed for session ${data.sessionId}`, error);
+      throw error;
+    }
+  }
+
+  private async callGemini(
+    messages: Array<{ role: string; content: string }>,
+    systemPrompt: string,
+  ): Promise<{ response: string; intakeComplete: boolean }> {
+    if (!this.apiKey) {
+      // Fallback for development without API key
+      return {
+        response: 'I understand. Could you please tell me more about what brings you in today?',
+        intakeComplete: false,
+      };
+    }
+
+    // Gemini uses 'model' role instead of 'assistant'
+    const contents = messages.map((m) => ({
+      role: m.role === 'assistant' ? 'model' : m.role,
+      parts: [{ text: m.content }],
+    }));
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents,
+          systemInstruction: {
+            parts: [{ text: systemPrompt }],
+          },
+          generationConfig: {
+            maxOutputTokens: 1024,
+          },
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      const errBody = await response.text().catch(() => '');
+      throw new Error(`Gemini API error: ${response.status} ${response.statusText} — ${errBody}`);
+    }
+
+    const result = (await response.json()) as {
+      candidates?: Array<{
+        content?: { parts?: Array<{ text: string }> };
+        finishReason?: string;
+      }>;
+    };
+
+    const candidate = result.candidates?.[0];
+    const responseText = candidate?.content?.parts?.[0]?.text ?? '';
+    const finishReason = candidate?.finishReason ?? '';
+    // On Gemini, 'STOP' indicates the model naturally finished (intake complete)
+    const intakeComplete = finishReason === 'STOP';
+
+    return { response: responseText, intakeComplete };
+  }
+}

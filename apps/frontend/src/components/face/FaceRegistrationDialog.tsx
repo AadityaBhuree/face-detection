@@ -5,7 +5,15 @@ import { useFaceStore } from '@/stores/face-store';
 import { faceApi } from '@/services/api';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { cn } from '@/lib/utils';
-import { CheckCircle2, User, Calendar, Phone, ShieldCheck, ArrowRight, ArrowLeft } from 'lucide-react';
+import {
+  CheckCircle2,
+  User,
+  Calendar,
+  Phone,
+  ShieldCheck,
+  ArrowRight,
+  ArrowLeft,
+} from 'lucide-react';
 
 interface FaceRegistrationDialogProps {
   /** The face embedding from the detection pipeline */
@@ -214,8 +222,8 @@ export function FaceRegistrationDialog({
     return (
       <div className="animate-fade-in space-y-4">
         <div className="text-center">
-          <div className="bg-ayutalk-100 dark:bg-ayutalk-900/50 mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl">
-            <User className="text-ayutalk-600 dark:text-ayutalk-400 h-6 w-6" />
+          <div className="bg-jeevandata-100 dark:bg-jeevandata-900/50 mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl">
+            <User className="text-jeevandata-600 dark:text-jeevandata-400 h-6 w-6" />
           </div>
           <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
             What is your name?
@@ -237,7 +245,7 @@ export function FaceRegistrationDialog({
           aria-label="Full name"
           aria-invalid={!!error}
           aria-describedby={error ? 'face-reg-dialog-error' : undefined}
-          className="focus:border-ayutalk-500 focus:ring-ayutalk-500 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 transition-all focus:outline-none focus:ring-2 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
+          className="focus:border-jeevandata-500 focus:ring-jeevandata-500 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 transition-all focus:outline-none focus:ring-2 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
           disabled={isRegistering}
         />
 
@@ -251,7 +259,7 @@ export function FaceRegistrationDialog({
           </button>
           <button
             onClick={handleNameContinue}
-            className="bg-ayutalk-500 hover:bg-ayutalk-600 focus:ring-ayutalk-500 flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-sm transition-all focus:outline-none focus:ring-2"
+            className="bg-jeevandata-500 hover:bg-jeevandata-600 focus:ring-jeevandata-500 flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-sm transition-all focus:outline-none focus:ring-2"
           >
             Continue
             <ArrowRight className="h-4 w-4" />
@@ -266,12 +274,10 @@ export function FaceRegistrationDialog({
     return (
       <div className="animate-fade-in space-y-4">
         <div className="text-center">
-          <div className="bg-emerald-100 dark:bg-emerald-900/50 mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl">
-            <Calendar className="text-emerald-600 dark:text-emerald-400 h-6 w-6" />
+          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100 dark:bg-emerald-900/50">
+            <Calendar className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
           </div>
-          <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
-            Patient Details
-          </h3>
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Patient Details</h3>
           <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
             Date of birth and contact information
           </p>
@@ -279,7 +285,10 @@ export function FaceRegistrationDialog({
 
         {/* DOB */}
         <div>
-          <label htmlFor="reg-dob" className="mb-1.5 block text-xs font-medium text-slate-700 dark:text-slate-300">
+          <label
+            htmlFor="reg-dob"
+            className="mb-1.5 block text-xs font-medium text-slate-700 dark:text-slate-300"
+          >
             Date of Birth
           </label>
           <input
@@ -292,23 +301,24 @@ export function FaceRegistrationDialog({
             min="1900-01-01"
             aria-invalid={!!error}
             aria-describedby={error ? 'face-reg-dialog-error' : undefined}
-            className="focus:border-ayutalk-500 focus:ring-ayutalk-500 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 transition-all focus:outline-none focus:ring-2 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+            className="focus:border-jeevandata-500 focus:ring-jeevandata-500 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 transition-all focus:outline-none focus:ring-2 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
             disabled={isRegistering}
           />
           {dob && !isValidAge(dob) && (
-            <p className="mt-1 text-xs text-red-500">
-              Age must be between 0 and 120 years
-            </p>
+            <p className="mt-1 text-xs text-red-500">Age must be between 0 and 120 years</p>
           )}
         </div>
 
         {/* Mobile */}
         <div>
-          <label htmlFor="reg-mobile" className="mb-1.5 block text-xs font-medium text-slate-700 dark:text-slate-300">
+          <label
+            htmlFor="reg-mobile"
+            className="mb-1.5 block text-xs font-medium text-slate-700 dark:text-slate-300"
+          >
             Mobile Number
           </label>
           <div className="relative">
-            <Phone className="text-slate-400 absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
+            <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
               id="reg-mobile"
               ref={mobileInputRef}
@@ -319,7 +329,7 @@ export function FaceRegistrationDialog({
               maxLength={15}
               aria-invalid={!!error}
               aria-describedby={error ? 'face-reg-dialog-error' : undefined}
-              className="focus:border-ayutalk-500 focus:ring-ayutalk-500 w-full rounded-xl border border-slate-300 bg-white py-3 pl-10 pr-4 text-sm text-slate-900 transition-all focus:outline-none focus:ring-2 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
+              className="focus:border-jeevandata-500 focus:ring-jeevandata-500 w-full rounded-xl border border-slate-300 bg-white py-3 pl-10 pr-4 text-sm text-slate-900 transition-all focus:outline-none focus:ring-2 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
               disabled={isRegistering}
             />
           </div>
@@ -338,7 +348,7 @@ export function FaceRegistrationDialog({
           <button
             onClick={handleDetailsContinue}
             disabled={isRegistering}
-            className="bg-ayutalk-500 hover:bg-ayutalk-600 focus:ring-ayutalk-500 flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-sm transition-all focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-50"
+            className="bg-jeevandata-500 hover:bg-jeevandata-600 focus:ring-jeevandata-500 flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-sm transition-all focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Continue
             <ArrowRight className="h-4 w-4" />
@@ -353,12 +363,10 @@ export function FaceRegistrationDialog({
     return (
       <div className="animate-fade-in space-y-5">
         <div className="text-center">
-          <div className="bg-violet-100 dark:bg-violet-900/50 mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl">
-            <ShieldCheck className="text-violet-600 dark:text-violet-400 h-6 w-6" />
+          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-100 dark:bg-violet-900/50">
+            <ShieldCheck className="h-6 w-6 text-violet-600 dark:text-violet-400" />
           </div>
-          <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
-            Review & Consent
-          </h3>
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Review & Consent</h3>
           <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
             Please review the information and provide consent
           </p>
@@ -393,8 +401,7 @@ export function FaceRegistrationDialog({
         {/* Liveness Warning */}
         {livenessStatus !== 'verified' && (
           <div className="rounded-xl bg-amber-50 p-3 text-xs text-amber-700 ring-1 ring-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:ring-amber-800">
-            ⚠ Liveness check required. Please look at the camera and blink naturally when
-            prompted.
+            ⚠ Liveness check required. Please look at the camera and blink naturally when prompted.
           </div>
         )}
 
@@ -404,7 +411,7 @@ export function FaceRegistrationDialog({
             type="checkbox"
             checked={consent}
             onChange={(e) => setConsent(e.target.checked)}
-            className="text-ayutalk-500 focus:ring-ayutalk-500 mt-0.5 h-5 w-5 rounded border-slate-300 dark:border-slate-600"
+            className="text-jeevandata-500 focus:ring-jeevandata-500 mt-0.5 h-5 w-5 rounded border-slate-300 dark:border-slate-600"
             disabled={isRegistering}
           />
           <div>
@@ -432,7 +439,7 @@ export function FaceRegistrationDialog({
           <button
             onClick={handleRegister}
             disabled={isRegistering || !consent || livenessStatus !== 'verified'}
-            className="bg-emerald-500 hover:bg-emerald-600 focus:ring-emerald-500 flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-sm transition-all focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isRegistering ? (
               <span className="flex items-center gap-2">
@@ -465,10 +472,13 @@ export function FaceRegistrationDialog({
             <CheckCircle2 className="h-10 w-10 text-emerald-500" />
           </div>
           {/* Animated rings */}
-          <div className="animate-ping absolute inset-0 rounded-full bg-emerald-400/20" />
+          <div className="absolute inset-0 animate-ping rounded-full bg-emerald-400/20" />
           <div
             className="absolute inset-0 rounded-full bg-emerald-400/10"
-            style={{ animation: 'ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite', animationDelay: '0.3s' }}
+            style={{
+              animation: 'ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite',
+              animationDelay: '0.3s',
+            }}
           />
         </div>
 
@@ -498,7 +508,7 @@ export function FaceRegistrationDialog({
         aria-modal="true"
         aria-labelledby="face-reg-dialog-title"
         aria-describedby={error ? 'face-reg-dialog-error' : 'face-reg-dialog-desc'}
-        className="relative w-full max-w-md animate-scale-in-center overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900"
+        className="animate-scale-in-center relative w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900"
       >
         {/* Step Progress Bar */}
         {step !== 'success' && (
@@ -516,17 +526,16 @@ export function FaceRegistrationDialog({
                     i < currentStepIndex
                       ? 'bg-emerald-500 text-white'
                       : i === currentStepIndex
-                        ? 'bg-ayutalk-500 text-white ring-2 ring-ayutalk-200 dark:ring-ayutalk-800'
+                        ? 'bg-jeevandata-500 ring-jeevandata-200 dark:ring-jeevandata-800 text-white ring-2'
                         : 'bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-400',
                   )}
                 >
-                  {i < currentStepIndex ? (
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                  ) : (
-                    i + 1
-                  )}
+                  {i < currentStepIndex ? <CheckCircle2 className="h-3.5 w-3.5" /> : i + 1}
                 </div>
-                <span className="sr-only" aria-current={i === currentStepIndex ? 'step' : undefined}>
+                <span
+                  className="sr-only"
+                  aria-current={i === currentStepIndex ? 'step' : undefined}
+                >
                   Step {i + 1}: {s.label}
                   {i < currentStepIndex ? ' (completed)' : ''}
                   {i === currentStepIndex ? ' (current)' : ''}
@@ -535,9 +544,7 @@ export function FaceRegistrationDialog({
                   <div
                     className={cn(
                       'h-0.5 flex-1 rounded-full transition-all duration-300',
-                      i < currentStepIndex
-                        ? 'bg-emerald-400'
-                        : 'bg-slate-200 dark:bg-slate-700',
+                      i < currentStepIndex ? 'bg-emerald-400' : 'bg-slate-200 dark:bg-slate-700',
                     )}
                   />
                 )}

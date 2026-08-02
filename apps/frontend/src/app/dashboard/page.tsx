@@ -229,7 +229,7 @@ export default function DashboardPage() {
     {
       label: 'Active Sessions',
       value: activeSessions.length,
-      color: 'bg-ayutalk-500',
+      color: 'bg-jeevandata-500',
       desc: 'Currently in intake',
     },
     {
@@ -264,7 +264,7 @@ export default function DashboardPage() {
         <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/80 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/80">
           <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
             <div className="flex items-center gap-3">
-              <div className="bg-ayutalk-500 flex h-9 w-9 items-center justify-center rounded-xl shadow-sm">
+              <div className="bg-jeevandata-500 flex h-9 w-9 items-center justify-center rounded-xl shadow-sm">
                 <span className="text-sm font-bold text-white">AC</span>
               </div>
               <div>
@@ -272,7 +272,7 @@ export default function DashboardPage() {
                   Doctor Dashboard
                 </h1>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  AyuTalk Care — Live clinic intake monitor
+                  Jeevandata — Live clinic intake monitor
                 </p>
               </div>
             </div>
@@ -283,7 +283,7 @@ export default function DashboardPage() {
                 Live
               </span>
               <Link href="/">
-                <Button variant="ayutalk" size="sm" leftIcon={<Plus className="h-3.5 w-3.5" />}>
+                <Button variant="jeevandata" size="sm" leftIcon={<Plus className="h-3.5 w-3.5" />}>
                   New Intake
                 </Button>
               </Link>
@@ -348,7 +348,7 @@ export default function DashboardPage() {
                   {error}
                   <button
                     onClick={() => window.location.reload()}
-                    className="text-ayutalk-500 dark:text-ayutalk-400 ml-2 hover:underline"
+                    className="text-jeevandata-500 dark:text-jeevandata-400 ml-2 hover:underline"
                   >
                     Retry
                   </button>
@@ -359,7 +359,7 @@ export default function DashboardPage() {
                   <br />
                   <Link
                     href="/"
-                    className="text-ayutalk-500 dark:text-ayutalk-400 mt-1 inline-block hover:underline"
+                    className="text-jeevandata-500 dark:text-jeevandata-400 mt-1 inline-block hover:underline"
                   >
                     Start a new intake
                   </Link>
@@ -375,7 +375,7 @@ export default function DashboardPage() {
                         onClick={() => handleSelectSession(session.id)}
                         className={cn(
                           'flex w-full items-center justify-between px-5 py-3 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50',
-                          isSelected && 'bg-ayutalk-50/50 dark:bg-ayutalk-900/20',
+                          isSelected && 'bg-jeevandata-50/50 dark:bg-jeevandata-900/20',
                         )}
                       >
                         <div className="flex items-center gap-3">
@@ -400,7 +400,7 @@ export default function DashboardPage() {
                           {hasBrief && (
                             <span className="flex h-2 w-2 rounded-full bg-emerald-500" />
                           )}
-                          {isSelected && <ChevronRight className="text-ayutalk-500 h-4 w-4" />}
+                          {isSelected && <ChevronRight className="text-jeevandata-500 h-4 w-4" />}
                         </div>
                       </button>
                     );
@@ -416,7 +416,7 @@ export default function DashboardPage() {
                   Completed Briefs
                 </h2>
                 {briefsLoading ? (
-                  <div className="border-ayutalk-200 border-t-ayutalk-500 h-4 w-4 animate-spin rounded-full border-2" />
+                  <div className="border-jeevandata-200 border-t-jeevandata-500 h-4 w-4 animate-spin rounded-full border-2" />
                 ) : (
                   <span className="text-xs text-slate-400 dark:text-slate-500">
                     {recentBriefs.length} brief
@@ -526,7 +526,7 @@ export default function DashboardPage() {
                 <Card className="p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div className="bg-ayutalk-100 text-ayutalk-600 dark:bg-ayutalk-900/50 dark:text-ayutalk-400 flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold">
+                      <div className="bg-jeevandata-100 text-jeevandata-600 dark:bg-jeevandata-900/50 dark:text-jeevandata-400 flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold">
                         {selectedSession.patient?.name
                           ?.split(' ')
                           .map((n) => n[0])
@@ -586,7 +586,7 @@ export default function DashboardPage() {
                             {/* AI Message */}
                             {turn.speaker === 'ai' && (
                               <div className="flex max-w-[85%] gap-2">
-                                <div className="bg-ayutalk-100 text-ayutalk-600 dark:bg-ayutalk-900/50 dark:text-ayutalk-400 mt-1 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold">
+                                <div className="bg-jeevandata-100 text-jeevandata-600 dark:bg-jeevandata-900/50 dark:text-jeevandata-400 mt-1 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold">
                                   AI
                                 </div>
                                 <div className="rounded-xl rounded-tl-sm bg-slate-100 px-3 py-2 dark:bg-slate-800">
@@ -608,10 +608,10 @@ export default function DashboardPage() {
                                 <div className="mt-1 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-slate-200 text-[10px] font-bold text-slate-600 dark:bg-slate-700 dark:text-slate-300">
                                   P
                                 </div>
-                                <div className="bg-ayutalk-500 rounded-xl rounded-tr-sm px-3 py-2">
+                                <div className="bg-jeevandata-500 rounded-xl rounded-tr-sm px-3 py-2">
                                   <p className="text-xs text-white">{turn.text}</p>
                                   {turn.timestamp && (
-                                    <p className="text-ayutalk-200 mt-1 text-[10px]">
+                                    <p className="text-jeevandata-200 mt-1 text-[10px]">
                                       {formatTime(turn.timestamp)}
                                     </p>
                                   )}
@@ -686,7 +686,7 @@ export default function DashboardPage() {
                               {selectedBrief.brief.vitalsToCheck.map((vital) => (
                                 <span
                                   key={vital}
-                                  className="bg-ayutalk-50 text-ayutalk-700 ring-ayutalk-200 dark:bg-ayutalk-900/30 dark:text-ayutalk-400 dark:ring-ayutalk-800 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ring-1"
+                                  className="bg-jeevandata-50 text-jeevandata-700 ring-jeevandata-200 dark:bg-jeevandata-900/30 dark:text-jeevandata-400 dark:ring-jeevandata-800 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ring-1"
                                 >
                                   {vital}
                                 </span>

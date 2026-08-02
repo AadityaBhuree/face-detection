@@ -1,3 +1,4 @@
+import type * as LucideReact from 'lucide-react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -7,7 +8,7 @@ import { ThemeProvider } from '../theme-provider';
 // Mock icons as text spans so we can assert the check indicator reliably
 // (lucide-react renders <svg><path/></svg> with no text content).
 vi.mock('lucide-react', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('lucide-react')>();
+  const actual = await importOriginal<typeof LucideReact>();
   return {
     ...actual,
     Sun: () => <span>☀</span>,
@@ -70,7 +71,7 @@ describe('DarkModeToggle — accessibility', () => {
     await waitFor(() => {
       expect(screen.queryByRole('menu')).toBeNull();
     });
-    expect(localStorage.getItem('ayutalk-theme')).toBe('dark');
+    expect(localStorage.getItem('jeevandata-theme')).toBe('dark');
   });
 });
 
@@ -100,7 +101,10 @@ describe('DarkModeToggle — keyboard navigation', () => {
     expect(screen.getByRole('menuitem', { name: /dark/i })).toHaveAttribute('data-highlighted', '');
 
     await user.keyboard('{ArrowDown}');
-    expect(screen.getByRole('menuitem', { name: /system/i })).toHaveAttribute('data-highlighted', '');
+    expect(screen.getByRole('menuitem', { name: /system/i })).toHaveAttribute(
+      'data-highlighted',
+      '',
+    );
 
     await user.keyboard('{ArrowUp}');
     expect(screen.getByRole('menuitem', { name: /dark/i })).toHaveAttribute('data-highlighted', '');
@@ -112,11 +116,17 @@ describe('DarkModeToggle — keyboard navigation', () => {
 
     // ArrowUp on the first item wraps to the last
     fireEvent.keyDown(menu, { key: 'ArrowUp' });
-    expect(screen.getByRole('menuitem', { name: /system/i })).toHaveAttribute('data-highlighted', '');
+    expect(screen.getByRole('menuitem', { name: /system/i })).toHaveAttribute(
+      'data-highlighted',
+      '',
+    );
 
     // ArrowDown on the last item wraps to the first
     fireEvent.keyDown(menu, { key: 'ArrowDown' });
-    expect(screen.getByRole('menuitem', { name: /light/i })).toHaveAttribute('data-highlighted', '');
+    expect(screen.getByRole('menuitem', { name: /light/i })).toHaveAttribute(
+      'data-highlighted',
+      '',
+    );
   });
 
   it('closes with Escape and returns focus to the trigger', async () => {
@@ -129,7 +139,7 @@ describe('DarkModeToggle — keyboard navigation', () => {
   });
 
   it('selects a theme with Enter on a focused item', async () => {
-    const { user } = await openMenu();
+    await openMenu();
     // Move focus to Dark, then confirm with Enter
     const darkItem = screen.getByRole('menuitem', { name: /dark/i });
     darkItem.focus();
@@ -137,7 +147,7 @@ describe('DarkModeToggle — keyboard navigation', () => {
     await waitFor(() => {
       expect(screen.queryByRole('menu')).toBeNull();
     });
-    expect(localStorage.getItem('ayutalk-theme')).toBe('dark');
+    expect(localStorage.getItem('jeevandata-theme')).toBe('dark');
   });
 });
 
@@ -172,14 +182,14 @@ describe('DarkModeToggle — behavior', () => {
   it('selects the theme and closes when clicking a menu item', async () => {
     const { user } = await openMenu();
     await user.click(screen.getByRole('menuitem', { name: /light/i }));
-    expect(localStorage.getItem('ayutalk-theme')).toBe('light');
+    expect(localStorage.getItem('jeevandata-theme')).toBe('light');
     await waitFor(() => {
       expect(screen.queryByRole('menu')).toBeNull();
     });
   });
 
   it('keeps the menu open when mousing down on the trigger itself', async () => {
-    const { user, trigger } = await openMenu();
+    const { trigger } = await openMenu();
     // Mousedown on the trigger is inside the component — the menu stays open
     fireEvent.mouseDown(trigger);
     expect(screen.getByRole('menu')).toBeDefined();
@@ -215,7 +225,7 @@ describe('DarkModeToggle — behavior', () => {
     const { user } = await openMenu();
     await user.click(screen.getByRole('menuitem', { name: /light/i }));
     await waitFor(() => {
-      expect(localStorage.getItem('ayutalk-theme')).toBe('light');
+      expect(localStorage.getItem('jeevandata-theme')).toBe('light');
     });
   });
 });

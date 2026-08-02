@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { Camera, RotateCw, Smartphone } from 'lucide-react';
 import type { CameraDevice } from '@/hooks/useCamera';
 import { cn } from '@/lib/utils';
@@ -58,7 +58,7 @@ export function CameraSelector({
           <button
             onClick={onStartCamera}
             disabled={isEnumeratingDevices}
-            className="bg-ayutalk-500 hover:bg-ayutalk-600 focus:ring-ayutalk-500 flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-sm transition-all focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-50"
+            className="bg-jeevandata-500 hover:bg-jeevandata-600 focus:ring-jeevandata-500 flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-sm transition-all focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Camera className="h-4 w-4" />
             {isEnumeratingDevices ? 'Detecting cameras...' : 'Start Camera'}
@@ -79,24 +79,17 @@ export function CameraSelector({
                 onClick={handleToggle}
                 disabled={isSwitching}
                 aria-label={
-                  currentFacingMode === 'user'
-                    ? 'Switch to rear camera'
-                    : 'Switch to front camera'
+                  currentFacingMode === 'user' ? 'Switch to rear camera' : 'Switch to front camera'
                 }
                 title={
-                  currentFacingMode === 'user'
-                    ? 'Switch to rear camera'
-                    : 'Switch to front camera'
+                  currentFacingMode === 'user' ? 'Switch to rear camera' : 'Switch to front camera'
                 }
                 className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm font-medium text-slate-700 transition-all hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
               >
                 <RotateCw
-                  className={cn(
-                    'h-4 w-4 transition-transform',
-                    isSwitching && 'animate-spin',
-                  )}
+                  className={cn('h-4 w-4 transition-transform', isSwitching && 'animate-spin')}
                 />
-                <span className="text-xs hidden sm:inline">
+                <span className="hidden text-xs sm:inline">
                   {currentFacingMode === 'user' ? 'Rear' : 'Front'}
                 </span>
               </button>

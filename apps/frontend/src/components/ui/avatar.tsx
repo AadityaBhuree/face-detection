@@ -10,10 +10,7 @@ const Avatar = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <AvatarPrimitive.Root
     ref={ref}
-    className={cn(
-      'relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full',
-      className,
-    )}
+    className={cn('relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full', className)}
     {...props}
   />
 ));
@@ -38,7 +35,7 @@ const AvatarFallback = React.forwardRef<
   <AvatarPrimitive.Fallback
     ref={ref}
     className={cn(
-      'flex h-full w-full items-center justify-center rounded-full bg-ayutalk-100 text-sm font-medium text-ayutalk-600',
+      'bg-jeevandata-100 text-jeevandata-600 flex h-full w-full items-center justify-center rounded-full text-sm font-medium',
       className,
     )}
     {...props}
@@ -71,7 +68,7 @@ function PatientAvatar({ name, size = 'default', className }: PatientAvatarProps
 
   return (
     <Avatar className={cn(sizeMap[size], className)}>
-      <AvatarFallback className="bg-ayutalk-100 text-ayutalk-600">
+      <AvatarFallback className="bg-jeevandata-100 text-jeevandata-600">
         {initials || '?'}
       </AvatarFallback>
     </Avatar>

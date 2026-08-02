@@ -27,10 +27,10 @@ export function TranscriptView({ entries, onStartIntake }: TranscriptViewProps) 
     <div className="space-y-3">
       {entries.length === 0 && (
         <div className="flex flex-col items-center justify-center py-12 text-center">
-          <div className="bg-ayutalk-100 dark:bg-ayutalk-900/50 mb-3 rounded-full p-3">
+          <div className="bg-jeevandata-100 dark:bg-jeevandata-900/50 mb-3 rounded-full p-3">
             <svg
               aria-hidden="true"
-              className="text-ayutalk-500 dark:text-ayutalk-400 h-6 w-6"
+              className="text-jeevandata-500 dark:text-jeevandata-400 h-6 w-6"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -51,7 +51,7 @@ export function TranscriptView({ entries, onStartIntake }: TranscriptViewProps) 
           </p>
           <button
             onClick={onStartIntake}
-            className="bg-ayutalk-500 hover:bg-ayutalk-600 rounded-lg px-4 py-2 text-sm font-medium text-white transition-all"
+            className="bg-jeevandata-500 hover:bg-jeevandata-600 rounded-lg px-4 py-2 text-sm font-medium text-white transition-all"
           >
             Start AI Intake
           </button>
@@ -71,7 +71,7 @@ export function TranscriptView({ entries, onStartIntake }: TranscriptViewProps) 
               className={cn(
                 'flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold',
                 entry.speaker === 'ai' &&
-                  'bg-ayutalk-100 text-ayutalk-600 dark:bg-ayutalk-900/50 dark:text-ayutalk-400',
+                  'bg-jeevandata-100 text-jeevandata-600 dark:bg-jeevandata-900/50 dark:text-jeevandata-400',
                 entry.speaker === 'patient' &&
                   'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400',
                 entry.speaker === 'system' &&
@@ -86,7 +86,7 @@ export function TranscriptView({ entries, onStartIntake }: TranscriptViewProps) 
               className={cn(
                 'max-w-[80%] rounded-xl px-4 py-2.5 text-sm',
                 entry.speaker === 'ai' &&
-                  'bg-ayutalk-50 dark:bg-ayutalk-950/50 rounded-bl-sm text-slate-800 dark:text-slate-200',
+                  'bg-jeevandata-50 dark:bg-jeevandata-950/50 rounded-bl-sm text-slate-800 dark:text-slate-200',
                 entry.speaker === 'patient' &&
                   'rounded-br-sm bg-emerald-50 text-slate-800 dark:bg-emerald-950/50 dark:text-slate-200',
                 entry.speaker === 'system' &&

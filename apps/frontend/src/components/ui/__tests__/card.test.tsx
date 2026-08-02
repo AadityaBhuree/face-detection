@@ -12,7 +12,11 @@ import {
 
 describe('Card', () => {
   it('should render children', () => {
-    render(<Card><p>Content</p></Card>);
+    render(
+      <Card>
+        <p>Content</p>
+      </Card>,
+    );
     expect(screen.getByText('Content')).toBeInTheDocument();
   });
 
@@ -38,7 +42,11 @@ describe('Card', () => {
 
 describe('CardHeader', () => {
   it('should render children', () => {
-    render(<CardHeader><h2>Header</h2></CardHeader>);
+    render(
+      <CardHeader>
+        <h2>Header</h2>
+      </CardHeader>,
+    );
     expect(screen.getByText('Header')).toBeInTheDocument();
   });
 
@@ -86,14 +94,22 @@ describe('CardDescription', () => {
 
 describe('CardContent', () => {
   it('should render children', () => {
-    render(<CardContent><span>Content</span></CardContent>);
+    render(
+      <CardContent>
+        <span>Content</span>
+      </CardContent>,
+    );
     expect(screen.getByText('Content')).toBeInTheDocument();
   });
 });
 
 describe('CardFooter', () => {
   it('should render children', () => {
-    render(<CardFooter><button>Action</button></CardFooter>);
+    render(
+      <CardFooter>
+        <button>Action</button>
+      </CardFooter>,
+    );
     expect(screen.getByRole('button', { name: /action/i })).toBeInTheDocument();
   });
 
@@ -126,8 +142,8 @@ describe('BriefCard (card variant)', () => {
   it('should apply highlight variant classes', () => {
     render(<BriefCard variant="highlight">Highlight</BriefCard>);
     const el = screen.getByText('Highlight');
-    expect(el.className).toContain('border-ayutalk-200');
-    expect(el.className).toContain('bg-ayutalk-50');
+    expect(el.className).toContain('border-jeevandata-200');
+    expect(el.className).toContain('bg-jeevandata-50');
   });
 
   it('should merge custom className', () => {

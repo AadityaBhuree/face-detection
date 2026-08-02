@@ -1,8 +1,7 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 
-export interface InputProps
-  extends React.InputHTMLAttributes<HTMLInputElement> {
+export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   error?: string;
   label?: string;
 }
@@ -15,10 +14,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="w-full">
         {label && (
-          <label
-            htmlFor={inputId}
-            className="mb-1.5 block text-xs font-medium text-slate-700"
-          >
+          <label htmlFor={inputId} className="mb-1.5 block text-xs font-medium text-slate-700">
             {label}
           </label>
         )}
@@ -26,13 +22,13 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           id={inputId}
           type={type}
           className={cn(
-            'flex h-10 w-full rounded-lg border bg-background px-3 py-2 text-sm transition-colors',
+            'bg-background flex h-10 w-full rounded-lg border px-3 py-2 text-sm transition-colors',
             'placeholder:text-slate-400',
             'focus:outline-none focus:ring-2 focus:ring-offset-0',
             'disabled:cursor-not-allowed disabled:opacity-50',
             error
               ? 'border-red-300 focus:border-red-500 focus:ring-red-200'
-              : 'border-input focus:border-ayutalk-500 focus:ring-ayutalk-200',
+              : 'border-input focus:border-jeevandata-500 focus:ring-jeevandata-200',
             className,
           )}
           ref={ref}
@@ -41,11 +37,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           {...props}
         />
         {error && (
-          <p
-            id={`${inputId}-error`}
-            className="mt-1 text-xs text-red-500"
-            role="alert"
-          >
+          <p id={`${inputId}-error`} className="mt-1 text-xs text-red-500" role="alert">
             {error}
           </p>
         )}

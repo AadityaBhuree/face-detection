@@ -18,12 +18,13 @@ const buttonVariants = cva(
         secondary: 'bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80',
         ghost: 'hover:bg-accent hover:text-accent-foreground',
         link: 'text-primary underline-offset-4 hover:underline',
-        // AyuTalk-specific variants
-        ayutalk: 'bg-ayutalk-500 text-white shadow-sm hover:bg-ayutalk-600 active:bg-ayutalk-700',
-        'ayutalk-outline':
-          'border-2 border-ayutalk-200 text-ayutalk-700 bg-ayutalk-50 hover:bg-ayutalk-100 hover:border-ayutalk-300 active:bg-ayutalk-200',
-        'ayutalk-ghost':
-          'text-ayutalk-700 hover:bg-ayutalk-50 hover:text-ayutalk-800 active:bg-ayutalk-100',
+        // Jeevandata-specific variants
+        jeevandata:
+          'bg-jeevandata-500 text-white shadow-sm hover:bg-jeevandata-600 active:bg-jeevandata-700',
+        'jeevandata-outline':
+          'border-2 border-jeevandata-200 text-jeevandata-700 bg-jeevandata-50 hover:bg-jeevandata-100 hover:border-jeevandata-300 active:bg-jeevandata-200',
+        'jeevandata-ghost':
+          'text-jeevandata-700 hover:bg-jeevandata-50 hover:text-jeevandata-800 active:bg-jeevandata-100',
         success: 'bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 active:bg-emerald-800',
         'success-outline':
           'border-2 border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 hover:border-emerald-300',

@@ -139,10 +139,7 @@ function formatViolations(results: axe.AxeResults): string {
       (v) =>
         `• ${v.help} (${v.impact}) [${v.id}]\n` +
         v.nodes
-          .map(
-            (n) =>
-              `    → ${n.target.join(' ')} — ${(n.failureSummary ?? '').split('\n')[0]}`,
-          )
+          .map((n) => `    → ${n.target.join(' ')} — ${(n.failureSummary ?? '').split('\n')[0]}`)
           .join('\n'),
     )
     .join('\n');
@@ -153,7 +150,7 @@ describe('Intake page — axe-core accessibility scan', () => {
     // The real app always renders inside layout.tsx which sets these;
     // jsdom's bare <html> has neither, so mirror the production document.
     document.documentElement.lang = 'en';
-    document.title = 'Intake Session | AyuTalk Care';
+    document.title = 'Intake Session | Jeevandata';
   });
 
   it('has no detectable violations on initial render (camera phase)', async () => {

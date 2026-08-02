@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { LanguageProvider, useLanguage } from '../useLanguage';
 
-const STORAGE_KEY = 'ayutalk-locale';
+const STORAGE_KEY = 'jeevandata-locale';
 
 function LocaleConsumer() {
   const { locale, setLocale } = useLanguage();

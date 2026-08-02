@@ -7,18 +7,18 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 export const metadata: Metadata = {
   title: {
-    default: 'AyuTalk Care — Smart Clinic Intake',
-    template: '%s | AyuTalk Care',
+    default: 'Jeevandata — Smart Clinic Intake',
+    template: '%s | Jeevandata',
   },
   description:
     'AI-powered smart clinic intake system with face recognition and conversational voice intake',
   keywords: ['clinic', 'intake', 'AI', 'face recognition', 'healthcare', 'telemedicine'],
-  authors: [{ name: 'AyuTalk Care' }],
+  authors: [{ name: 'Jeevandata' }],
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'AyuTalk Care',
+    title: 'Jeevandata',
   },
   formatDetection: {
     telephone: true,
@@ -28,8 +28,8 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_IN',
-    siteName: 'AyuTalk Care',
-    title: 'AyuTalk Care — Smart Clinic Intake',
+    siteName: 'Jeevandata',
+    title: 'Jeevandata — Smart Clinic Intake',
     description:
       'AI-powered smart clinic intake system with face recognition and conversational voice intake',
   },
@@ -56,7 +56,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             __html: `
               (function() {
                 try {
-                  var theme = localStorage.getItem('ayutalk-theme');
+                  var theme = localStorage.getItem('jeevandata-theme');
                   var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
                   if (theme === 'dark' || (theme !== 'light' && prefersDark)) {
                     document.documentElement.classList.add('dark');

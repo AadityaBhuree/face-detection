@@ -31,17 +31,17 @@ export default function HomePage() {
   }
 
   return (
-    <div className="via-ayutalk-50 dark:via-ayutalk-950 relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-50 to-white dark:from-slate-950 dark:to-slate-900">
+    <div className="via-jeevandata-50 dark:via-jeevandata-950 relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-50 to-white dark:from-slate-950 dark:to-slate-900">
       {/* ─── Animated Background ──────────────────────────────── */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         {/* Gradient orbs */}
-        <div className="animate-float bg-ayutalk-200/30 dark:bg-ayutalk-900/20 absolute -left-32 -top-32 h-96 w-96 rounded-full blur-3xl" />
+        <div className="animate-float bg-jeevandata-200/30 dark:bg-jeevandata-900/20 absolute -left-32 -top-32 h-96 w-96 rounded-full blur-3xl" />
         <div
           className="animate-float absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-emerald-200/20 blur-3xl dark:bg-emerald-900/20"
           style={{ animationDelay: '1.5s' }}
         />
         <div
-          className="animate-float bg-ayutalk-300/20 dark:bg-ayutalk-800/20 absolute left-1/2 top-1/3 h-64 w-64 rounded-full blur-3xl"
+          className="animate-float bg-jeevandata-300/20 dark:bg-jeevandata-800/20 absolute left-1/2 top-1/3 h-64 w-64 rounded-full blur-3xl"
           style={{ animationDelay: '3s' }}
         />
 
@@ -56,13 +56,13 @@ export default function HomePage() {
         />
 
         {/* Decorative dots */}
-        <div className="bg-ayutalk-300/40 dark:bg-ayutalk-500/30 animate-float absolute left-[15%] top-[20%] h-2 w-2 rounded-full" />
+        <div className="bg-jeevandata-300/40 dark:bg-jeevandata-500/30 animate-float absolute left-[15%] top-[20%] h-2 w-2 rounded-full" />
         <div
           className="absolute right-[25%] top-[15%] h-1.5 w-1.5 rounded-full bg-emerald-300/40 dark:bg-emerald-500/30"
           style={{ animationDelay: '0.5s' }}
         />
         <div
-          className="bg-ayutalk-400/30 dark:bg-ayutalk-500/20 absolute bottom-[30%] left-[20%] h-2 w-2 rounded-full"
+          className="bg-jeevandata-400/30 dark:bg-jeevandata-500/20 absolute bottom-[30%] left-[20%] h-2 w-2 rounded-full"
           style={{ animationDelay: '1s' }}
         />
         <div
@@ -75,7 +75,7 @@ export default function HomePage() {
       <main className="relative z-10 mx-auto flex min-h-screen max-w-6xl flex-col items-center justify-center px-4 py-20">
         {/* Brand Pill */}
         <div className="animate-fade-in-down mb-8">
-          <span className="border-ayutalk-200 bg-ayutalk-50 text-ayutalk-700 dark:border-ayutalk-800 dark:bg-ayutalk-900/50 dark:text-ayutalk-300 inline-flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-xs font-medium shadow-sm">
+          <span className="border-jeevandata-200 bg-jeevandata-50 text-jeevandata-700 dark:border-jeevandata-800 dark:bg-jeevandata-900/50 dark:text-jeevandata-300 inline-flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-xs font-medium shadow-sm">
             <Sparkles className="h-3.5 w-3.5" />
             AI-Powered Clinic Intake System
           </span>
@@ -83,25 +83,25 @@ export default function HomePage() {
 
         {/* Hero Section */}
         <div className="animate-fade-in-up text-center">
-          <div className="from-ayutalk-500 to-ayutalk-700 shadow-ayutalk-500/20 dark:shadow-ayutalk-500/10 mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br shadow-lg">
+          <div className="from-jeevandata-500 to-jeevandata-700 shadow-jeevandata-500/20 dark:shadow-jeevandata-500/10 mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br shadow-lg">
             <Camera className="h-8 w-8 text-white" />
           </div>
 
           <h1 className="text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl lg:text-6xl dark:text-white">
-            Welcome to <span className="gradient-text">AyuTalk Care</span>
+            Welcome to <span className="gradient-text">Jeevandata</span>
           </h1>
 
           <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-slate-600 sm:text-lg dark:text-slate-400">
             The smart clinic intake system that uses{' '}
-            <span className="text-ayutalk-600 dark:text-ayutalk-400 font-semibold">
+            <span className="text-jeevandata-600 dark:text-jeevandata-400 font-semibold">
               face recognition
             </span>{' '}
             to identify patients,{' '}
-            <span className="text-ayutalk-600 dark:text-ayutalk-400 font-semibold">
+            <span className="text-jeevandata-600 dark:text-jeevandata-400 font-semibold">
               AI voice conversations
             </span>{' '}
             to collect symptoms, and generates a{' '}
-            <span className="text-ayutalk-600 dark:text-ayutalk-400 font-semibold">
+            <span className="text-jeevandata-600 dark:text-jeevandata-400 font-semibold">
               clinical brief
             </span>{' '}
             before the doctor walks in.
@@ -117,7 +117,7 @@ export default function HomePage() {
             </p>
 
             <Button
-              variant="ayutalk"
+              variant="jeevandata"
               size="xl"
               onClick={handleStartIntake}
               className="shadow-glow hover:shadow-glow-lg w-full"
@@ -137,8 +137,8 @@ export default function HomePage() {
               title: 'Face Recognition',
               desc: 'Instant patient identification using on-device face detection',
               accent: '#0c8ee6',
-              bgColor: 'bg-ayutalk-50 dark:bg-ayutalk-900/30',
-              iconColor: 'text-ayutalk-600 dark:text-ayutalk-400',
+              bgColor: 'bg-jeevandata-50 dark:bg-jeevandata-900/30',
+              iconColor: 'text-jeevandata-600 dark:text-jeevandata-400',
             },
             {
               icon: MessageSquareText,

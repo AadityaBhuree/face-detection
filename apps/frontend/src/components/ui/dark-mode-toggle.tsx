@@ -54,7 +54,7 @@ export function DarkModeToggle() {
             onClick={() => setTheme(value)}
             className={cn(
               'flex items-center justify-between gap-3',
-              theme === value && 'text-ayutalk-600 font-medium',
+              theme === value && 'text-jeevandata-600 font-medium',
             )}
           >
             <span className="flex items-center gap-2">

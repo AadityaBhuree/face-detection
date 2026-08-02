@@ -1,10 +1,10 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { t, detectLocale, translations, type SupportedLocale } from '../index';
 
 describe('i18n', () => {
   describe('t()', () => {
     it('should return English text for en locale', () => {
-      expect(t('en', 'appName')).toBe('AyuTalk Care');
+      expect(t('en', 'appName')).toBe('Jeevandata');
     });
 
     it('should return Hindi text for hi locale', () => {
@@ -16,7 +16,7 @@ describe('i18n', () => {
     });
 
     it('should return Spanish text for es locale', () => {
-      expect(t('es', 'appName')).toBe('AyuTalk Care');
+      expect(t('es', 'appName')).toBe('Jeevandata');
     });
 
     it('should replace single parameter in string', () => {
@@ -31,11 +31,11 @@ describe('i18n', () => {
 
     it('should fall back to English key when translation is missing', () => {
       const result = t('es', 'appName');
-      expect(result).toBe('AyuTalk Care');
+      expect(result).toBe('Jeevandata');
     });
 
     it('should return key as fallback when even English is missing', () => {
-      const result = t('en', 'nonexistent_key' as any);
+      const result = t('en', 'nonexistent_key' as Parameters<typeof t>[1]);
       expect(result).toBe('[nonexistent_key]');
     });
   });
@@ -145,9 +145,7 @@ describe('i18n', () => {
     it('interpolates camerasAvailable with multiple params', () => {
       // The dictionary stores the singular base 'कैमरा{plural}'; interpolation
       // appends the plural matra without merging, so the output is 'कैमराों'.
-      expect(t('hi', 'camerasAvailable', { count: 3, plural: 'ों' })).toBe(
-        '3 कैमराों उपलब्ध',
-      );
+      expect(t('hi', 'camerasAvailable', { count: 3, plural: 'ों' })).toBe('3 कैमराों उपलब्ध');
     });
   });
 
@@ -172,9 +170,7 @@ describe('i18n', () => {
 
     it('interpolates camerasAvailable with multiple params', () => {
       // Same base-plus-matra behaviour as Hindi: 'कॅमेरा{plural}' → 'कॅमेराे'
-      expect(t('mr', 'camerasAvailable', { count: 3, plural: 'े' })).toBe(
-        '3 कॅमेराे उपलब्ध',
-      );
+      expect(t('mr', 'camerasAvailable', { count: 3, plural: 'े' })).toBe('3 कॅमेराे उपलब्ध');
     });
   });
 
@@ -199,9 +195,7 @@ describe('i18n', () => {
 
     it('replaces repeated placeholders (cámaras disponibles)', () => {
       // Spanish repeats {plural}; every occurrence must be replaced
-      expect(t('es', 'camerasAvailable', { count: 3, plural: 's' })).toBe(
-        '3 cámaras disponibles',
-      );
+      expect(t('es', 'camerasAvailable', { count: 3, plural: 's' })).toBe('3 cámaras disponibles');
     });
   });
 
@@ -210,12 +204,14 @@ describe('i18n', () => {
 
     for (const locale of locales) {
       it(`${locale} returns the bracketed key when the key does not exist`, () => {
-        expect(t(locale, 'nonexistent_key' as any)).toBe('[nonexistent_key]');
+        expect(t(locale, 'nonexistent_key' as Parameters<typeof t>[1])).toBe('[nonexistent_key]');
       });
     }
 
     it('returns the bracketed key even when params are passed', () => {
-      expect(t('hi', 'nonexistent_key' as any, { count: 5 })).toBe('[nonexistent_key]');
+      expect(t('hi', 'nonexistent_key' as Parameters<typeof t>[1], { count: 5 })).toBe(
+        '[nonexistent_key]',
+      );
     });
 
     it('keeps placeholders intact when params are not provided', () => {

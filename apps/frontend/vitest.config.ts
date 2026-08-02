@@ -16,29 +16,24 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
       include: ['src/**/*.{ts,tsx}'],
-      exclude: [
-        'src/**/*.{test,spec}.{ts,tsx}',
-        'src/**/index.ts',
-        'src/test/**',
-        'node_modules',
-      ],
+      exclude: ['src/**/*.{test,spec}.{ts,tsx}', 'src/**/index.ts', 'src/test/**', 'node_modules'],
     },
     deps: {
-      inline: [/@ayutalk\/shared-/],
+      inline: [/@jeevandata\/shared-/],
     },
   },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      '@ayutalk/shared-types': path.resolve(
+      '@jeevandata/shared-types': path.resolve(
         __dirname,
         '../../packages/shared-types/src/index.ts',
       ),
-      '@ayutalk/shared-schemas': path.resolve(
+      '@jeevandata/shared-schemas': path.resolve(
         __dirname,
         '../../packages/shared-schemas/src/index.ts',
       ),
-      '@ayutalk/shared-utils': path.resolve(
+      '@jeevandata/shared-utils': path.resolve(
         __dirname,
         '../../packages/shared-utils/src/index.ts',
       ),

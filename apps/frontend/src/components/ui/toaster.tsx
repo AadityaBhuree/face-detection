@@ -35,7 +35,7 @@ const iconMap: Record<string, React.ReactNode> = {
   success: <CheckCircle className="h-5 w-5 text-emerald-500" />,
   destructive: <AlertCircle className="h-5 w-5 text-red-500" />,
   warning: <AlertTriangle className="h-5 w-5 text-amber-500" />,
-  default: <Info className="text-ayutalk-500 h-5 w-5" />,
+  default: <Info className="text-jeevandata-500 h-5 w-5" />,
 };
 
 // ─── Toast Component ────────────────────────────────────────────

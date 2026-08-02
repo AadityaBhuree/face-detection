@@ -17,12 +17,12 @@ interface CachedSession {
   localData: Record<string, unknown>;
 }
 
-class AyuTalkDB extends Dexie {
+class JeevandataDB extends Dexie {
   patients!: Table<CachedPatient, string>;
   sessions!: Table<CachedSession, string>;
 
   constructor() {
-    super('AyuTalkCare');
+    super('Jeevandata');
 
     this.version(1).stores({
       patients: 'id, name, mobile, lastSyncedAt',
@@ -31,7 +31,7 @@ class AyuTalkDB extends Dexie {
   }
 }
 
-export const db = new AyuTalkDB();
+export const db = new JeevandataDB();
 
 // ─── Patient Cache Operations ──────────────────────────────────
 
@@ -39,21 +39,13 @@ export async function cachePatient(patient: CachedPatient): Promise<void> {
   await db.patients.put(patient);
 }
 
-export async function getCachedPatient(
-  id: string,
-): Promise<CachedPatient | undefined> {
+export async function getCachedPatient(id: string): Promise<CachedPatient | undefined> {
   return db.patients.get(id);
 }
 
-export async function searchCachedPatients(
-  query: string,
-): Promise<CachedPatient[]> {
+export async function searchCachedPatients(query: string): Promise<CachedPatient[]> {
   return db.patients
-    .filter(
-      (p) =>
-        p.name.toLowerCase().includes(query.toLowerCase()) ||
-        p.mobile.includes(query),
-    )
+    .filter((p) => p.name.toLowerCase().includes(query.toLowerCase()) || p.mobile.includes(query))
     .toArray();
 }
 
@@ -67,15 +59,10 @@ export async function cacheSession(session: CachedSession): Promise<void> {
   await db.sessions.put(session);
 }
 
-export async function getCachedSession(
-  id: string,
-): Promise<CachedSession | undefined> {
+export async function getCachedSession(id: string): Promise<CachedSession | undefined> {
   return db.sessions.get(id);
 }
 
 export async function getPendingSessions(): Promise<CachedSession[]> {
-  return db.sessions
-    .where('status')
-    .notEqual('COMPLETED')
-    .toArray();
+  return db.sessions.where('status').notEqual('COMPLETED').toArray();
 }

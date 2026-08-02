@@ -76,8 +76,8 @@ export function FaceOverlay({
         )}
       >
         <div className="rounded-2xl border-2 border-dashed border-slate-300/30 bg-slate-50/30 p-6 text-center backdrop-blur-sm dark:border-slate-600/20 dark:bg-slate-800/20">
-          <div className="bg-ayutalk-100 dark:bg-ayutalk-900/50 mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full">
-            <Eye className="text-ayutalk-500 h-5 w-5" />
+          <div className="bg-jeevandata-100 dark:bg-jeevandata-900/50 mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full">
+            <Eye className="text-jeevandata-500 h-5 w-5" />
           </div>
           <p className="text-xs font-medium text-slate-400">Position your face in the center</p>
         </div>
@@ -101,15 +101,15 @@ export function FaceOverlay({
           style={{ top: faceTop, left: faceLeft, width: faceWidth, height: faceHeight }}
         >
           {/* Corner decorations */}
-          <div className="border-ayutalk-400 absolute -left-[2px] -top-[2px] h-4 w-4 border-l-2 border-t-2" />
-          <div className="border-ayutalk-400 absolute -right-[2px] -top-[2px] h-4 w-4 border-r-2 border-t-2" />
-          <div className="border-ayutalk-400 absolute -bottom-[2px] -left-[2px] h-4 w-4 border-b-2 border-l-2" />
-          <div className="border-ayutalk-400 absolute -bottom-[2px] -right-[2px] h-4 w-4 border-b-2 border-r-2" />
+          <div className="border-jeevandata-400 absolute -left-[2px] -top-[2px] h-4 w-4 border-l-2 border-t-2" />
+          <div className="border-jeevandata-400 absolute -right-[2px] -top-[2px] h-4 w-4 border-r-2 border-t-2" />
+          <div className="border-jeevandata-400 absolute -bottom-[2px] -left-[2px] h-4 w-4 border-b-2 border-l-2" />
+          <div className="border-jeevandata-400 absolute -bottom-[2px] -right-[2px] h-4 w-4 border-b-2 border-r-2" />
         </div>
 
         {/* Scan line */}
         <div
-          className="animate-scan-line via-ayutalk-400/60 absolute left-[25%] h-0.5 w-[50%] bg-gradient-to-r from-transparent to-transparent opacity-70"
+          className="animate-scan-line via-jeevandata-400/60 absolute left-[25%] h-0.5 w-[50%] bg-gradient-to-r from-transparent to-transparent opacity-70"
           style={{ left: faceLeft, width: faceWidth }}
         />
 
@@ -136,7 +136,7 @@ export function FaceOverlay({
                 strokeWidth="2"
                 strokeDasharray={`${2 * Math.PI * 6}`}
                 strokeDashoffset={`${2 * Math.PI * 6 * (1 - confidence)}`}
-                className="text-ayutalk-400"
+                className="text-jeevandata-400"
                 style={{ transition: 'stroke-dashoffset 0.3s ease' }}
               />
             </svg>

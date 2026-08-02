@@ -57,7 +57,7 @@ describe('Badge', () => {
   it('should render info variant', () => {
     render(<Badge variant="info">Info</Badge>);
     const badge = screen.getByText('Info');
-    expect(badge.className).toContain('bg-ayutalk-100');
+    expect(badge.className).toContain('bg-jeevandata-100');
   });
 
   it('should render pending variant', () => {
@@ -121,7 +121,7 @@ describe('StatusBadge', () => {
   it('should map "active" to info variant', () => {
     render(<StatusBadge status="active" />);
     const badge = screen.getByText('active');
-    expect(badge.className).toContain('bg-ayutalk-100');
+    expect(badge.className).toContain('bg-jeevandata-100');
   });
 
   it('should map "pending" to pending variant', () => {

@@ -72,7 +72,7 @@
 
   /* ─── Gradient Text ───────────────────────────────────────── */
   .gradient-text {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-ayutalk-500 to-ayutalk-700;
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-jeevandata-500 to-jeevandata-700;
   }
 
   .gradient-text-success {
@@ -198,11 +198,11 @@
 
 /* ─── Recording Waveform ──────────────────────────────────────── */
 .waveform-bar {
-  @apply w-1 rounded-full bg-ayutalk-500 transition-all duration-150;
+  @apply w-1 rounded-full bg-jeevandata-500 transition-all duration-150;
 }
 
 .waveform-bar.active {
-  @apply bg-ayutalk-400;
+  @apply bg-jeevandata-400;
 }
 
 /* ─── Conversation Message Bubbles ──────────────────────────── */
@@ -211,12 +211,12 @@
 }
 
 .message-bubble-patient {
-  @apply rounded-2xl rounded-tr-sm bg-ayutalk-500 px-4 py-3 text-sm text-white shadow-sm;
+  @apply rounded-2xl rounded-tr-sm bg-jeevandata-500 px-4 py-3 text-sm text-white shadow-sm;
 }
 
 /* ─── Animated UI Dots (AI Thinking) ────────────────────────── */
 .thinking-dot {
-  @apply h-2 w-2 rounded-full bg-ayutalk-400 animate-pulse-dot;
+  @apply h-2 w-2 rounded-full bg-jeevandata-400 animate-pulse-dot;
 }
 
 .thinking-dot:nth-child(2) {

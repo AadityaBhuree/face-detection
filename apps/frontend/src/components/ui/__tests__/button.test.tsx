@@ -56,22 +56,22 @@ describe('Button', () => {
     expect(btn.className).toContain('underline-offset-4');
   });
 
-  it('should apply ayutalk variant class', () => {
-    render(<Button variant="ayutalk">AyuTalk</Button>);
+  it('should apply jeevandata variant class', () => {
+    render(<Button variant="jeevandata">Jeevandata</Button>);
     const btn = screen.getByRole('button');
-    expect(btn.className).toContain('bg-ayutalk-500');
+    expect(btn.className).toContain('bg-jeevandata-500');
   });
 
-  it('should apply ayutalk-outline variant class', () => {
-    render(<Button variant="ayutalk-outline">Outline</Button>);
+  it('should apply jeevandata-outline variant class', () => {
+    render(<Button variant="jeevandata-outline">Outline</Button>);
     const btn = screen.getByRole('button');
-    expect(btn.className).toContain('border-ayutalk-200');
+    expect(btn.className).toContain('border-jeevandata-200');
   });
 
-  it('should apply ayutalk-ghost variant class', () => {
-    render(<Button variant="ayutalk-ghost">Ghost</Button>);
+  it('should apply jeevandata-ghost variant class', () => {
+    render(<Button variant="jeevandata-ghost">Ghost</Button>);
     const btn = screen.getByRole('button');
-    expect(btn.className).toContain('text-ayutalk-700');
+    expect(btn.className).toContain('text-jeevandata-700');
   });
 
   it('should apply success variant class', () => {

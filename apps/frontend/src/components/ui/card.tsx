@@ -81,7 +81,7 @@ function BriefCard({ className, variant = 'default', children, ...props }: Brief
         variant === 'compact' &&
           'border-slate-100 bg-white p-3 dark:border-slate-800 dark:bg-slate-900',
         variant === 'highlight' &&
-          'border-ayutalk-200 bg-ayutalk-50 shadow-ayutalk-500/5 dark:border-ayutalk-800 dark:bg-ayutalk-950/50',
+          'border-jeevandata-200 bg-jeevandata-50 shadow-jeevandata-500/5 dark:border-jeevandata-800 dark:bg-jeevandata-950/50',
         className,
       )}
       {...props}

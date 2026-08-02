@@ -112,7 +112,7 @@ type DeepTranslations = Record<SupportedLocale, Translations>;
 
 export const translations: DeepTranslations = {
   en: {
-    appName: 'AyuTalk Care',
+    appName: 'Jeevandata',
     brandTagline: 'AI-Powered Clinic Intake System',
     intakeSession: 'Intake Session',
     unknownPatient: 'Unknown Patient',
@@ -179,7 +179,8 @@ export const translations: DeepTranslations = {
     namePlaceholder: 'e.g., Priya Sharma',
     mobilePlaceholder: '+919876543210',
     consentText: 'I give my consent',
-    consentDetail: 'I authorize the capture and storage of my facial data for identification purposes during clinic visits.',
+    consentDetail:
+      'I authorize the capture and storage of my facial data for identification purposes during clinic visits.',
     registerPatient: 'Confirm & Register',
     welcomeMessage: 'Welcome, {name}!',
     redirecting: 'Patient registered successfully. Redirecting to intake...',
@@ -270,7 +271,8 @@ export const translations: DeepTranslations = {
     namePlaceholder: 'जैसे, प्रिया शर्मा',
     mobilePlaceholder: '+919876543210',
     consentText: 'मैं अपनी सहमति देता/देती हूं',
-    consentDetail: 'मैं क्लिनिक विज़िट के दौरान पहचान उद्देश्यों के लिए अपने चेहरे के डेटा को कैप्चर और संग्रहीत करने का अधिकार देता/देती हूं।',
+    consentDetail:
+      'मैं क्लिनिक विज़िट के दौरान पहचान उद्देश्यों के लिए अपने चेहरे के डेटा को कैप्चर और संग्रहीत करने का अधिकार देता/देती हूं।',
     registerPatient: 'पुष्टि करें और पंजीकृत करें',
     welcomeMessage: 'स्वागत है, {name}!',
     redirecting: 'रोगी सफलतापूर्वक पंजीकृत। इंटेक पर रीडायरेक्ट कर रहे हैं...',
@@ -361,7 +363,8 @@ export const translations: DeepTranslations = {
     namePlaceholder: 'उदा., प्रिया शर्मा',
     mobilePlaceholder: '+919876543210',
     consentText: 'मी माझी संमती देतो/देते',
-    consentDetail: 'मी क्लिनिक भेटीदरम्यान ओळख उद्देशांसाठी माझ्या चेहर्याचा डेटा कॅप्चर आणि संग्रहित करण्यास अधिकृत करतो/करते.',
+    consentDetail:
+      'मी क्लिनिक भेटीदरम्यान ओळख उद्देशांसाठी माझ्या चेहर्याचा डेटा कॅप्चर आणि संग्रहित करण्यास अधिकृत करतो/करते.',
     registerPatient: 'पुष्टी करा आणि नोंदणी करा',
     welcomeMessage: 'स्वागत आहे, {name}!',
     redirecting: 'रुग्ण यशस्वीरित्या नोंदणीकृत. इंटेककडे पुनर्निर्देशित करत आहे...',
@@ -375,7 +378,8 @@ export const translations: DeepTranslations = {
     mobileInvalid: 'वैध मोबाइल नंबर प्रविष्ट करा (उदा., +919876543210)',
     consentRequired: 'चेहर्याचा डेटा संग्रहित करण्यासाठी रुग्णाची संमती आवश्यक आहे',
     noFaceData: 'चेहर्याचा डेटा कॅप्चर झाला नाही. कृपया पुन्हा प्रयत्न करा.',
-    livenessRequired: 'जिवंतपणा तपासणी उत्तीर्ण झाली नाही. कृपया डोळे मिचकावण्याचे आव्हान पूर्ण करा.',
+    livenessRequired:
+      'जिवंतपणा तपासणी उत्तीर्ण झाली नाही. कृपया डोळे मिचकावण्याचे आव्हान पूर्ण करा.',
     registrationFailed: 'नोंदणी अयशस्वी',
     cameraError: 'कॅमेरा प्रवेश अयशस्वी',
     cameraNotSupported: 'या ब्राउझरमध्ये कॅमेरा प्रवेश समर्थित नाही',
@@ -385,7 +389,7 @@ export const translations: DeepTranslations = {
   },
 
   es: {
-    appName: 'AyuTalk Care',
+    appName: 'Jeevandata',
     brandTagline: 'Sistema de Admisión Clínica con IA',
     intakeSession: 'Sesión de Admisión',
     unknownPatient: 'Paciente Desconocido',
@@ -452,7 +456,8 @@ export const translations: DeepTranslations = {
     namePlaceholder: 'ej., Priya Sharma',
     mobilePlaceholder: '+919876543210',
     consentText: 'Doy mi consentimiento',
-    consentDetail: 'Autorizo la captura y almacenamiento de mis datos faciales con fines de identificación durante las visitas clínicas.',
+    consentDetail:
+      'Autorizo la captura y almacenamiento de mis datos faciales con fines de identificación durante las visitas clínicas.',
     registerPatient: 'Confirmar y Registrar',
     welcomeMessage: '¡Bienvenido/a, {name}!',
     redirecting: 'Paciente registrado exitosamente. Redirigiendo a la admisión...',
@@ -476,7 +481,11 @@ export const translations: DeepTranslations = {
   },
 };
 
-export function t(locale: SupportedLocale, key: keyof Translations, params?: Record<string, string | number>): string {
+export function t(
+  locale: SupportedLocale,
+  key: keyof Translations,
+  params?: Record<string, string | number>,
+): string {
   let value = translations[locale][key] ?? translations.en[key] ?? `[${key}]`;
   if (params) {
     Object.entries(params).forEach(([k, v]) => {

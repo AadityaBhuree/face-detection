@@ -50,8 +50,8 @@ const config: Config = {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
-        // AyuTalk brand colors
-        ayutalk: {
+        // Jeevandata brand colors
+        jeevandata: {
           50: '#f0f7ff',
           100: '#e0effe',
           200: '#bae0fd',

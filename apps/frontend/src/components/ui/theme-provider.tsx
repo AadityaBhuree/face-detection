@@ -22,7 +22,7 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
-const STORAGE_KEY = 'ayutalk-theme';
+const STORAGE_KEY = 'jeevandata-theme';
 const MEDIA_QUERY = '(prefers-color-scheme: dark)';
 
 function getStoredTheme(): Theme | null {
@@ -74,7 +74,6 @@ export function ThemeProvider({ children, forcedTheme }: ThemeProviderProps) {
   // Initialize systemPrefersDark to match client (override SSR false default)
   // Listen for system preference changes
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSystemPrefersDark(getSystemPreference());
 
     const mq = window.matchMedia(MEDIA_QUERY);

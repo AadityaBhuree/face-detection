@@ -6,22 +6,17 @@ const badgeVariants = cva(
   {
     variants: {
       variant: {
-        default:
-          'border-transparent bg-primary text-primary-foreground shadow-sm',
-        secondary:
-          'border-transparent bg-secondary text-secondary-foreground',
-        destructive:
-          'border-transparent bg-destructive text-destructive-foreground shadow-sm',
+        default: 'border-transparent bg-primary text-primary-foreground shadow-sm',
+        secondary: 'border-transparent bg-secondary text-secondary-foreground',
+        destructive: 'border-transparent bg-destructive text-destructive-foreground shadow-sm',
         outline: 'text-foreground',
         // Clinic-specific status variants
         success:
           'border-transparent bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400',
         warning:
           'border-transparent bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
-        error:
-          'border-transparent bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
-        info:
-          'border-transparent bg-ayutalk-100 text-ayutalk-800 dark:bg-ayutalk-900/30 dark:text-ayutalk-400',
+        error: 'border-transparent bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
+        info: 'border-transparent bg-jeevandata-100 text-jeevandata-800 dark:bg-jeevandata-900/30 dark:text-jeevandata-400',
         pending:
           'border-transparent bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
       },
@@ -39,16 +34,10 @@ const badgeVariants = cva(
 );
 
 export interface BadgeProps
-  extends React.HTMLAttributes<HTMLDivElement>,
-    VariantProps<typeof badgeVariants> {}
+  extends React.HTMLAttributes<HTMLDivElement>, VariantProps<typeof badgeVariants> {}
 
 function Badge({ className, variant, size, ...props }: BadgeProps) {
-  return (
-    <div
-      className={cn(badgeVariants({ variant, size }), className)}
-      {...props}
-    />
-  );
+  return <div className={cn(badgeVariants({ variant, size }), className)} {...props} />;
 }
 
 // ─── Clinic Status Badge (convenience) ─────────────────────────

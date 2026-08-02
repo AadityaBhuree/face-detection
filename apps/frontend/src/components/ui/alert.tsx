@@ -10,12 +10,9 @@ const alertVariants = cva(
         default: 'bg-background text-foreground border-slate-200',
         destructive:
           'border-red-200 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-950/50 dark:text-red-400 [&>svg]:text-red-500',
-        success:
-          'border-emerald-200 bg-emerald-50 text-emerald-800 [&>svg]:text-emerald-500',
-        warning:
-          'border-amber-200 bg-amber-50 text-amber-800 [&>svg]:text-amber-500',
-        info:
-          'border-ayutalk-200 bg-ayutalk-50 text-ayutalk-800 [&>svg]:text-ayutalk-500',
+        success: 'border-emerald-200 bg-emerald-50 text-emerald-800 [&>svg]:text-emerald-500',
+        warning: 'border-amber-200 bg-amber-50 text-amber-800 [&>svg]:text-amber-500',
+        info: 'border-jeevandata-200 bg-jeevandata-50 text-jeevandata-800 [&>svg]:text-jeevandata-500',
       },
     },
     defaultVariants: {
@@ -25,42 +22,31 @@ const alertVariants = cva(
 );
 
 interface AlertProps
-  extends React.HTMLAttributes<HTMLDivElement>,
-    VariantProps<typeof alertVariants> {}
+  extends React.HTMLAttributes<HTMLDivElement>, VariantProps<typeof alertVariants> {}
 
 const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
   ({ className, variant, ...props }, ref) => (
-    <div
-      ref={ref}
-      role="alert"
-      className={cn(alertVariants({ variant }), className)}
-      {...props}
-    />
+    <div ref={ref} role="alert" className={cn(alertVariants({ variant }), className)} {...props} />
   ),
 );
 Alert.displayName = 'Alert';
 
-const AlertTitle = React.forwardRef<
-  HTMLParagraphElement,
-  React.HTMLAttributes<HTMLHeadingElement>
->(({ className, ...props }, ref) => (
-  <h5
-    ref={ref}
-    className={cn('mb-1 font-medium leading-none tracking-tight', className)}
-    {...props}
-  />
-));
+const AlertTitle = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLHeadingElement>>(
+  ({ className, ...props }, ref) => (
+    <h5
+      ref={ref}
+      className={cn('mb-1 font-medium leading-none tracking-tight', className)}
+      {...props}
+    />
+  ),
+);
 AlertTitle.displayName = 'AlertTitle';
 
 const AlertDescription = React.forwardRef<
   HTMLParagraphElement,
   React.HTMLAttributes<HTMLParagraphElement>
 >(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn('text-sm [&_p]:leading-relaxed', className)}
-    {...props}
-  />
+  <div ref={ref} className={cn('text-sm [&_p]:leading-relaxed', className)} {...props} />
 ));
 AlertDescription.displayName = 'AlertDescription';
 

@@ -196,7 +196,11 @@ export default function IntakeSessionPage() {
             // Auto-start the AI intake conversation
             if (!conversationStartedRef.current) {
               conversationStartedRef.current = true;
-              conversation.startConversation(result.patientName ?? 'Patient', result.patientId, locale);
+              conversation.startConversation(
+                result.patientName ?? 'Patient',
+                result.patientId,
+                locale,
+              );
             }
             setPhase('intake');
 
@@ -250,7 +254,7 @@ export default function IntakeSessionPage() {
       {/* Skip link for keyboard users */}
       <a
         href="#intake-main"
-        className="sr-only z-[60] focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:rounded-lg focus:bg-ayutalk-500 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white focus:shadow-lg"
+        className="focus:bg-jeevandata-500 sr-only z-[60] focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:rounded-lg focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white focus:shadow-lg"
       >
         Skip to main content
       </a>
@@ -259,7 +263,7 @@ export default function IntakeSessionPage() {
       <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3 dark:border-slate-800 dark:bg-slate-900">
         <div className="flex items-center gap-3">
           <Link href="/dashboard" className="flex items-center gap-3">
-            <div className="bg-ayutalk-500 flex h-8 w-8 items-center justify-center rounded-lg">
+            <div className="bg-jeevandata-500 flex h-8 w-8 items-center justify-center rounded-lg">
               <span className="text-xs font-bold text-white">AC</span>
             </div>
             <div>
@@ -274,11 +278,7 @@ export default function IntakeSessionPage() {
         </div>
 
         <div className="flex items-center gap-1">
-          <LanguageSelector
-            currentLocale={locale}
-            onLocaleChange={setLocale}
-            compact
-          />
+          <LanguageSelector currentLocale={locale} onLocaleChange={setLocale} compact />
           <DarkModeToggle />
           <span
             role="status"
@@ -306,7 +306,10 @@ export default function IntakeSessionPage() {
         </div>
       </header>
 
-      <main id="intake-main" className={cn('flex flex-1 gap-6 p-6', mobileInfo.isMobile && 'flex-col')}>
+      <main
+        id="intake-main"
+        className={cn('flex flex-1 gap-6 p-6', mobileInfo.isMobile && 'flex-col')}
+      >
         {/* Left Panel — Camera + Face Detection */}
         <div className={cn('flex flex-col gap-4', mobileInfo.isMobile ? 'w-full' : 'w-[420px]')}>
           {/* Camera Feed */}
@@ -410,7 +413,7 @@ export default function IntakeSessionPage() {
                 {isSearchingEmbedding && (
                   <div
                     role="status"
-                    className="bg-ayutalk-500/80 rounded-lg px-3 py-1.5 text-xs font-medium text-white shadow-lg backdrop-blur-sm"
+                    className="bg-jeevandata-500/80 rounded-lg px-3 py-1.5 text-xs font-medium text-white shadow-lg backdrop-blur-sm"
                   >
                     Searching identity...
                   </div>
@@ -446,7 +449,7 @@ export default function IntakeSessionPage() {
                 Identified Patient
               </h2>
               <div className="flex items-center gap-3">
-                <div className="bg-ayutalk-100 text-ayutalk-600 dark:bg-ayutalk-900/50 dark:text-ayutalk-400 flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold">
+                <div className="bg-jeevandata-100 text-jeevandata-600 dark:bg-jeevandata-900/50 dark:text-jeevandata-400 flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold">
                   {session.patient.name
                     .split(' ')
                     .map((n) => n[0])
@@ -524,7 +527,7 @@ export default function IntakeSessionPage() {
                     <div className="flex h-full items-center justify-center">
                       <div className="text-center">
                         <svg
-                          className="text-ayutalk-300 dark:text-ayutalk-700 mx-auto mb-3 h-10 w-10"
+                          className="text-jeevandata-300 dark:text-jeevandata-700 mx-auto mb-3 h-10 w-10"
                           fill="none"
                           viewBox="0 0 24 24"
                           stroke="currentColor"
@@ -544,15 +547,15 @@ export default function IntakeSessionPage() {
                         {conversation.isAiThinking && (
                           <div className="mt-3 flex justify-center gap-1">
                             <span
-                              className="bg-ayutalk-400 h-2 w-2 animate-bounce rounded-full"
+                              className="bg-jeevandata-400 h-2 w-2 animate-bounce rounded-full"
                               style={{ animationDelay: '0ms' }}
                             />
                             <span
-                              className="bg-ayutalk-400 h-2 w-2 animate-bounce rounded-full"
+                              className="bg-jeevandata-400 h-2 w-2 animate-bounce rounded-full"
                               style={{ animationDelay: '150ms' }}
                             />
                             <span
-                              className="bg-ayutalk-400 h-2 w-2 animate-bounce rounded-full"
+                              className="bg-jeevandata-400 h-2 w-2 animate-bounce rounded-full"
                               style={{ animationDelay: '300ms' }}
                             />
                           </div>
@@ -586,7 +589,7 @@ export default function IntakeSessionPage() {
                 <div className="flex gap-3">
                   <button
                     onClick={handleCompleteIntake}
-                    className="bg-ayutalk-500 hover:bg-ayutalk-600 flex flex-1 items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all active:scale-[0.98]"
+                    className="bg-jeevandata-500 hover:bg-jeevandata-600 flex flex-1 items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all active:scale-[0.98]"
                   >
                     <svg
                       className="mr-2 h-4 w-4"
@@ -624,7 +627,7 @@ export default function IntakeSessionPage() {
                 />
               ) : (
                 <div className="flex flex-col items-center gap-3 text-center">
-                  <div className="border-ayutalk-200 border-t-ayutalk-500 dark:border-ayutalk-800 dark:border-t-ayutalk-400 h-12 w-12 animate-spin rounded-full border-4" />
+                  <div className="border-jeevandata-200 border-t-jeevandata-500 dark:border-jeevandata-800 dark:border-t-jeevandata-400 h-12 w-12 animate-spin rounded-full border-4" />
                   <p className="text-sm text-slate-500 dark:text-slate-400">
                     Loading clinical brief...
                   </p>

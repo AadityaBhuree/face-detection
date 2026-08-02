@@ -17,13 +17,13 @@ describe('resolveEnv', () => {
 
   it('uses provided NEXT_PUBLIC values', () => {
     const env = resolveEnv({
-      NEXT_PUBLIC_API_URL: 'https://api.ayutalk.care',
-      NEXT_PUBLIC_WS_URL: 'https://ws.ayutalk.care',
+      NEXT_PUBLIC_API_URL: 'https://api.jeevandata.care',
+      NEXT_PUBLIC_WS_URL: 'https://ws.jeevandata.care',
       NEXT_PUBLIC_LOG_LEVEL: 'debug',
     });
 
-    expect(env.apiUrl).toBe('https://api.ayutalk.care');
-    expect(env.wsUrl).toBe('https://ws.ayutalk.care');
+    expect(env.apiUrl).toBe('https://api.jeevandata.care');
+    expect(env.wsUrl).toBe('https://ws.jeevandata.care');
     expect(env.logLevel).toBe('debug');
   });
 
@@ -46,11 +46,11 @@ describe('validateEnv', () => {
   it('returns the resolved env in production when vars are present', () => {
     const env = validateEnv({
       NODE_ENV: 'production',
-      NEXT_PUBLIC_API_URL: 'https://api.ayutalk.care',
-      NEXT_PUBLIC_WS_URL: 'https://ws.ayutalk.care',
+      NEXT_PUBLIC_API_URL: 'https://api.jeevandata.care',
+      NEXT_PUBLIC_WS_URL: 'https://ws.jeevandata.care',
     });
 
-    expect(env.apiUrl).toBe('https://api.ayutalk.care');
+    expect(env.apiUrl).toBe('https://api.jeevandata.care');
     expect(env.isProduction).toBe(true);
   });
 

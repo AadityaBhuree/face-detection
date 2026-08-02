@@ -182,7 +182,10 @@ export function VoiceInput({
 
             {/* Recording indicator dot */}
             {isRecording && (
-              <span aria-hidden="true" className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-red-500">
+              <span
+                aria-hidden="true"
+                className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-red-500"
+              >
                 <span className="absolute inset-0 animate-ping rounded-full bg-red-400" />
               </span>
             )}
@@ -219,15 +222,15 @@ export function VoiceInput({
                 <span className="flex items-center gap-2">
                   <span className="flex gap-0.5">
                     <span
-                      className="bg-ayutalk-400 h-1.5 w-1.5 animate-bounce rounded-full"
+                      className="bg-jeevandata-400 h-1.5 w-1.5 animate-bounce rounded-full"
                       style={{ animationDelay: '0ms' }}
                     />
                     <span
-                      className="bg-ayutalk-400 h-1.5 w-1.5 animate-bounce rounded-full"
+                      className="bg-jeevandata-400 h-1.5 w-1.5 animate-bounce rounded-full"
                       style={{ animationDelay: '150ms' }}
                     />
                     <span
-                      className="bg-ayutalk-400 h-1.5 w-1.5 animate-bounce rounded-full"
+                      className="bg-jeevandata-400 h-1.5 w-1.5 animate-bounce rounded-full"
                       style={{ animationDelay: '300ms' }}
                     />
                   </span>
@@ -241,7 +244,7 @@ export function VoiceInput({
             {isRecording && interimOverride && (
               <div className="absolute inset-0 z-10 flex items-center px-3 text-sm italic text-slate-600 dark:text-slate-300">
                 <span className="truncate">{interimOverride}</span>
-                <span className="bg-ayutalk-500 ml-0.5 h-4 w-[2px] animate-pulse" />
+                <span className="bg-jeevandata-500 ml-0.5 h-4 w-[2px] animate-pulse" />
               </div>
             )}
 
@@ -261,7 +264,7 @@ export function VoiceInput({
               className={cn(
                 'w-full rounded-lg border bg-slate-50 px-3 py-2 text-sm transition-colors dark:border-slate-700 dark:bg-slate-800',
                 'placeholder:text-slate-400 dark:placeholder:text-slate-500',
-                'focus:border-ayutalk-400 focus:ring-ayutalk-100 dark:focus:ring-ayutalk-900/50 focus:outline-none focus:ring-2',
+                'focus:border-jeevandata-400 focus:ring-jeevandata-100 dark:focus:ring-jeevandata-900/50 focus:outline-none focus:ring-2',
                 'disabled:cursor-not-allowed disabled:opacity-100',
                 isRecording ? 'text-transparent' : 'text-slate-900 dark:text-slate-100',
                 disabled && 'text-transparent',
@@ -287,7 +290,7 @@ export function VoiceInput({
               className={cn(
                 'flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg transition-all',
                 value.trim() && !disabled
-                  ? 'bg-ayutalk-500 hover:bg-ayutalk-600 text-white shadow-sm'
+                  ? 'bg-jeevandata-500 hover:bg-jeevandata-600 text-white shadow-sm'
                   : 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500',
                 'disabled:cursor-not-allowed',
               )}

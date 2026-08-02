@@ -1,6 +1,6 @@
 {
-  "name": "AyuTalk Care",
-  "short_name": "AyuTalk",
+  "name": "Jeevandata",
+  "short_name": "Jeevandata",
   "description": "AI-powered smart clinic intake system",
   "start_url": "/",
   "display": "standalone",

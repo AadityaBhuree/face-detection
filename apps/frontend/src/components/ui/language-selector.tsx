@@ -175,7 +175,7 @@ export function LanguageSelector({
                 'flex w-full items-center gap-2 px-3 py-2 text-left transition-colors',
                 compact ? 'text-xs' : 'gap-3 px-4 py-2.5 text-sm',
                 locale.code === currentLocale
-                  ? 'bg-ayutalk-50 text-ayutalk-700 dark:bg-ayutalk-900/30 dark:text-ayutalk-300'
+                  ? 'bg-jeevandata-50 text-jeevandata-700 dark:bg-jeevandata-900/30 dark:text-jeevandata-300'
                   : 'text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800',
               )}
             >
@@ -189,7 +189,7 @@ export function LanguageSelector({
               {locale.code === currentLocale && (
                 <span
                   aria-hidden="true"
-                  className="ml-auto h-2 w-2 rounded-full bg-ayutalk-500"
+                  className="bg-jeevandata-500 ml-auto h-2 w-2 rounded-full"
                 />
               )}
             </button>

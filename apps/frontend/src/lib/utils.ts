@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { env } from './env';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -32,5 +33,6 @@ export function formatDuration(minutes: number): string {
   return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
 }
 
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
-export const WS_BASE_URL = process.env.NEXT_PUBLIC_WS_URL ?? 'http://localhost:4000';
+// Environment-derived endpoints (validated in ./env).
+export const API_BASE_URL = env.apiUrl;
+export const WS_BASE_URL = env.wsUrl;

@@ -87,7 +87,7 @@ export interface AppConfiguration {
 
 export const configuration = (): AppConfiguration => ({
   app: {
-    name: process.env.APP_NAME ?? 'AyuTalkCare',
+    name: process.env.APP_NAME ?? 'Jeevandata',
     port: parseInt(process.env.APP_PORT ?? '4000', 10),
     nodeEnv: process.env.NODE_ENV ?? 'development',
     frontendUrl: process.env.FRONTEND_URL ?? 'http://localhost:3000',
@@ -96,7 +96,7 @@ export const configuration = (): AppConfiguration => ({
   database: {
     url:
       process.env.DATABASE_URL ??
-      'postgresql://ayutalk:ayutalk_secret@localhost:5432/ayutalk_care?schema=public',
+      'postgresql://jeevandata:jeevandata_secret@localhost:5432/jeevandata?schema=public',
   },
   redis: {
     url: process.env.REDIS_URL ?? 'redis://default:redis_secret@localhost:6379',
@@ -110,7 +110,7 @@ export const configuration = (): AppConfiguration => ({
     region: process.env.R2_REGION ?? 'auto',
     accessKeyId: process.env.R2_ACCESS_KEY_ID ?? 'minioadmin',
     secretAccessKey: process.env.R2_SECRET_ACCESS_KEY ?? 'minioadmin',
-    publicBucket: process.env.R2_PUBLIC_BUCKET ?? 'ayutalk-media',
+    publicBucket: process.env.R2_PUBLIC_BUCKET ?? 'jeevandata-media',
     audioPrefix: process.env.R2_AUDIO_PREFIX ?? 'audio',
     facePrefix: process.env.R2_FACE_PREFIX ?? 'faces',
   },
@@ -156,7 +156,7 @@ export const configuration = (): AppConfiguration => ({
   },
   opentelemetry: {
     enabled: process.env.OTEL_ENABLED !== 'false',
-    serviceName: process.env.OTEL_SERVICE_NAME ?? 'ayutalk-care-api',
+    serviceName: process.env.OTEL_SERVICE_NAME ?? 'jeevandata-api',
     exporterType: process.env.OTEL_EXPORTER_TYPE ?? 'jaeger',
     endpoint: process.env.OTEL_ENDPOINT ?? 'http://localhost:14268/api/traces',
     otlpEndpoint: process.env.OTEL_OTLP_ENDPOINT ?? 'http://localhost:4318/v1/traces',

@@ -2,15 +2,17 @@ import {
   WebSocketGateway,
   WebSocketServer,
   SubscribeMessage,
-  OnGatewayConnection,
-  OnGatewayDisconnect,
+  type OnGatewayConnection,
+  type OnGatewayDisconnect,
   type OnGatewayInit,
 } from '@nestjs/websockets';
 import { Logger } from '@nestjs/common';
-import { Server, type Socket } from 'socket.io';
+import { type Server, type Socket } from 'socket.io';
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires runtime value import
 import { PrismaService } from '../../prisma/prisma.service';
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires runtime value import
 import { TranscriptionService } from '../transcription/transcription.service';
-import type { SessionStatus } from '@ayutalk/shared-types';
+import type { SessionStatus } from '@jeevandata/shared-types';
 
 @WebSocketGateway({
   cors: {
@@ -20,19 +22,14 @@ import type { SessionStatus } from '@ayutalk/shared-types';
   namespace: '/ws',
   transports: ['websocket', 'polling'],
 })
-export class SessionGateway
-  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
-{
+export class SessionGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   private readonly logger = new Logger(SessionGateway.name);
 
   @WebSocketServer()
   server!: Server;
 
   /** In-memory buffer for streaming audio chunks per session */
-  private audioBuffers = new Map<
-    string,
-    { chunks: Buffer[]; lastChunkTime: number }
-  >();
+  private audioBuffers = new Map<string, { chunks: Buffer[]; lastChunkTime: number }>();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -108,10 +105,7 @@ export class SessionGateway
       });
     } catch (error) {
       // Log but never throw — WebSocket should be resilient
-      this.logger.error(
-        `Failed to persist conversation turn for session ${data.sessionId}`,
-        error,
-      );
+      this.logger.error(`Failed to persist conversation turn for session ${data.sessionId}`, error);
     }
   }
 
@@ -155,14 +149,9 @@ export class SessionGateway
           return;
         }
 
-        this.logger.debug(
-          `Transcribing ${completeAudio.length} bytes for session ${sessionId}`,
-        );
+        this.logger.debug(`Transcribing ${completeAudio.length} bytes for session ${sessionId}`);
 
-        const result = await this.transcriptionService.transcribeBuffer(
-          completeAudio,
-          sessionId,
-        );
+        const result = await this.transcriptionService.transcribeBuffer(completeAudio, sessionId);
 
         // Emit the transcription back to the session room
         this.emitTranscriptChunk(sessionId, {
@@ -170,21 +159,16 @@ export class SessionGateway
           isFinal: true,
         });
       } catch (error) {
-        this.logger.error(
-          `Transcription failed for session ${sessionId}`,
-          error,
-        );
-        this.server
-          .to(`session:${sessionId}`)
-          .emit('transcript:chunk', {
-            event: 'transcript:chunk',
-            sessionId,
-            payload: {
-              text: 'Transcription failed. Please try again.',
-              isFinal: true,
-            },
-            timestamp: new Date().toISOString(),
-          });
+        this.logger.error(`Transcription failed for session ${sessionId}`, error);
+        this.server.to(`session:${sessionId}`).emit('transcript:chunk', {
+          event: 'transcript:chunk',
+          sessionId,
+          payload: {
+            text: 'Transcription failed. Please try again.',
+            isFinal: true,
+          },
+          timestamp: new Date().toISOString(),
+        });
       }
     }
   }
@@ -200,11 +184,7 @@ export class SessionGateway
     });
   }
 
-  emitConversationTurn(
-    sessionId: string,
-    speaker: string,
-    text: string,
-  ): void {
+  emitConversationTurn(sessionId: string, speaker: string, text: string): void {
     this.server.to(`session:${sessionId}`).emit('conversation:turn', {
       event: 'conversation:turn',
       sessionId,
@@ -224,17 +204,11 @@ export class SessionGateway
         },
       })
       .catch((error) => {
-        this.logger.error(
-          `Failed to persist conversation turn for session ${sessionId}`,
-          error,
-        );
+        this.logger.error(`Failed to persist conversation turn for session ${sessionId}`, error);
       });
   }
 
-  emitTranscriptChunk(
-    sessionId: string,
-    chunk: { text: string; isFinal: boolean },
-  ): void {
+  emitTranscriptChunk(sessionId: string, chunk: { text: string; isFinal: boolean }): void {
     this.server.to(`session:${sessionId}`).emit('transcript:chunk', {
       event: 'transcript:chunk',
       sessionId,
@@ -252,11 +226,7 @@ export class SessionGateway
     });
   }
 
-  emitFaceMatched(
-    sessionId: string,
-    patientId: string,
-    patientName: string,
-  ): void {
+  emitFaceMatched(sessionId: string, patientId: string, patientName: string): void {
     this.server.to(`session:${sessionId}`).emit('face:matched', {
       event: 'face:matched',
       sessionId,

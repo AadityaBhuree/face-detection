@@ -2,7 +2,7 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { FaceService } from './face.service';
 import { AuditService } from '../audit/audit.service';
-import type { FaceEmbeddingInput, FaceSearchQuery } from '@ayutalk/shared-schemas';
+import type { FaceEmbeddingInput, FaceSearchQuery } from '@jeevandata/shared-schemas';
 
 // ─── Mocks ─────────────────────────────────────────────────────
 
@@ -76,13 +76,9 @@ describe('FaceService', () => {
     });
 
     it('should handle Qdrant connection errors gracefully', async () => {
-      mockQdrantClient.getCollections.mockRejectedValue(
-        new Error('Connection refused'),
-      );
+      mockQdrantClient.getCollections.mockRejectedValue(new Error('Connection refused'));
 
-      await expect(service.onModuleInit()).rejects.toThrow(
-        'Connection refused',
-      );
+      await expect(service.onModuleInit()).rejects.toThrow('Connection refused');
     });
   });
 
@@ -129,13 +125,11 @@ describe('FaceService', () => {
     });
 
     it('should handle Qdrant upsert errors', async () => {
-      mockQdrantClient.upsert.mockRejectedValue(
-        new Error('Qdrant service unavailable'),
-      );
+      mockQdrantClient.upsert.mockRejectedValue(new Error('Qdrant service unavailable'));
 
-      await expect(
-        service.upsertEmbedding(validEmbedding),
-      ).rejects.toThrow('Qdrant service unavailable');
+      await expect(service.upsertEmbedding(validEmbedding)).rejects.toThrow(
+        'Qdrant service unavailable',
+      );
     });
   });
 
@@ -206,13 +200,9 @@ describe('FaceService', () => {
     });
 
     it('should handle Qdrant search errors', async () => {
-      mockQdrantClient.search.mockRejectedValue(
-        new Error('Search failed'),
-      );
+      mockQdrantClient.search.mockRejectedValue(new Error('Search failed'));
 
-      await expect(service.searchByFace(searchQuery)).rejects.toThrow(
-        'Search failed',
-      );
+      await expect(service.searchByFace(searchQuery)).rejects.toThrow('Search failed');
     });
 
     it('should handle null/undefined payload fields gracefully', async () => {
@@ -286,9 +276,9 @@ describe('FaceService', () => {
         points: [],
       });
 
-      await expect(
-        service.getPatientEmbeddings(patientId),
-      ).rejects.toThrow(`No embeddings found for patient ${patientId}`);
+      await expect(service.getPatientEmbeddings(patientId)).rejects.toThrow(
+        `No embeddings found for patient ${patientId}`,
+      );
     });
 
     it('should filter by patient_id in Qdrant scroll query', async () => {
@@ -307,9 +297,7 @@ describe('FaceService', () => {
         'face_embeddings',
         expect.objectContaining({
           filter: {
-            must: [
-              { key: 'patient_id', match: { value: patientId } },
-            ],
+            must: [{ key: 'patient_id', match: { value: patientId } }],
           },
         }),
       );
@@ -318,9 +306,7 @@ describe('FaceService', () => {
     it('should limit results to 10 most recent embeddings', async () => {
       mockQdrantClient.scroll.mockResolvedValue({ points: [] });
 
-      await expect(
-        service.getPatientEmbeddings(patientId),
-      ).rejects.toThrow();
+      await expect(service.getPatientEmbeddings(patientId)).rejects.toThrow();
 
       expect(mockQdrantClient.scroll).toHaveBeenCalledWith(
         'face_embeddings',

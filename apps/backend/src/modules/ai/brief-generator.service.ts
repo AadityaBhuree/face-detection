@@ -1,8 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires runtime value import
 import { ConfigService } from '@nestjs/config';
-import { withRetry } from '@ayutalk/shared-utils';
-import type { AiBriefGenerateInput } from '@ayutalk/shared-schemas';
-import type { ClinicalBrief } from '@ayutalk/shared-types';
+import { withRetry } from '@jeevandata/shared-utils';
+import type { AiBriefGenerateInput } from '@jeevandata/shared-schemas';
+import type { ClinicalBrief } from '@jeevandata/shared-types';
 
 const LANGUAGE_MAP: Record<string, string> = {
   en: 'Generate the brief in English.',
@@ -50,10 +51,7 @@ export class BriefGeneratorService {
       });
       return result;
     } catch (error) {
-      this.logger.error(
-        `Brief generation failed for session ${data.sessionId}`,
-        error,
-      );
+      this.logger.error(`Brief generation failed for session ${data.sessionId}`, error);
       throw error;
     }
   }
@@ -119,9 +117,7 @@ Generate a structured clinical brief based on this information.`;
 
     if (!response.ok) {
       const errBody = await response.text().catch(() => '');
-      throw new Error(
-        `Gemini API error: ${response.status} ${response.statusText} — ${errBody}`,
-      );
+      throw new Error(`Gemini API error: ${response.status} ${response.statusText} — ${errBody}`);
     }
 
     const result = (await response.json()) as {

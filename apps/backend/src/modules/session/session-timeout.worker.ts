@@ -1,6 +1,6 @@
 import { Processor, WorkerHost, InjectQueue } from '@nestjs/bullmq';
 import type { Queue } from 'bullmq';
-import type { SessionStatus } from '@ayutalk/shared-types';
+import type { SessionStatus } from '@jeevandata/shared-types';
 import { Logger, type OnModuleInit } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
 import type { Job } from 'bullmq';

@@ -5,7 +5,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { HL7FHIRAdapter } from './adapters/hl7-fhir.adapter';
 import { CustomApiAdapter } from './adapters/custom-api.adapter';
-import type { PmsSyncInput } from '@ayutalk/shared-schemas';
+import type { PmsSyncInput } from '@jeevandata/shared-schemas';
 import type { SyncResult } from './adapters/pms-sync-adapter';
 
 // ─── Mocks ─────────────────────────────────────────────────────
@@ -64,9 +64,7 @@ describe('PmsService', () => {
         {
           provide: ConfigService,
           useValue: {
-            get: jest.fn((key: string, defaultValue?: unknown) =>
-              mockConfig[key] ?? defaultValue,
-            ),
+            get: jest.fn((key: string, defaultValue?: unknown) => mockConfig[key] ?? defaultValue),
           },
         },
         { provide: AuditService, useValue: mockAuditService },
@@ -134,7 +132,7 @@ describe('PmsService', () => {
     it('should return error for unknown target system', async () => {
       const result = await service.syncToPms({
         ...validPayload,
-        targetSystem: 'unknown-system' as any,
+        targetSystem: 'unknown-system' as unknown as PmsSyncInput['targetSystem'],
       });
 
       expect(result.synced).toBe(false);
@@ -195,7 +193,7 @@ describe('PmsService', () => {
     it('should log audit for unknown target system error', async () => {
       await service.syncToPms({
         ...validPayload,
-        targetSystem: 'unknown' as any,
+        targetSystem: 'unknown' as unknown as PmsSyncInput['targetSystem'],
       });
 
       expect(mockAuditService.log).toHaveBeenCalledWith(
@@ -349,9 +347,7 @@ describe('PmsService', () => {
     });
 
     it('should return null values on database error', async () => {
-      mockPrisma.pmsPatientCache.findUnique.mockRejectedValue(
-        new Error('DB connection failed'),
-      );
+      mockPrisma.pmsPatientCache.findUnique.mockRejectedValue(new Error('DB connection failed'));
 
       const result = await service.getLastSyncInfo(validPatientId);
 

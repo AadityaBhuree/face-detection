@@ -1,4 +1,4 @@
-import type { PmsSyncInput } from '@ayutalk/shared-schemas';
+import type { PmsSyncInput } from '@jeevandata/shared-schemas';
 
 export interface SyncResult {
   synced: boolean;
@@ -11,5 +11,10 @@ export interface SyncResult {
 
 export interface PmsSyncAdapter {
   readonly targetSystem: string;
-  sync(data: PmsSyncInput & { intakeData?: Record<string, unknown>; patientDemographics?: Record<string, unknown> }): Promise<SyncResult>;
+  sync(
+    data: PmsSyncInput & {
+      intakeData?: Record<string, unknown>;
+      patientDemographics?: Record<string, unknown>;
+    },
+  ): Promise<SyncResult>;
 }

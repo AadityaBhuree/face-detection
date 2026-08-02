@@ -1,13 +1,10 @@
-import {
-  Injectable,
-  Logger,
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires runtime value import
 import { ConfigService } from '@nestjs/config';
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires runtime value import
 import { PrismaService } from '../../prisma/prisma.service';
 import { Redis } from 'ioredis';
-import type { SessionStatus } from '@ayutalk/shared-types';
+import type { SessionStatus } from '@jeevandata/shared-types';
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
   INITIATED: ['FACE_MATCHED', 'FAILED', 'TIMED_OUT'],
@@ -34,10 +31,7 @@ export class SessionService {
     this.redis = new Redis(this.configService.get<string>('redis.url')!);
   }
 
-  async updateStatus(
-    sessionId: string,
-    newStatus: SessionStatus,
-  ): Promise<void> {
+  async updateStatus(sessionId: string, newStatus: SessionStatus): Promise<void> {
     const session = await this.prisma.intakeSession.findUnique({
       where: { id: sessionId },
     });
@@ -48,9 +42,7 @@ export class SessionService {
 
     const allowedTransitions = VALID_TRANSITIONS[session.status];
     if (!allowedTransitions?.includes(newStatus)) {
-      throw new BadRequestException(
-        `Invalid state transition: ${session.status} → ${newStatus}`,
-      );
+      throw new BadRequestException(`Invalid state transition: ${session.status} → ${newStatus}`);
     }
 
     await this.prisma.intakeSession.update({
@@ -61,45 +53,26 @@ export class SessionService {
       },
     });
 
-    await this.redis.set(
-      `session:${sessionId}:status`,
-      newStatus,
-      'EX',
-      900,
-    );
+    await this.redis.set(`session:${sessionId}:status`, newStatus, 'EX', 900);
 
-    this.logger.debug(
-      `Session ${sessionId} status: ${session.status} → ${newStatus}`,
-    );
+    this.logger.debug(`Session ${sessionId} status: ${session.status} → ${newStatus}`);
   }
 
   async getCachedStatus(sessionId: string): Promise<string | null> {
     return this.redis.get(`session:${sessionId}:status`);
   }
 
-  async cachePatientContext(
-    sessionId: string,
-    context: Record<string, unknown>,
-  ): Promise<void> {
-    await this.redis.setex(
-      `session:${sessionId}:context`,
-      900,
-      JSON.stringify(context),
-    );
+  async cachePatientContext(sessionId: string, context: Record<string, unknown>): Promise<void> {
+    await this.redis.setex(`session:${sessionId}:context`, 900, JSON.stringify(context));
   }
 
-  async getCachedPatientContext(
-    sessionId: string,
-  ): Promise<Record<string, unknown> | null> {
+  async getCachedPatientContext(sessionId: string): Promise<Record<string, unknown> | null> {
     const cached = await this.redis.get(`session:${sessionId}:context`);
     return cached ? JSON.parse(cached) : null;
   }
 
   async handleInactivityTimeout(sessionId: string): Promise<void> {
-    const timeoutMs = this.configService.get<number>(
-      'session.inactivityTimeoutMs',
-      600000,
-    );
+    const timeoutMs = this.configService.get<number>('session.inactivityTimeoutMs', 600000);
     const session = await this.prisma.intakeSession.findUnique({
       where: { id: sessionId },
     });
@@ -110,7 +83,7 @@ export class SessionService {
 
     const inactiveDuration = Date.now() - new Date(session.updatedAt).getTime();
     if (inactiveDuration >= timeoutMs) {
-      await this.updateStatus(sessionId, 'TIMED_OUT' as any);
+      await this.updateStatus(sessionId, 'TIMED_OUT' as SessionStatus);
       this.logger.warn(`Session ${sessionId} timed out due to inactivity`);
     }
   }

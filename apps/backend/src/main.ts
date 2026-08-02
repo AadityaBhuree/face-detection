@@ -21,12 +21,7 @@ async function bootstrap() {
       origin: process.env.CORS_ORIGINS?.split(',') ?? ['http://localhost:3000'],
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-      allowedHeaders: [
-        'Content-Type',
-        'Authorization',
-        'X-Correlation-Id',
-        'X-Requested-With',
-      ],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-Correlation-Id', 'X-Requested-With'],
     },
   });
 
@@ -55,16 +50,13 @@ async function bootstrap() {
   app.useGlobalFilters(new HttpExceptionFilter());
 
   // ─── Global Interceptors ─────────────────────────────────────
-  app.useGlobalInterceptors(
-    new LoggingInterceptor(),
-    new TransformInterceptor(),
-  );
+  app.useGlobalInterceptors(new LoggingInterceptor(), new TransformInterceptor());
 
   // ─── Graceful Shutdown ───────────────────────────────────────
   app.enableShutdownHooks();
 
   await app.listen(port);
-  logger.log(`AyuTalk Care API server running on http://localhost:${port}`);
+  logger.log(`Jeevandata API server running on http://localhost:${port}`);
   logger.log(`Environment: ${configService.get('NODE_ENV', 'development')}`);
 }
 

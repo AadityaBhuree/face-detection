@@ -1,7 +1,9 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires runtime value import
 import { ConfigService } from '@nestjs/config';
 import { QdrantClient } from '@qdrant/js-client-rest';
-import type { FaceEmbeddingInput, FaceSearchQuery } from '@ayutalk/shared-schemas';
+import type { FaceEmbeddingInput, FaceSearchQuery } from '@jeevandata/shared-schemas';
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires runtime value import
 import { AuditService } from '../audit/audit.service';
 
 const FACE_COLLECTION = 'face_embeddings';
@@ -26,9 +28,7 @@ export class FaceService {
 
   private async ensureCollection(): Promise<void> {
     const collections = await this.qdrant.getCollections();
-    const exists = collections.collections.some(
-      (c) => c.name === FACE_COLLECTION,
-    );
+    const exists = collections.collections.some((c) => c.name === FACE_COLLECTION);
 
     if (!exists) {
       await this.qdrant.createCollection(FACE_COLLECTION, {
@@ -121,9 +121,7 @@ export class FaceService {
     });
 
     if (!result.points || result.points.length === 0) {
-      throw new NotFoundException(
-        `No embeddings found for patient ${patientId}`,
-      );
+      throw new NotFoundException(`No embeddings found for patient ${patientId}`);
     }
 
     await this.auditService.log({

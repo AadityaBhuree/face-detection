@@ -1,4 +1,4 @@
-import { LoggerService } from '@nestjs/common';
+import type { LoggerService } from '@nestjs/common';
 import pino, { type Logger as PinoLogger, type Level } from 'pino';
 
 export class Logger implements LoggerService {
@@ -10,7 +10,7 @@ export class Logger implements LoggerService {
 
     this.logger = pino({
       level,
-      name: context ?? 'AyuTalkCare',
+      name: context ?? 'Jeevandata',
       transport: isDev
         ? {
             target: 'pino-pretty',

@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires runtime value import
 import { ConfigService } from '@nestjs/config';
-import type { PmsSyncInput } from '@ayutalk/shared-schemas';
+import type { PmsSyncInput } from '@jeevandata/shared-schemas';
 import type { PmsSyncAdapter, SyncResult } from './pms-sync-adapter';
 import { withRetry } from '../utils/retry.util';
 
@@ -26,13 +27,21 @@ export class CustomApiAdapter implements PmsSyncAdapter {
   }
 
   async sync(
-    data: PmsSyncInput & { intakeData?: Record<string, unknown>; patientDemographics?: Record<string, unknown> },
+    data: PmsSyncInput & {
+      intakeData?: Record<string, unknown>;
+      patientDemographics?: Record<string, unknown>;
+    },
   ): Promise<SyncResult> {
     const startTime = Date.now();
 
     if (!this.apiEndpoint) {
       this.logger.warn('Custom API endpoint not configured — sync skipped');
-      return { synced: false, target: 'custom', durationMs: Date.now() - startTime, error: 'Custom API endpoint not configured' };
+      return {
+        synced: false,
+        target: 'custom',
+        durationMs: Date.now() - startTime,
+        error: 'Custom API endpoint not configured',
+      };
     }
 
     try {
@@ -61,7 +70,9 @@ export class CustomApiAdapter implements PmsSyncAdapter {
         durationMs: Date.now() - startTime,
       };
     } catch (error) {
-      this.logger.error(`Custom API sync failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      this.logger.error(
+        `Custom API sync failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
       return {
         synced: false,
         target: 'custom',

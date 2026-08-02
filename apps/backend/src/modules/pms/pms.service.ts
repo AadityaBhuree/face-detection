@@ -1,11 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common';
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires runtime value import
 import { ConfigService } from '@nestjs/config';
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires runtime value import
 import { PrismaService } from '../../prisma/prisma.service';
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires runtime value import
 import { AuditService } from '../audit/audit.service';
-import type { PmsSyncInput } from '@ayutalk/shared-schemas';
-import type { PatientContext } from '@ayutalk/shared-types';
+import type { PmsSyncInput } from '@jeevandata/shared-schemas';
+import type { PatientContext } from '@jeevandata/shared-types';
+import type { Prisma } from '@prisma/client';
 import type { PmsSyncAdapter, SyncResult } from './adapters/pms-sync-adapter';
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires runtime value import
 import { HL7FHIRAdapter } from './adapters/hl7-fhir.adapter';
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires runtime value import
 import { CustomApiAdapter } from './adapters/custom-api.adapter';
 
 @Injectable()
@@ -33,7 +39,10 @@ export class PmsService {
    * Uses the appropriate adapter based on targetSystem, with write-through cache.
    */
   async syncToPms(
-    data: PmsSyncInput & { intakeData?: Record<string, unknown>; patientDemographics?: Record<string, unknown> },
+    data: PmsSyncInput & {
+      intakeData?: Record<string, unknown>;
+      patientDemographics?: Record<string, unknown>;
+    },
   ): Promise<SyncResult> {
     this.logger.log(`Syncing intake ${data.intakeRecordId} to PMS: ${data.targetSystem}`);
 
@@ -47,7 +56,11 @@ export class PmsService {
         actorRole: 'SYSTEM',
         resourceType: 'pms_sync',
         resourceId: data.intakeRecordId,
-        details: { targetSystem: data.targetSystem, error: 'Unknown target system', availableAdapters: Array.from(this.adapters.keys()) },
+        details: {
+          targetSystem: data.targetSystem,
+          error: 'Unknown target system',
+          availableAdapters: Array.from(this.adapters.keys()),
+        },
         ipAddress: 'internal',
       });
 
@@ -76,7 +89,12 @@ export class PmsService {
         actorRole: 'SYSTEM',
         resourceType: 'pms_sync',
         resourceId: data.intakeRecordId,
-        details: { targetSystem: data.targetSystem, patientId: data.patientId, externalId: result.externalId, durationMs: result.durationMs },
+        details: {
+          targetSystem: data.targetSystem,
+          patientId: data.patientId,
+          externalId: result.externalId,
+          durationMs: result.durationMs,
+        },
         ipAddress: 'internal',
       });
     } else {
@@ -86,7 +104,11 @@ export class PmsService {
         actorRole: 'SYSTEM',
         resourceType: 'pms_sync',
         resourceId: data.intakeRecordId,
-        details: { targetSystem: data.targetSystem, patientId: data.patientId, error: result.error },
+        details: {
+          targetSystem: data.targetSystem,
+          patientId: data.patientId,
+          error: result.error,
+        },
         ipAddress: 'internal',
       });
     }
@@ -163,21 +185,27 @@ export class PmsService {
   /**
    * Get the last sync metadata for a patient.
    */
-  async getLastSyncInfo(patientId: string): Promise<{ lastSyncedAt: string | null; targetSystem?: string; externalId?: string }> {
+  async getLastSyncInfo(
+    patientId: string,
+  ): Promise<{ lastSyncedAt: string | null; targetSystem?: string; externalId?: string }> {
     try {
       const cached = await this.prisma.pmsPatientCache.findUnique({
         where: { patientId },
       });
       if (!cached) return { lastSyncedAt: null };
 
-      const syncMeta = (cached.data as Record<string, unknown>)?.syncMeta as Record<string, unknown> | undefined;
+      const syncMeta = (cached.data as Record<string, unknown>)?.syncMeta as
+        | Record<string, unknown>
+        | undefined;
       return {
         lastSyncedAt: cached.lastSyncedAt.toISOString(),
         targetSystem: syncMeta?.targetSystem as string | undefined,
         externalId: syncMeta?.externalId as string | undefined,
       };
     } catch (error) {
-      this.logger.error(`Failed to read sync info: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      this.logger.error(
+        `Failed to read sync info: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
       return { lastSyncedAt: null };
     }
   }
@@ -198,13 +226,17 @@ export class PmsService {
       // Check TTL expiry
       const age = Date.now() - new Date(cached.lastSyncedAt).getTime();
       if (age > this.cacheTtlMs) {
-        this.logger.debug(`Cache stale for patient ${patientId} (age: ${Math.round(age / 1000 / 60)}min, TTL: ${Math.round(this.cacheTtlMs / 1000 / 60)}min)`);
+        this.logger.debug(
+          `Cache stale for patient ${patientId} (age: ${Math.round(age / 1000 / 60)}min, TTL: ${Math.round(this.cacheTtlMs / 1000 / 60)}min)`,
+        );
         return null;
       }
 
       return cached.data as Record<string, unknown>;
     } catch (error) {
-      this.logger.error(`Cache read failed for patient ${patientId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      this.logger.error(
+        `Cache read failed for patient ${patientId}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
       return null; // Fail open — don't block the primary operation
     }
   }
@@ -218,17 +250,19 @@ export class PmsService {
         where: { patientId },
         create: {
           patientId,
-          data: data as any,
+          data: data as unknown as Prisma.InputJsonValue,
           lastSyncedAt: new Date(),
         },
         update: {
-          data: data as any,
+          data: data as unknown as Prisma.InputJsonValue,
           lastSyncedAt: new Date(),
         },
       });
       this.logger.debug(`Cache updated for patient ${patientId}`);
     } catch (error) {
-      this.logger.error(`Cache write failed for patient ${patientId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      this.logger.error(
+        `Cache write failed for patient ${patientId}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
       // Fail open — don't block the primary operation
     }
   }
@@ -238,24 +272,31 @@ export class PmsService {
    */
   private async updateSyncCache(
     patientId: string,
-    syncMeta: { lastSyncedAt: string; targetSystem: string; externalId?: string; durationMs?: number },
+    syncMeta: {
+      lastSyncedAt: string;
+      targetSystem: string;
+      externalId?: string;
+      durationMs?: number;
+    },
   ): Promise<void> {
     try {
       await this.prisma.pmsPatientCache.upsert({
         where: { patientId },
         create: {
           patientId,
-          data: { syncMeta } as any,
+          data: { syncMeta } as unknown as Prisma.InputJsonValue,
           lastSyncedAt: new Date(syncMeta.lastSyncedAt),
         },
         update: {
-          data: { syncMeta } as any,
+          data: { syncMeta } as unknown as Prisma.InputJsonValue,
           lastSyncedAt: new Date(syncMeta.lastSyncedAt),
         },
       });
       this.logger.log(`Sync metadata cached for patient ${patientId} → ${syncMeta.targetSystem}`);
     } catch (error) {
-      this.logger.error(`Sync metadata cache failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      this.logger.error(
+        `Sync metadata cache failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 }

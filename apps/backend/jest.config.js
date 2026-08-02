@@ -13,9 +13,9 @@ module.exports = {
     '^@common/(.*)$': '<rootDir>/common/$1',
     '^@config/(.*)$': '<rootDir>/config/$1',
     '^@modules/(.*)$': '<rootDir>/modules/$1',
-    '^@ayutalk/shared-schemas$': '<rootDir>/../../../packages/shared-schemas/src/index.ts',
-    '^@ayutalk/shared-types$': '<rootDir>/../../../packages/shared-types/src/index.ts',
-    '^@ayutalk/shared-utils$': '<rootDir>/../../../packages/shared-utils/src/index.ts',
+    '^@jeevandata/shared-schemas$': '<rootDir>/../../../packages/shared-schemas/src/index.ts',
+    '^@jeevandata/shared-types$': '<rootDir>/../../../packages/shared-types/src/index.ts',
+    '^@jeevandata/shared-utils$': '<rootDir>/../../../packages/shared-utils/src/index.ts',
     '^@prisma/client$': '<rootDir>/../node_modules/@prisma/client',
   },
 };

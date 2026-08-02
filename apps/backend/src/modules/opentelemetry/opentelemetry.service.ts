@@ -1,5 +1,5 @@
-import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
-import { trace, Span, SpanStatusCode, type Tracer } from '@opentelemetry/api';
+import { Injectable, Logger, type OnModuleDestroy } from '@nestjs/common';
+import { trace, SpanStatusCode, type Span, type Tracer } from '@opentelemetry/api';
 
 /**
  * OpenTelemetry Service
@@ -26,7 +26,7 @@ export class OpenTelemetryService implements OnModuleDestroy {
   private readonly tracer: Tracer;
 
   constructor() {
-    this.tracer = trace.getTracer('ayutalk-care-api', process.env.APP_VERSION ?? '0.1.0');
+    this.tracer = trace.getTracer('jeevandata-api', process.env.APP_VERSION ?? '0.1.0');
   }
 
   /**

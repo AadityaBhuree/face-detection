@@ -62,7 +62,7 @@ describe('validateEnv', () => {
     it('passes when all production-required secrets are present', () => {
       const result = validateEnv({
         NODE_ENV: 'production',
-        DATABASE_URL: 'postgresql://prod:secret@db:5432/ayutalk',
+        DATABASE_URL: 'postgresql://prod:secret@db:5432/jeevandata',
         REDIS_URL: 'redis://prod:secret@redis:6379',
         QDRANT_URL: 'http://qdrant:6333',
         GOOGLE_GEMINI_API_KEY: 'AIza-valid-prod-key',

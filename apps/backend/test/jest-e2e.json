@@ -13,9 +13,9 @@
     ]
   },
   "moduleNameMapper": {
-    "^@ayutalk/shared-schemas$": "<rootDir>/../../../packages/shared-schemas/src/index.ts",
-    "^@ayutalk/shared-types$": "<rootDir>/../../../packages/shared-types/src/index.ts",
-    "^@ayutalk/shared-utils$": "<rootDir>/../../../packages/shared-utils/src/index.ts",
+    "^@jeevandata/shared-schemas$": "<rootDir>/../../../packages/shared-schemas/src/index.ts",
+    "^@jeevandata/shared-types$": "<rootDir>/../../../packages/shared-types/src/index.ts",
+    "^@jeevandata/shared-utils$": "<rootDir>/../../../packages/shared-utils/src/index.ts",
     "^@/(.*)$": "<rootDir>/../src/$1",
     "^@common/(.*)$": "<rootDir>/../src/common/$1",
     "^@config/(.*)$": "<rootDir>/../src/config/$1",

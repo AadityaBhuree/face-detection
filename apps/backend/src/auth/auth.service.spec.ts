@@ -43,7 +43,7 @@ const mockAuditService = {
 
 const mockUser = {
   id: '550e8400-e29b-41d4-a716-446655440000',
-  email: 'doctor@ayutalk.com',
+  email: 'doctor@jeevandata.com',
   name: 'Dr. Priya Sharma',
   passwordHash: '$2a$10$hashedpassword1234567890abcdefghijklmnop',
   role: 'DOCTOR',
@@ -56,12 +56,12 @@ const mockUser = {
 
 const registerInput = {
   name: 'Dr. Priya Sharma',
-  email: 'doctor@ayutalk.com',
+  email: 'doctor@jeevandata.com',
   password: 'StrongPass123',
 };
 
 const loginInput = {
-  email: 'doctor@ayutalk.com',
+  email: 'doctor@jeevandata.com',
   password: 'StrongPass123',
 };
 
@@ -116,7 +116,7 @@ describe('AuthService', () => {
       expect(result).not.toHaveProperty('passwordHash');
 
       const createCall = mockPrisma.clinicUser.create.mock.calls[0][0];
-      expect(createCall.data.email).toBe('doctor@ayutalk.com');
+      expect(createCall.data.email).toBe('doctor@jeevandata.com');
       expect(createCall.data.passwordHash).not.toBe('StrongPass123');
       expect(createCall.data.passwordHash).toMatch(/^\$2[aby]\$/);
     });
@@ -149,10 +149,10 @@ describe('AuthService', () => {
       mockPrisma.clinicUser.findUnique.mockResolvedValue(null);
       mockPrisma.clinicUser.create.mockResolvedValue(mockUser);
 
-      await service.register({ ...registerInput, email: 'DOCTOR@AYUTALK.COM' });
+      await service.register({ ...registerInput, email: 'DOCTOR@JEEVANDATA.COM' });
 
       expect(mockPrisma.clinicUser.findUnique).toHaveBeenCalledWith({
-        where: { email: 'doctor@ayutalk.com' },
+        where: { email: 'doctor@jeevandata.com' },
       });
     });
 
@@ -185,7 +185,7 @@ describe('AuthService', () => {
 
       const result = await service.login(loginInput);
 
-      expect(result.user.email).toBe('doctor@ayutalk.com');
+      expect(result.user.email).toBe('doctor@jeevandata.com');
       expect(result.accessToken).toBe('access-token-123');
       expect(result.refreshToken).toBe('refresh-token-456');
       expect(result.expiresIn).toBe(86400);
@@ -373,7 +373,7 @@ describe('AuthService', () => {
 
       const result = await service.getProfile(mockUser.id);
 
-      expect(result.email).toBe('doctor@ayutalk.com');
+      expect(result.email).toBe('doctor@jeevandata.com');
       expect(result).not.toHaveProperty('passwordHash');
     });
 

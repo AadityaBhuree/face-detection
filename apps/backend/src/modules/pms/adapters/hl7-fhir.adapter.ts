@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires runtime value import
 import { ConfigService } from '@nestjs/config';
-import type { PmsSyncInput } from '@ayutalk/shared-schemas';
+import type { PmsSyncInput } from '@jeevandata/shared-schemas';
 import type { PmsSyncAdapter, SyncResult } from './pms-sync-adapter';
 import { withRetry } from '../utils/retry.util';
 
@@ -20,7 +21,10 @@ interface FhirEncounter {
   class: { system: string; code: string; display: string };
   subject: { reference: string };
   period: { start: string };
-  reasonCode: Array<{ coding: Array<{ system: string; code: string; display: string }>; text: string }>;
+  reasonCode: Array<{
+    coding: Array<{ system: string; code: string; display: string }>;
+    text: string;
+  }>;
 }
 
 interface FhirObservation {
@@ -47,13 +51,21 @@ export class HL7FHIRAdapter implements PmsSyncAdapter {
   }
 
   async sync(
-    data: PmsSyncInput & { intakeData?: Record<string, unknown>; patientDemographics?: Record<string, unknown> },
+    data: PmsSyncInput & {
+      intakeData?: Record<string, unknown>;
+      patientDemographics?: Record<string, unknown>;
+    },
   ): Promise<SyncResult> {
     const startTime = Date.now();
 
     if (!this.fhirEndpoint) {
       this.logger.warn('FHIR endpoint not configured — sync skipped');
-      return { synced: false, target: 'hl7_fhir', durationMs: Date.now() - startTime, error: 'FHIR endpoint not configured' };
+      return {
+        synced: false,
+        target: 'hl7_fhir',
+        durationMs: Date.now() - startTime,
+        error: 'FHIR endpoint not configured',
+      };
     }
 
     try {
@@ -77,7 +89,9 @@ export class HL7FHIRAdapter implements PmsSyncAdapter {
         durationMs: Date.now() - startTime,
       };
     } catch (error) {
-      this.logger.error(`FHIR sync failed after retries: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      this.logger.error(
+        `FHIR sync failed after retries: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
       return {
         synced: false,
         target: 'hl7_fhir',
@@ -91,30 +105,54 @@ export class HL7FHIRAdapter implements PmsSyncAdapter {
    * Build a FHIR R4 Bundle transaction with Patient, Encounter, and Observation resources.
    */
   private buildFHIRBundle(
-    data: PmsSyncInput & { intakeData?: Record<string, unknown>; patientDemographics?: Record<string, unknown> },
-  ): { resourceType: 'Bundle'; type: string; entry: Array<{ resource: FhirPatient | FhirEncounter | FhirObservation; request: { method: string; url: string } }> } {
+    data: PmsSyncInput & {
+      intakeData?: Record<string, unknown>;
+      patientDemographics?: Record<string, unknown>;
+    },
+  ): {
+    resourceType: 'Bundle';
+    type: string;
+    entry: Array<{
+      resource: FhirPatient | FhirEncounter | FhirObservation;
+      request: { method: string; url: string };
+    }>;
+  } {
     const timestamp = new Date().toISOString();
     const demos = data.patientDemographics ?? {};
     const intake = data.intakeData ?? {};
-    const entry: Array<{ resource: FhirPatient | FhirEncounter | FhirObservation; request: { method: string; url: string } }> = [];
+    const entry: Array<{
+      resource: FhirPatient | FhirEncounter | FhirObservation;
+      request: { method: string; url: string };
+    }> = [];
 
     // ─── Patient Resource ─────────────────────────────────────
     const patientResource: FhirPatient = {
       resourceType: 'Patient',
       id: data.patientId,
-      identifier: [
-        { system: 'https://ayutalk.care/patients', value: data.patientId },
-      ],
+      identifier: [{ system: 'https://jeevandata.care/patients', value: data.patientId }],
       name: [
         {
           use: 'official',
-          family: (demos as any).name?.split(' ').slice(1).join(' ') ?? 'Unknown',
-          given: [(demos as any).name?.split(' ')[0] ?? 'Patient'],
+          family:
+            (demos as { name?: string; dob?: string; mobile?: string }).name
+              ?.split(' ')
+              .slice(1)
+              .join(' ') ?? 'Unknown',
+          given: [
+            (demos as { name?: string; dob?: string; mobile?: string }).name?.split(' ')[0] ??
+              'Patient',
+          ],
         },
       ],
-      birthDate: (demos as any).dob ?? '',
-      telecom: (demos as any).mobile
-        ? [{ system: 'phone', value: (demos as any).mobile, use: 'mobile' }]
+      birthDate: (demos as { name?: string; dob?: string; mobile?: string }).dob ?? '',
+      telecom: (demos as { name?: string; dob?: string; mobile?: string }).mobile
+        ? [
+            {
+              system: 'phone',
+              value: (demos as { name?: string; dob?: string; mobile?: string }).mobile ?? '',
+              use: 'mobile',
+            },
+          ]
         : [],
     };
     entry.push({
@@ -143,7 +181,13 @@ export class HL7FHIRAdapter implements PmsSyncAdapter {
               display: 'Chief complaint (finding)',
             },
           ],
-          text: (intake as any).chiefComplaint ?? 'Clinical intake via AyuTalk',
+          text:
+            (
+              intake as {
+                chiefComplaint?: string;
+                symptoms?: Array<{ name?: string; severity?: number; duration?: string }>;
+              }
+            ).chiefComplaint ?? 'Clinical intake via Jeevandata',
         },
       ],
     };
@@ -153,9 +197,13 @@ export class HL7FHIRAdapter implements PmsSyncAdapter {
     });
 
     // ─── Observation Resources ────────────────────────────────
-    const symptoms = Array.isArray((intake as any).symptoms) ? (intake as any).symptoms : [];
+    const intakeSymptoms = (
+      intake as { symptoms?: Array<{ name?: string; severity?: number; duration?: string }> }
+    ).symptoms;
+    const symptoms = Array.isArray(intakeSymptoms) ? intakeSymptoms : [];
     for (let i = 0; i < Math.min(symptoms.length, 20); i++) {
       const symptom = symptoms[i];
+      if (!symptom) continue;
       const observationResource: FhirObservation = {
         resourceType: 'Observation',
         id: `${data.sessionId}-symptom-${i}`,
@@ -184,9 +232,20 @@ export class HL7FHIRAdapter implements PmsSyncAdapter {
         subject: { reference: `Patient/${data.patientId}` },
         effectiveDateTime: timestamp,
         valueString: `Severity: ${symptom.severity ?? 'N/A'}/10, Duration: ${symptom.duration ?? 'N/A'}`,
-        interpretation: symptom.severity >= 8
-          ? [{ coding: [{ system: 'http://terminology.hl7.org/CodeSystem/v3-ObservationInterpretation', code: 'H', display: 'High' }] }]
-          : undefined,
+        interpretation:
+          (symptom.severity ?? 0) >= 8
+            ? [
+                {
+                  coding: [
+                    {
+                      system: 'http://terminology.hl7.org/CodeSystem/v3-ObservationInterpretation',
+                      code: 'H',
+                      display: 'High',
+                    },
+                  ],
+                },
+              ]
+            : undefined,
       };
       entry.push({
         resource: observationResource,

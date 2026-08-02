@@ -14,19 +14,20 @@ import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import { NestInstrumentation } from '@opentelemetry/instrumentation-nestjs-core';
 import { PinoInstrumentation } from '@opentelemetry/instrumentation-pino';
 import { resourceFromAttributes } from '@opentelemetry/resources';
-import { BatchSpanProcessor, NodeTracerProvider, TraceIdRatioBasedSampler } from '@opentelemetry/sdk-trace-node';
+import {
+  BatchSpanProcessor,
+  NodeTracerProvider,
+  TraceIdRatioBasedSampler,
+} from '@opentelemetry/sdk-trace-node';
 
 // ─── Configuration (from env vars with sensible defaults) ──────
 
-const SERVICE_NAME = process.env.OTEL_SERVICE_NAME ?? 'ayutalk-care-api';
+const SERVICE_NAME = process.env.OTEL_SERVICE_NAME ?? 'jeevandata-api';
 const OTEL_ENABLED = process.env.OTEL_ENABLED !== 'false';
 const OTEL_EXPORTER_TYPE = process.env.OTEL_EXPORTER_TYPE ?? 'jaeger'; // 'jaeger' | 'otlp' | 'console'
-const OTEL_ENDPOINT =
-  process.env.OTEL_ENDPOINT ?? 'http://localhost:14268/api/traces';
-const OTEL_OTLP_ENDPOINT =
-  process.env.OTEL_OTLP_ENDPOINT ?? 'http://localhost:4318/v1/traces';
-const OTEL_LOG_LEVEL =
-  (process.env.OTEL_LOG_LEVEL as keyof typeof DiagLogLevel) ?? 'WARN';
+const OTEL_ENDPOINT = process.env.OTEL_ENDPOINT ?? 'http://localhost:14268/api/traces';
+const OTEL_OTLP_ENDPOINT = process.env.OTEL_OTLP_ENDPOINT ?? 'http://localhost:4318/v1/traces';
+const OTEL_LOG_LEVEL = (process.env.OTEL_LOG_LEVEL as keyof typeof DiagLogLevel) ?? 'WARN';
 const OTEL_SAMPLE_RATE = parseFloat(process.env.OTEL_SAMPLE_RATE ?? '1.0');
 
 // Enable diagnostic logging
@@ -52,7 +53,7 @@ function initializeTracing(): void {
     'service.name': SERVICE_NAME,
     'service.version': process.env.APP_VERSION ?? '0.1.0',
     'deployment.environment': process.env.NODE_ENV ?? 'development',
-    'service.namespace': 'AyuTalk',
+    'service.namespace': 'Jeevandata',
   });
 
   // ─── Exporter Selection ────────────────────────────────────────
@@ -80,9 +81,7 @@ function initializeTracing(): void {
         }),
       ],
     });
-    diag.info(
-      '[Tracing] Console mode — spans injected into pino logs, no exporter',
-    );
+    diag.info('[Tracing] Console mode — spans injected into pino logs, no exporter');
   } else if (OTEL_EXPORTER_TYPE === 'otlp') {
     const exporter = new OTLPTraceExporter({
       url: OTEL_OTLP_ENDPOINT,
@@ -90,10 +89,7 @@ function initializeTracing(): void {
     });
     provider = new NodeTracerProvider({
       resource,
-      sampler:
-        OTEL_SAMPLE_RATE < 1.0
-          ? new TraceIdRatioBasedSampler(OTEL_SAMPLE_RATE)
-          : undefined,
+      sampler: OTEL_SAMPLE_RATE < 1.0 ? new TraceIdRatioBasedSampler(OTEL_SAMPLE_RATE) : undefined,
       spanProcessors: [
         new BatchSpanProcessor(exporter, {
           maxQueueSize: 2048,
@@ -134,10 +130,7 @@ function initializeTracing(): void {
     });
     provider = new NodeTracerProvider({
       resource,
-      sampler:
-        OTEL_SAMPLE_RATE < 1.0
-          ? new TraceIdRatioBasedSampler(OTEL_SAMPLE_RATE)
-          : undefined,
+      sampler: OTEL_SAMPLE_RATE < 1.0 ? new TraceIdRatioBasedSampler(OTEL_SAMPLE_RATE) : undefined,
       spanProcessors: [
         new BatchSpanProcessor(exporter, {
           maxQueueSize: 2048,
@@ -174,9 +167,7 @@ function initializeTracing(): void {
 
   // ─── Graceful Shutdown ─────────────────────────────────────────
   const shutdown = (): void => {
-    provider
-      .shutdown()
-      .catch((err: unknown) => diag.error('[Tracing] Shutdown error', err));
+    provider.shutdown().catch((err: unknown) => diag.error('[Tracing] Shutdown error', err));
   };
 
   process.on('SIGTERM', shutdown);

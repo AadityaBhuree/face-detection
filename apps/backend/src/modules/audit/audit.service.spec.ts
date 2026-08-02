@@ -1,7 +1,7 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { AuditService } from './audit.service';
 import { PrismaService } from '../../prisma/prisma.service';
-import type { AuditLogInput } from '@ayutalk/shared-schemas';
+import type { AuditLogInput } from '@jeevandata/shared-schemas';
 
 // ─── Mocks ─────────────────────────────────────────────────────
 
@@ -30,10 +30,7 @@ describe('AuditService', () => {
     jest.clearAllMocks();
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        AuditService,
-        { provide: PrismaService, useValue: mockPrisma },
-      ],
+      providers: [AuditService, { provide: PrismaService, useValue: mockPrisma }],
     }).compile();
 
     service = module.get<AuditService>(AuditService);
@@ -82,14 +79,10 @@ describe('AuditService', () => {
     });
 
     it('should NEVER throw an error — audit failure should not block operations', async () => {
-      mockPrisma.auditLog.create.mockRejectedValue(
-        new Error('Database connection error'),
-      );
+      mockPrisma.auditLog.create.mockRejectedValue(new Error('Database connection error'));
 
       // Should not throw despite DB error
-      await expect(
-        service.log(validAuditEntry),
-      ).resolves.not.toThrow();
+      await expect(service.log(validAuditEntry)).resolves.not.toThrow();
     });
 
     it.each([

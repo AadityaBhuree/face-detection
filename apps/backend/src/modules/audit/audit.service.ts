@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires runtime value import
 import { PrismaService } from '../../prisma/prisma.service';
-import type { AuditLogInput } from '@ayutalk/shared-schemas';
+import type { AuditLogInput } from '@jeevandata/shared-schemas';
+import type { Prisma } from '@prisma/client';
 
 @Injectable()
 export class AuditService {
@@ -17,7 +19,7 @@ export class AuditService {
           actorRole: data.actorRole,
           resourceType: data.resourceType,
           resourceId: data.resourceId,
-          details: (data.details ?? {}) as any,
+          details: (data.details ?? {}) as unknown as Prisma.InputJsonValue,
           ipAddress: data.ipAddress,
         },
       });
@@ -31,11 +33,7 @@ export class AuditService {
     }
   }
 
-  async getPatientAccessLogs(
-    patientId: string,
-    page = 1,
-    limit = 50,
-  ) {
+  async getPatientAccessLogs(patientId: string, page = 1, limit = 50) {
     const [logs, total] = await Promise.all([
       this.prisma.auditLog.findMany({
         where: { resourceId: patientId, resourceType: 'patient' },

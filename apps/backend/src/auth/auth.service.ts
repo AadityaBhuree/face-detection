@@ -10,8 +10,8 @@ import { AuditService } from '../modules/audit/audit.service';
 /* eslint-enable @typescript-eslint/consistent-type-imports */
 import * as bcrypt from 'bcryptjs';
 import { createHash } from 'node:crypto';
-import type { RegisterUserInput, LoginUserInput } from '@ayutalk/shared-schemas';
-import type { UserRole } from '@ayutalk/shared-types';
+import type { RegisterUserInput, LoginUserInput } from '@jeevandata/shared-schemas';
+import type { UserRole } from '@jeevandata/shared-types';
 
 const BCRYPT_ROUNDS = 10;
 const REFRESH_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days

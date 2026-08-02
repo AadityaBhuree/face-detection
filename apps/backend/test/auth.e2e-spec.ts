@@ -29,19 +29,19 @@ const mockPrisma = {} as any;
 
 const validRegister = {
   name: 'Dr. Priya Sharma',
-  email: 'doctor@ayutalk.com',
+  email: 'doctor@jeevandata.com',
   password: 'StrongPass123',
 };
 
 const validLogin = {
-  email: 'doctor@ayutalk.com',
+  email: 'doctor@jeevandata.com',
   password: 'StrongPass123',
 };
 
 const mockUser = {
   id: '550e8400-e29b-41d4-a716-446655440000',
   name: 'Dr. Priya Sharma',
-  email: 'doctor@ayutalk.com',
+  email: 'doctor@jeevandata.com',
   role: 'DOCTOR',
   clinicId: 'clinic-001',
 };
@@ -120,7 +120,7 @@ describe('AuthController (E2E)', () => {
         .post('/auth/register')
         .send({
           name: 'Test User',
-          email: 'test@ayutalk.com',
+          email: 'test@jeevandata.com',
           password: 'short', // < 8 chars, no uppercase/number
         })
         .expect(400);
@@ -145,7 +145,7 @@ describe('AuthController (E2E)', () => {
       const response = await request(app.getHttpServer())
         .post('/auth/register')
         .send({
-          email: 'test@ayutalk.com',
+          email: 'test@jeevandata.com',
           password: 'StrongPass123',
         })
         .expect(400);
@@ -172,13 +172,13 @@ describe('AuthController (E2E)', () => {
 
       expect(response.body.accessToken).toBe('access-token');
       expect(response.body.refreshToken).toBe('refresh-token');
-      expect(response.body.user.email).toBe('doctor@ayutalk.com');
+      expect(response.body.user.email).toBe('doctor@jeevandata.com');
     });
 
     it('should return 400 when password is missing', async () => {
       const response = await request(app.getHttpServer())
         .post('/auth/login')
-        .send({ email: 'doctor@ayutalk.com' })
+        .send({ email: 'doctor@jeevandata.com' })
         .expect(400);
 
       expect(response.body.code).toBe('VALIDATION_ERROR');
@@ -225,7 +225,7 @@ describe('AuthController (E2E)', () => {
         .set('Authorization', `Bearer ${validAccessToken}`)
         .expect(200);
 
-      expect(response.body.email).toBe('doctor@ayutalk.com');
+      expect(response.body.email).toBe('doctor@jeevandata.com');
     });
   });
 

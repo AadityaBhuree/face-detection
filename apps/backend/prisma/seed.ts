@@ -3,14 +3,14 @@ import { PrismaClient, SessionStatus, UserRole } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Seeding AyuTalk Care database...');
+  console.log('🌱 Seeding Jeevandata database...');
 
   // ─── Create Clinic Users ─────────────────────────────────────
   const doctor = await prisma.clinicUser.upsert({
-    where: { email: 'doctor@ayutalk.com' },
+    where: { email: 'doctor@jeevandata.com' },
     update: {},
     create: {
-      email: 'doctor@ayutalk.com',
+      email: 'doctor@jeevandata.com',
       passwordHash: '$2b$10$placeholder_hash', // Replace with real hash
       name: 'Dr. Priya Sharma',
       role: UserRole.DOCTOR,
@@ -19,10 +19,10 @@ async function main() {
   });
 
   const receptionist = await prisma.clinicUser.upsert({
-    where: { email: 'reception@ayutalk.com' },
+    where: { email: 'reception@jeevandata.com' },
     update: {},
     create: {
-      email: 'reception@ayutalk.com',
+      email: 'reception@jeevandata.com',
       passwordHash: '$2b$10$placeholder_hash',
       name: 'Anita Verma',
       role: UserRole.RECEPTIONIST,
@@ -77,10 +77,7 @@ async function main() {
         chiefComplaint: 'Headache and fever',
         riskFlags: [],
         vitalsToCheck: ['Blood Pressure', 'Temperature', 'Heart Rate'],
-        suggestedFollowups: [
-          'Duration of headache episodes',
-          'Any visual disturbances',
-        ],
+        suggestedFollowups: ['Duration of headache episodes', 'Any visual disturbances'],
         medicationsNote: 'No recent changes',
         icd10Hints: ['R51', 'R50.9'],
       },

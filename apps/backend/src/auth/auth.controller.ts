@@ -14,7 +14,7 @@ import {
   type RegisterUserInput,
   type LoginUserInput,
   type RefreshTokenInput,
-} from '@ayutalk/shared-schemas';
+} from '@jeevandata/shared-schemas';
 
 @Controller('auth')
 export class AuthController {

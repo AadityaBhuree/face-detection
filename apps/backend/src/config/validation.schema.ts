@@ -16,11 +16,11 @@ import { z } from 'zod';
 
 // Shared defaults — kept in sync with `configuration.ts`.
 const DEFAULTS = {
-  APP_NAME: 'AyuTalkCare',
+  APP_NAME: 'Jeevandata',
   APP_PORT: '4000',
   FRONTEND_URL: 'http://localhost:3000',
   BACKEND_URL: 'http://localhost:4000',
-  DATABASE_URL: 'postgresql://ayutalk:ayutalk_secret@localhost:5432/ayutalk_care?schema=public',
+  DATABASE_URL: 'postgresql://jeevandata:jeevandata_secret@localhost:5432/jeevandata?schema=public',
   REDIS_URL: 'redis://default:redis_secret@localhost:6379',
   QDRANT_URL: 'http://localhost:6333',
   QDRANT_API_KEY: '',
@@ -28,7 +28,7 @@ const DEFAULTS = {
   R2_REGION: 'auto',
   R2_ACCESS_KEY_ID: 'minioadmin',
   R2_SECRET_ACCESS_KEY: 'minioadmin',
-  R2_PUBLIC_BUCKET: 'ayutalk-media',
+  R2_PUBLIC_BUCKET: 'jeevandata-media',
   R2_AUDIO_PREFIX: 'audio',
   R2_FACE_PREFIX: 'faces',
   GOOGLE_GEMINI_API_KEY: '',
@@ -57,7 +57,7 @@ const DEFAULTS = {
   PMS_API_KEY: '',
   PMS_CACHE_TTL_MS: '86400000',
   OTEL_ENABLED: 'true',
-  OTEL_SERVICE_NAME: 'ayutalk-care-api',
+  OTEL_SERVICE_NAME: 'jeevandata-api',
   OTEL_EXPORTER_TYPE: 'jaeger',
   OTEL_ENDPOINT: 'http://localhost:14268/api/traces',
   OTEL_OTLP_ENDPOINT: 'http://localhost:4318/v1/traces',

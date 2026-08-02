@@ -4,8 +4,8 @@ import { Injectable, Logger } from '@nestjs/common';
 /* eslint-disable @typescript-eslint/consistent-type-imports */
 import { ConfigService } from '@nestjs/config';
 /* eslint-enable @typescript-eslint/consistent-type-imports */
-import { withRetry } from '@ayutalk/shared-utils';
-import type { AiIntakePromptInput } from '@ayutalk/shared-schemas';
+import { withRetry } from '@jeevandata/shared-utils';
+import type { AiIntakePromptInput } from '@jeevandata/shared-schemas';
 
 const BASE_SYSTEM_PROMPT = `You are a warm, professional medical intake assistant conducting a symptom intake conversation with a patient at a clinic. Your role is to gather structured clinical information through natural conversation.
 

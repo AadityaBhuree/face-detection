@@ -1,6 +1,8 @@
 import { Controller, Post, Body, Get, Param, HttpCode, HttpStatus } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires runtime value import
 import { FaceService } from './face.service';
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires runtime value import
 import { FaceRegistrationService } from './face-registration.service';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { Public } from '../../common/decorators/public.decorator';
@@ -9,7 +11,8 @@ import {
   faceSearchQuerySchema,
   type FaceEmbeddingInput,
   type FaceSearchQuery,
-} from '@ayutalk/shared-schemas';
+} from '@jeevandata/shared-schemas';
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires runtime value import
 import { RegisterPatientDto, SearchByFaceDto } from './dto/register-patient.dto';
 
 @Controller('face')

@@ -8,8 +8,8 @@ import { SessionService } from '../session/session.service';
 import { BriefGeneratorService } from '../ai/brief-generator.service';
 import { AuditService } from '../audit/audit.service';
 /* eslint-enable @typescript-eslint/consistent-type-imports */
-import type { StartIntakeSessionInput, IntakeDataInput } from '@ayutalk/shared-schemas';
-import type { SessionStatus } from '@ayutalk/shared-types';
+import type { StartIntakeSessionInput, IntakeDataInput } from '@jeevandata/shared-schemas';
+import type { SessionStatus } from '@jeevandata/shared-types';
 import type { Prisma } from '@prisma/client';
 
 @Injectable()

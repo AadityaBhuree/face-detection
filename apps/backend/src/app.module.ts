@@ -18,13 +18,18 @@ import { TranscriptionModule } from './modules/transcription/transcription.modul
 import { HealthModule } from './modules/health/health.module';
 import { OpenTelemetryModule } from './modules/opentelemetry/opentelemetry.module';
 import { configuration } from './config/configuration';
+import { validateEnv } from './config/validation.schema';
 
 @Module({
   imports: [
     // ─── Global Configuration ──────────────────────────────────
+    // validateEnv: fail-fast Zod validation of every env var.
+    // Strict (required secrets) only when NODE_ENV=production;
+    // development/test boot with documented defaults.
     ConfigModule.forRoot({
       isGlobal: true,
       load: [configuration],
+      validate: validateEnv,
       envFilePath: ['.env', '.env.local', '.env.development'],
     }),
 

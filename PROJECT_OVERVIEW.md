@@ -1,7 +1,7 @@
-# AyuTalk Care — Project Motive & Workflow
+# Jeevandata — Project Motive & Workflow
 
 > **Full name:** Face Detection & Clinical AI Intake System
-> **Directory:** `face-detection/`
+> **Directory:** `jeevandata/`
 > **Version:** 0.1.0 · **Status:** Active development (Phases 1–3, 5–6 complete; 4, 7 in progress)
 
 ---
@@ -34,7 +34,7 @@ That means:
 
 > **"The patient should be fully triaged BEFORE they walk into the room."**
 
-AyuTalk Care makes check-in **contactless, automatic, and AI-assisted**:
+Jeevandata makes check-in **contactless, automatic, and AI-assisted**:
 
 1. A camera kiosk at the entrance **recognizes the patient by face** — no forms,
    no ID card scanning, no typing your name at a screen.

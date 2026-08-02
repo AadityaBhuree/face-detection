@@ -1,8 +1,10 @@
 # Coverage Report — Jeevandata Backend
 
-**Generated:** July 28, 2026  
-**Tests:** 76 unit (4 suites) + 113 E2E (6 suites)  
+**Generated:** July 28, 2026 · refreshed August 2, 2026  
+**Tests:** 162 unit (9 suites) + 129 E2E (9 suites) backend · 448 frontend (25 files)  
 **Overall Coverage:** 16.4% Statements | 17.67% Branch | 15.15% Functions | 16.25% Lines
+
+> Note: the module-level table below reflects the last full coverage run (July 28). Total test counts are current as of the Jeevandata rebrand.
 
 ---
 

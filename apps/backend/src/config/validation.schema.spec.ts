@@ -67,10 +67,25 @@ describe('validateEnv', () => {
         QDRANT_URL: 'http://qdrant:6333',
         GOOGLE_GEMINI_API_KEY: 'AIza-valid-prod-key',
         JWT_SECRET: 'a-very-strong-32-char-random-secret!!',
+        JWT_REFRESH_SECRET: 'a-different-32-char-random-secret!!',
       });
 
       expect(result.NODE_ENV).toBe('production');
       expect(result.JWT_SECRET).toBe('a-very-strong-32-char-random-secret!!');
+    });
+
+    it('rejects a weak refresh secret in production', () => {
+      expect(() =>
+        validateEnv({
+          NODE_ENV: 'production',
+          DATABASE_URL: 'postgresql://x',
+          REDIS_URL: 'redis://x',
+          QDRANT_URL: 'http://x',
+          GOOGLE_GEMINI_API_KEY: 'key',
+          JWT_SECRET: 'a-very-strong-32-char-random-secret!!',
+          JWT_REFRESH_SECRET: 'short',
+        }),
+      ).toThrow(/JWT_REFRESH_SECRET/);
     });
 
     it('fails fast listing every missing required secret', () => {
@@ -100,6 +115,7 @@ describe('validateEnv', () => {
           QDRANT_URL: 'http://x',
           GOOGLE_GEMINI_API_KEY: 'key',
           JWT_SECRET: 'change-this-to-a-strong-random-secret',
+          JWT_REFRESH_SECRET: 'a-different-32-char-random-secret!!',
         }),
       ).toThrow(/JWT_SECRET/);
     });

@@ -52,6 +52,7 @@ export interface AppConfiguration {
   };
   jwt: {
     secret: string;
+    refreshSecret: string;
     expiration: string;
   };
   session: {
@@ -123,60 +124,35 @@ export const configuration = (): AppConfiguration => ({
   },
   openai: {
     apiKey: process.env.OPENAI_API_KEY ?? '',
-    whisperApiUrl:
-      process.env.WHISPER_API_URL ?? 'http://localhost:9001/inference',
+    whisperApiUrl: process.env.WHISPER_API_URL ?? 'http://localhost:9001/inference',
   },
   jwt: {
     secret: process.env.JWT_SECRET ?? 'change-this-to-a-strong-random-secret',
+    refreshSecret: process.env.JWT_REFRESH_SECRET ?? 'change-this-to-a-different-random-secret',
     expiration: process.env.JWT_EXPIRATION ?? '24h',
   },
   session: {
-    inactivityTimeoutMs: parseInt(
-      process.env.SESSION_INACTIVITY_TIMEOUT_MS ?? '600000',
-      10,
-    ),
-    autoCloseMs: parseInt(
-      process.env.SESSION_AUTO_CLOSE_MS ?? '600000',
-      10,
-    ),
+    inactivityTimeoutMs: parseInt(process.env.SESSION_INACTIVITY_TIMEOUT_MS ?? '600000', 10),
+    autoCloseMs: parseInt(process.env.SESSION_AUTO_CLOSE_MS ?? '600000', 10),
   },
   face: {
-    matchThreshold: parseFloat(
-      process.env.FACE_MATCH_THRESHOLD ?? '0.82',
-    ),
-    embeddingDim: parseInt(
-      process.env.FACE_EMBEDDING_DIM ?? '512',
-      10,
-    ),
-    livenessThreshold: parseFloat(
-      process.env.LIVENESS_THRESHOLD ?? '0.7',
-    ),
+    matchThreshold: parseFloat(process.env.FACE_MATCH_THRESHOLD ?? '0.82'),
+    embeddingDim: parseInt(process.env.FACE_EMBEDDING_DIM ?? '512', 10),
+    livenessThreshold: parseFloat(process.env.LIVENESS_THRESHOLD ?? '0.7'),
   },
   audio: {
-    autoDeleteDays: parseInt(
-      process.env.AUDIO_AUTO_DELETE_DAYS ?? '30',
-      10,
-    ),
+    autoDeleteDays: parseInt(process.env.AUDIO_AUTO_DELETE_DAYS ?? '30', 10),
     format: process.env.AUDIO_FORMAT ?? 'opus',
-    sampleRate: parseInt(
-      process.env.AUDIO_SAMPLE_RATE ?? '48000',
-      10,
-    ),
+    sampleRate: parseInt(process.env.AUDIO_SAMPLE_RATE ?? '48000', 10),
   },
   archival: {
-    coldAfterDays: parseInt(
-      process.env.ARCHIVAL_COLD_AFTER_DAYS ?? '90',
-      10,
-    ),
+    coldAfterDays: parseInt(process.env.ARCHIVAL_COLD_AFTER_DAYS ?? '90', 10),
   },
   pms: {
     fhirEndpoint: process.env.PMS_FHIR_ENDPOINT ?? '',
     customEndpoint: process.env.PMS_CUSTOM_ENDPOINT ?? '',
     apiKey: process.env.PMS_API_KEY ?? '',
-    cacheTtlMs: parseInt(
-      process.env.PMS_CACHE_TTL_MS ?? '86400000',
-      10,
-    ),
+    cacheTtlMs: parseInt(process.env.PMS_CACHE_TTL_MS ?? '86400000', 10),
   },
   opentelemetry: {
     enabled: process.env.OTEL_ENABLED !== 'false',

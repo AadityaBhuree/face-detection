@@ -38,6 +38,7 @@ const DEFAULTS = {
   OPENAI_API_KEY: '',
   WHISPER_API_URL: 'http://localhost:9001/inference',
   JWT_SECRET: 'change-this-to-a-strong-random-secret',
+  JWT_REFRESH_SECRET: 'change-this-to-a-different-random-secret',
   JWT_EXPIRATION: '24h',
   SESSION_INACTIVITY_TIMEOUT_MS: '600000',
   SESSION_AUTO_CLOSE_MS: '600000',
@@ -135,6 +136,7 @@ const envSchema = z
 
     // ── JWT / Session ───────────────────────────────────────────
     JWT_SECRET: optionalString(DEFAULTS.JWT_SECRET),
+    JWT_REFRESH_SECRET: optionalString(DEFAULTS.JWT_REFRESH_SECRET),
     JWT_EXPIRATION: optionalString(DEFAULTS.JWT_EXPIRATION),
     SESSION_INACTIVITY_TIMEOUT_MS: optionalInt(DEFAULTS.SESSION_INACTIVITY_TIMEOUT_MS),
     SESSION_AUTO_CLOSE_MS: optionalInt(DEFAULTS.SESSION_AUTO_CLOSE_MS),
@@ -186,7 +188,6 @@ const envSchema = z
   .superRefine((data, ctx) => {
     // Production-only requirements — fail fast on weak placeholders.
     if (data.NODE_ENV !== 'production') return;
-
     if (
       data.JWT_SECRET === 'change-this-to-a-strong-random-secret' ||
       data.JWT_SECRET.length < 16
@@ -195,6 +196,17 @@ const envSchema = z
         code: z.ZodIssueCode.custom,
         path: ['JWT_SECRET'],
         message: 'JWT_SECRET must be a strong, random secret (>= 16 chars) in production',
+      });
+    }
+
+    if (
+      data.JWT_REFRESH_SECRET === 'change-this-to-a-different-random-secret' ||
+      data.JWT_REFRESH_SECRET.length < 16
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['JWT_REFRESH_SECRET'],
+        message: 'JWT_REFRESH_SECRET must be a strong, random secret (>= 16 chars) in production',
       });
     }
   });

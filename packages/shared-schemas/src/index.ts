@@ -198,8 +198,37 @@ export const transcribeAudioSchema = z.object({
   sessionId: z.string().uuid(),
 });
 
+// ─── Auth Schemas ────────────────────────────────────────────────
+
+// NOTE: role and clinicId are intentionally NOT accepted on public
+// registration — new accounts always start as RECEPTIONIST. Role
+// promotion happens via authenticated admin endpoints (RBAC).
+export const registerUserSchema = z.object({
+  name: z.string().min(1).max(200),
+  email: z.string().email().max(255),
+  password: z
+    .string()
+    .min(8, 'Password must be at least 8 characters')
+    .max(128)
+    .regex(/[a-z]/, 'Password must contain a lowercase letter')
+    .regex(/[A-Z]/, 'Password must contain an uppercase letter')
+    .regex(/[0-9]/, 'Password must contain a number'),
+});
+
+export const loginUserSchema = z.object({
+  email: z.string().email().max(255),
+  password: z.string().min(1).max(128),
+});
+
+export const refreshTokenSchema = z.object({
+  refreshToken: z.string().min(10).max(1000),
+});
+
 // ─── Type Exports ───────────────────────────────────────────────
 
+export type RegisterUserInput = z.infer<typeof registerUserSchema>;
+export type LoginUserInput = z.infer<typeof loginUserSchema>;
+export type RefreshTokenInput = z.infer<typeof refreshTokenSchema>;
 export type CreatePatientInput = z.infer<typeof createPatientSchema>;
 export type UpdatePatientInput = z.infer<typeof updatePatientSchema>;
 export type FaceEmbeddingInput = z.infer<typeof faceEmbeddingSchema>;

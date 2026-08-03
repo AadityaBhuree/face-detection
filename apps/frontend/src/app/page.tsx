@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useSessionStore } from '@/stores/session-store';
 import { intakeApi } from '@/services/api';
+import { logger } from '@/lib/logger';
 import { Button } from '@/components/ui/button';
 import {
   Camera,
@@ -26,7 +27,7 @@ export default function HomePage() {
       setSessionId(session.id);
       router.push(`/intake/${session.id}`);
     } catch (err) {
-      console.error('Failed to start session:', err);
+      logger.error('Failed to start session', err);
     }
   }
 

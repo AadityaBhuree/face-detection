@@ -1,8 +1,10 @@
 import { Controller, Get, HttpException, HttpStatus } from '@nestjs/common';
+import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { SkipThrottle } from '@nestjs/throttler';
 import { Public } from '../../common/decorators/public.decorator';
 import { HealthService } from './health.service';
 
+@ApiTags('Health')
 @Controller('health')
 @Public()
 @SkipThrottle()
@@ -11,12 +13,21 @@ export class HealthController {
 
   /** Liveness probe — always returns 200 if the process is running */
   @Get('live')
+  @ApiOperation({
+    summary: 'Liveness probe',
+    description: 'Always 200 while the process is running. Excluded from rate limiting.',
+  })
   getLiveness() {
     return this.healthService.getLiveness();
   }
 
   /** Readiness probe — checks all critical dependencies (DB, Redis, Qdrant) */
   @Get('ready')
+  @ApiOperation({
+    summary: 'Readiness probe',
+    description:
+      'Checks PostgreSQL, Redis, and Qdrant. Returns 503 when any dependency is unhealthy.',
+  })
   async getReadiness() {
     const result = await this.healthService.getReadiness();
     if (result.status === 'unhealthy') {
@@ -27,6 +38,10 @@ export class HealthController {
 
   /** Overall health summary */
   @Get()
+  @ApiOperation({
+    summary: 'Overall health summary',
+    description: 'Aggregates liveness + dependency readiness into a single summary.',
+  })
   async getHealth() {
     const result = await this.healthService.getHealth();
     if (result.status === 'unhealthy') {

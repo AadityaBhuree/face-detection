@@ -10,6 +10,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
+import { setupSwagger } from './config/swagger.config';
 import helmet from 'helmet';
 
 async function bootstrap() {
@@ -54,6 +55,9 @@ async function bootstrap() {
 
   // ─── Graceful Shutdown ───────────────────────────────────────
   app.enableShutdownHooks();
+
+  // ─── Swagger / OpenAPI ────────────────────────────────────────
+  setupSwagger(app);
 
   await app.listen(port);
   logger.log(`Jeevandata API server running on http://localhost:${port}`);

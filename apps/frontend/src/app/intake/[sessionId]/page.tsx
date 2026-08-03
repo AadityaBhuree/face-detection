@@ -14,6 +14,7 @@ import { useMobileDetection } from '@/hooks/useMobileDetection';
 import { useLanguage } from '@/hooks/useLanguage';
 import { socketService } from '@/services/socket';
 import { cn } from '@/lib/utils';
+import { logger } from '@/lib/logger';
 import { DarkModeToggle } from '@/components/ui/dark-mode-toggle';
 import { LanguageSelector } from '@/components/ui/language-selector';
 import { TranscriptView } from '@/components/intake/transcript-view';
@@ -209,7 +210,7 @@ export default function IntakeSessionPage() {
             face.setEmbedding(emb);
           }
         } catch (err) {
-          console.error('Identity search failed:', err);
+          logger.error('Identity search failed', err);
           face.setError('Face identification failed. Please try again.');
           registrationAttemptedRef.current = false;
         }

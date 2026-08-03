@@ -1,10 +1,12 @@
 import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
+import { ApiTags, ApiOperation } from '@nestjs/swagger';
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires runtime value import
 import { PmsService } from './pms.service';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { Public } from '../../common/decorators/public.decorator';
 import { pmsSyncSchema, type PmsSyncInput } from '@jeevandata/shared-schemas';
 
+@ApiTags('PMS Sync')
 @Controller('sync')
 @Public()
 export class PmsController {
@@ -12,6 +14,11 @@ export class PmsController {
 
   @Post('pms')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Push intake data to the PMS/EMR',
+    description:
+      'Synchronizes an intake record to the connected EMR via the FHIR or custom adapter (retry with backoff).',
+  })
   async syncToPms(
     @Body(new ZodValidationPipe(pmsSyncSchema))
     data: PmsSyncInput,
@@ -21,6 +28,11 @@ export class PmsController {
 
   @Post('patient-context')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Load patient context from the PMS',
+    description:
+      'Pulls patient history/medications into the read-through cache for offline resilience.',
+  })
   async loadPatientContext(@Body() data: { patientId: string }) {
     return this.pmsService.loadPatientContext(data.patientId);
   }

@@ -1,12 +1,15 @@
-import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
-import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiSecurity } from '@nestjs/swagger';
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires runtime value import
 import { PmsService } from './pms.service';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { Public } from '../../common/decorators/public.decorator';
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires runtime value import
+import { ApiKeyGuard } from '../../common/guards/api-key.guard';
 import { pmsSyncSchema, type PmsSyncInput } from '@jeevandata/shared-schemas';
 
 @ApiTags('PMS Sync')
+@ApiSecurity('api-key')
 @Controller('sync')
 @Public()
 export class PmsController {
@@ -19,6 +22,7 @@ export class PmsController {
     description:
       'Synchronizes an intake record to the connected EMR via the FHIR or custom adapter (retry with backoff).',
   })
+  @UseGuards(ApiKeyGuard)
   async syncToPms(
     @Body(new ZodValidationPipe(pmsSyncSchema))
     data: PmsSyncInput,
@@ -33,6 +37,7 @@ export class PmsController {
     description:
       'Pulls patient history/medications into the read-through cache for offline resilience.',
   })
+  @UseGuards(ApiKeyGuard)
   async loadPatientContext(@Body() data: { patientId: string }) {
     return this.pmsService.loadPatientContext(data.patientId);
   }

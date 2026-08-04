@@ -44,6 +44,17 @@ export function setupSwagger(app: INestApplication): void {
     .addTag('Transcription', 'Whisper speech-to-text transcription')
     .addTag('PMS Sync', 'EMR/PMS synchronization & patient context')
     .addTag('Health', 'Liveness, readiness & overall health checks')
+    .addTag('API Keys', 'External integration keys (ADMIN/SYSTEM)')
+    .addTag('Clinics', 'Clinic multi-tenancy management (ADMIN/SYSTEM)')
+    .addApiKey(
+      {
+        type: 'apiKey',
+        in: 'header',
+        name: 'X-API-Key',
+        description: 'API key for external integrations (PMS sync)',
+      },
+      'api-key',
+    )
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

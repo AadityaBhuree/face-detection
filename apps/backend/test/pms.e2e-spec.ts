@@ -1,16 +1,37 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { type INestApplication, ValidationPipe, Logger } from '@nestjs/common';
+import {
+  type INestApplication,
+  ValidationPipe,
+  Logger,
+  UnauthorizedException,
+} from '@nestjs/common';
 import request from 'supertest';
 import { ConfigModule } from '@nestjs/config';
 import { PmsModule } from '../src/modules/pms/pms.module';
 import { PmsService } from '../src/modules/pms/pms.service';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { ApiKeyService } from '../src/modules/api-keys/api-keys.service';
 
-// ─── Mock Service ──────────────────────────────────────────────
+// ─── Mock Services ─────────────────────────────────────────────
 
 const mockPmsService = {
   syncToPms: jest.fn(),
   loadPatientContext: jest.fn(),
+};
+
+// ApiKeyService is injected into ApiKeyGuard, which protects the
+// sync endpoints. A mock lets the HTTP layer exercise the guard.
+const mockApiKeyService = {
+  validateKey: jest.fn(),
+};
+
+const VALID_API_KEY = 'test-api-key-123456789';
+
+const validKeyResult = {
+  id: '880e8400-e29b-41d4-a716-446655440003',
+  name: 'test-pms',
+  prefix: 'jk_testapi',
+  clinicId: null,
 };
 
 // ─── Test Data ──────────────────────────────────────────────────
@@ -51,6 +72,7 @@ describe('PmsController (E2E)', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockApiKeyService.validateKey.mockResolvedValue(validKeyResult);
   });
 
   // ─── Helper: create Nest app ───────────────────────────────────
@@ -60,15 +82,15 @@ describe('PmsController (E2E)', () => {
 
   async function createApp(): Promise<INestApplication> {
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [
-        ConfigModule.forRoot({ isGlobal: true, ignoreEnvFile: true }),
-        PmsModule,
-      ],
+      imports: [ConfigModule.forRoot({ isGlobal: true, ignoreEnvFile: true }), PmsModule],
     })
       .overrideProvider(PrismaService)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Prisma mock
       .useValue({} as any)
       .overrideProvider(PmsService)
       .useValue(mockPmsService)
+      .overrideProvider(ApiKeyService)
+      .useValue(mockApiKeyService)
       .compile();
 
     const app = moduleFixture.createNestApplication();
@@ -102,6 +124,7 @@ describe('PmsController (E2E)', () => {
 
       const res = await request(app.getHttpServer())
         .post('/sync/pms')
+        .set('X-API-Key', VALID_API_KEY)
         .send(validPayload)
         .expect(200);
 
@@ -115,6 +138,7 @@ describe('PmsController (E2E)', () => {
 
       const res = await request(app.getHttpServer())
         .post('/sync/pms')
+        .set('X-API-Key', VALID_API_KEY)
         .send({ ...validPayload, targetSystem: 'hl7_fhir' })
         .expect(200);
 
@@ -129,6 +153,7 @@ describe('PmsController (E2E)', () => {
 
       await request(app.getHttpServer())
         .post('/sync/pms')
+        .set('X-API-Key', VALID_API_KEY)
         .send(validPayload)
         .expect(200);
 
@@ -141,6 +166,7 @@ describe('PmsController (E2E)', () => {
       const { sessionId: _, ...rest } = validPayload;
       await request(app.getHttpServer())
         .post('/sync/pms')
+        .set('X-API-Key', VALID_API_KEY)
         .send(rest)
         .expect(400);
     });
@@ -149,6 +175,7 @@ describe('PmsController (E2E)', () => {
       const { patientId: _, ...rest } = validPayload;
       await request(app.getHttpServer())
         .post('/sync/pms')
+        .set('X-API-Key', VALID_API_KEY)
         .send(rest)
         .expect(400);
     });
@@ -157,6 +184,7 @@ describe('PmsController (E2E)', () => {
       const { intakeRecordId: _, ...rest } = validPayload;
       await request(app.getHttpServer())
         .post('/sync/pms')
+        .set('X-API-Key', VALID_API_KEY)
         .send(rest)
         .expect(400);
     });
@@ -164,6 +192,7 @@ describe('PmsController (E2E)', () => {
     it('should reject invalid UUID for sessionId', async () => {
       await request(app.getHttpServer())
         .post('/sync/pms')
+        .set('X-API-Key', VALID_API_KEY)
         .send({ ...validPayload, sessionId: 'not-a-uuid' })
         .expect(400);
     });
@@ -171,6 +200,7 @@ describe('PmsController (E2E)', () => {
     it('should reject invalid UUID for patientId', async () => {
       await request(app.getHttpServer())
         .post('/sync/pms')
+        .set('X-API-Key', VALID_API_KEY)
         .send({ ...validPayload, patientId: 'bad-uuid' })
         .expect(400);
     });
@@ -178,19 +208,33 @@ describe('PmsController (E2E)', () => {
     it('should reject invalid targetSystem enum value', async () => {
       await request(app.getHttpServer())
         .post('/sync/pms')
+        .set('X-API-Key', VALID_API_KEY)
         .send({ ...validPayload, targetSystem: 'invalid-system' })
         .expect(400);
     });
 
     it('should propagate service errors as 500', async () => {
-      mockPmsService.syncToPms.mockRejectedValue(
-        new Error('PMS connection failed'),
-      );
+      mockPmsService.syncToPms.mockRejectedValue(new Error('PMS connection failed'));
 
       await request(app.getHttpServer())
         .post('/sync/pms')
+        .set('X-API-Key', VALID_API_KEY)
         .send(validPayload)
         .expect(500);
+    });
+
+    it('should return 401 without an API key', async () => {
+      await request(app.getHttpServer()).post('/sync/pms').send(validPayload).expect(401);
+    });
+
+    it('should return 401 for an invalid API key', async () => {
+      mockApiKeyService.validateKey.mockRejectedValue(new UnauthorizedException('Invalid API key'));
+
+      await request(app.getHttpServer())
+        .post('/sync/pms')
+        .set('X-API-Key', 'invalid-key')
+        .send(validPayload)
+        .expect(401);
     });
   });
 
@@ -202,6 +246,7 @@ describe('PmsController (E2E)', () => {
 
       const res = await request(app.getHttpServer())
         .post('/sync/patient-context')
+        .set('X-API-Key', VALID_API_KEY)
         .send({ patientId: validPatientId })
         .expect(200);
 
@@ -219,6 +264,7 @@ describe('PmsController (E2E)', () => {
       // returns null directly which becomes {} through the serialization pipeline.
       await request(app.getHttpServer())
         .post('/sync/patient-context')
+        .set('X-API-Key', VALID_API_KEY)
         .send({ patientId: '00000000-0000-0000-0000-000000000000' })
         .expect(200);
 
@@ -228,14 +274,20 @@ describe('PmsController (E2E)', () => {
     });
 
     it('should propagate service errors as 500', async () => {
-      mockPmsService.loadPatientContext.mockRejectedValue(
-        new Error('Database unavailable'),
-      );
+      mockPmsService.loadPatientContext.mockRejectedValue(new Error('Database unavailable'));
 
       await request(app.getHttpServer())
         .post('/sync/patient-context')
+        .set('X-API-Key', VALID_API_KEY)
         .send({ patientId: validPatientId })
         .expect(500);
+    });
+
+    it('should return 401 without an API key', async () => {
+      await request(app.getHttpServer())
+        .post('/sync/patient-context')
+        .send({ patientId: validPatientId })
+        .expect(401);
     });
   });
 });

@@ -1,5 +1,6 @@
 import { io, type Socket } from 'socket.io-client';
 import { WS_BASE_URL } from '@/lib/utils';
+import { logger } from '@/lib/logger';
 
 class SocketService {
   private socket: Socket | null = null;
@@ -20,15 +21,15 @@ class SocketService {
     });
 
     this.socket.on('connect', () => {
-      console.log('[Socket] Connected:', this.socket?.id);
+      logger.info('Socket connected', { socketId: this.socket?.id });
     });
 
     this.socket.on('disconnect', (reason) => {
-      console.log('[Socket] Disconnected:', reason);
+      logger.info('Socket disconnected', { reason });
     });
 
     this.socket.on('connect_error', (error) => {
-      console.error('[Socket] Connection error:', error.message);
+      logger.error('Socket connection error', error, { socketId: this.socket?.id });
     });
 
     // Re-attach all registered listeners
@@ -58,9 +59,7 @@ class SocketService {
     return this.on('session:status', callback);
   }
 
-  onTranscriptChunk(
-    callback: (data: { text: string; isFinal: boolean }) => void,
-  ): () => void {
+  onTranscriptChunk(callback: (data: { text: string; isFinal: boolean }) => void): () => void {
     return this.on('transcript:chunk', callback);
   }
 
@@ -68,18 +67,12 @@ class SocketService {
     return this.on('brief:ready', callback);
   }
 
-  onFaceMatched(
-    callback: (data: { patientId: string; patientName: string }) => void,
-  ): () => void {
+  onFaceMatched(callback: (data: { patientId: string; patientName: string }) => void): () => void {
     return this.on('face:matched', callback);
   }
 
   /** Send a conversation turn (patient or AI message) via WebSocket */
-  sendConversationTurn(
-    sessionId: string,
-    speaker: 'patient' | 'ai',
-    text: string,
-  ): void {
+  sendConversationTurn(sessionId: string, speaker: 'patient' | 'ai', text: string): void {
     this.socket?.emit('conversation:turn', {
       sessionId,
       speaker,
@@ -89,12 +82,7 @@ class SocketService {
   }
 
   /** Send an audio chunk for Whisper transcription */
-  sendAudioChunk(
-    sessionId: string,
-    data: ArrayBuffer,
-    chunkIndex: number,
-    isFinal: boolean,
-  ): void {
+  sendAudioChunk(sessionId: string, data: ArrayBuffer, chunkIndex: number, isFinal: boolean): void {
     this.socket?.emit('audio:chunk', {
       sessionId,
       data,
@@ -114,16 +102,17 @@ class SocketService {
     return this.on('error', callback);
   }
 
-  private on(event: string, callback: (...args: unknown[]) => void): () => void {
+  private on<T>(event: string, callback: (data: T) => void): () => void {
+    const wrapped = callback as (...args: unknown[]) => void;
     if (!this.listeners.has(event)) {
       this.listeners.set(event, new Set());
     }
-    this.listeners.get(event)!.add(callback);
-    this.socket?.on(event, callback);
+    this.listeners.get(event)!.add(wrapped);
+    this.socket?.on(event, wrapped);
 
     return () => {
-      this.listeners.get(event)?.delete(callback);
-      this.socket?.off(event, callback);
+      this.listeners.get(event)?.delete(wrapped);
+      this.socket?.off(event, wrapped);
     };
   }
 }

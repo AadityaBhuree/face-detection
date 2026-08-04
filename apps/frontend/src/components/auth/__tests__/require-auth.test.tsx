@@ -29,6 +29,14 @@ const doctorUser = {
   clinicId: null,
 };
 
+const receptionistUser = {
+  id: 'u2',
+  email: 'reception@jeevandata.com',
+  name: 'Sita Verma',
+  role: UserRole.RECEPTIONIST,
+  clinicId: null,
+};
+
 beforeEach(() => {
   vi.clearAllMocks();
   replaceMock.mockClear();
@@ -98,5 +106,75 @@ describe('RequireAuth', () => {
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: /secret dashboard/i })).toBeInTheDocument();
     });
+  });
+});
+
+describe('RequireAuth — role-based access control', () => {
+  it('renders children when the user role is in allowedRoles', () => {
+    useAuthStore.getState().setSession({ accessToken: 'a', refreshToken: 'r' }, doctorUser);
+
+    render(
+      <RequireAuth allowedRoles={[UserRole.DOCTOR, UserRole.RECEPTIONIST]}>
+        <h1>Doctor panel</h1>
+      </RequireAuth>,
+    );
+
+    expect(screen.getByRole('heading', { name: /doctor panel/i })).toBeInTheDocument();
+    expect(replaceMock).not.toHaveBeenCalled();
+  });
+
+  it('shows the access-denied view when the role is not allowed', () => {
+    useAuthStore.getState().setSession({ accessToken: 'a', refreshToken: 'r' }, receptionistUser);
+
+    render(
+      <RequireAuth allowedRoles={[UserRole.DOCTOR]}>
+        <h1>Doctor panel</h1>
+      </RequireAuth>,
+    );
+
+    expect(screen.getByRole('alert', { name: /access denied/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /access denied/i })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /doctor panel/i })).not.toBeInTheDocument();
+    expect(replaceMock).not.toHaveBeenCalled();
+  });
+
+  it('does not call the logout or redirect on denied users', () => {
+    useAuthStore.getState().setSession({ accessToken: 'a', refreshToken: 'r' }, receptionistUser);
+
+    render(
+      <RequireAuth allowedRoles={[UserRole.DOCTOR]}>
+        <h1>Doctor panel</h1>
+      </RequireAuth>,
+    );
+
+    expect(screen.getByRole('alert')).toBeInTheDocument();
+    expect(useAuthStore.getState().isAuthenticated).toBe(true);
+  });
+
+  it('redirects to deniedRedirectTo when a denied role is provided one', async () => {
+    useAuthStore.getState().setSession({ accessToken: 'a', refreshToken: 'r' }, receptionistUser);
+
+    render(
+      <RequireAuth allowedRoles={[UserRole.DOCTOR]} deniedRedirectTo="/dashboard">
+        <h1>Doctor panel</h1>
+      </RequireAuth>,
+    );
+
+    await waitFor(() => {
+      expect(replaceMock).toHaveBeenCalledWith('/dashboard');
+    });
+  });
+
+  it('treats missing allowedRoles as allow-any-authenticated', () => {
+    useAuthStore.getState().setSession({ accessToken: 'a', refreshToken: 'r' }, receptionistUser);
+
+    render(
+      <RequireAuth>
+        <h1>Any staff area</h1>
+      </RequireAuth>,
+    );
+
+    expect(screen.getByRole('heading', { name: /any staff area/i })).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 });

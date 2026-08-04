@@ -105,7 +105,7 @@ Session timeout worker covered via `SessionService` specs (stale-session → TIM
 
 ---
 
-## Phase 3 — Backend Production Hardening 🔶 (3 steps remain)
+## Phase 3 — Backend Production Hardening ✅ (complete)
 
 > **Goal:** Fill remaining backend gaps: PMS sync, audit wiring, health checks, structured logging, and configuration validation.
 
@@ -132,28 +132,32 @@ Session timeout worker covered via `SessionService` specs (stale-session → TIM
 
 `health.service.spec.ts`, `dashboard.service.spec.ts`, `pms.service.spec.ts` — closes the 0% coverage gaps.
 
-### Step 3.5 — Add configuration validation ⬜
+### Step 3.4b — Unit tests for security-critical infrastructure ✅
+
+`jwt-auth.guard.spec.ts`, `roles.guard.spec.ts`, `zod-validation.pipe.spec.ts`, `http-exception.filter.spec.ts` — 31 tests covering the authz/validation/error-path layer.
+
+### Step 3.5 — Add configuration validation ✅
 
 Validate all critical env vars at startup (both backend and frontend):
 
-- Backend: Add `config/validation.schema.ts` using Zod to validate ALL env vars on bootstrap
-- Frontend: Add `lib/env.ts` that validates `NEXT_PUBLIC_*` vars at build time
-- Fail fast with clear error messages listing which vars are missing
+- Backend: `config/validation.schema.ts` (Zod) validates all env vars on bootstrap
+- Frontend: `lib/env.ts` validates `NEXT_PUBLIC_*` vars, fails fast in production builds
+- Verified: `validation.schema.spec.ts` + `lib/__tests__/env.test.ts`
 
-**Est. effort:** 1h
+### Step 3.6 — API documentation with Swagger/OpenAPI ✅
 
-### Step 3.6 — API documentation with Swagger/OpenAPI ⬜
-
-- Add `@nestjs/swagger` dependency
-- Decorate controllers/DTOs with Swagger decorators
-- Host at `/api/docs` in development; add bearer auth support to Swagger UI
+- `@nestjs/swagger` + `swagger-ui-express` installed
+- `config/swagger.config.ts` — DocumentBuilder + bearer auth + tags, wired in `main.ts`
+- All 8 controllers decorated with `@ApiTags`/`@ApiOperation`; JWT routes get `@ApiBearerAuth`; face DTOs get `@ApiProperty`
+- Hosted at `/api/docs` (disabled in production unless `SWAGGER_ENABLED=true`)
 
 **Est. effort:** 2h
 
-### Step 3.7 — Frontend structured logger ⬜
+### Step 3.7 — Frontend structured logger ✅
 
-- Create `frontend/src/lib/logger.ts` (console in dev, respects `NEXT_PUBLIC_LOG_LEVEL`, structured context, no debug in prod)
-- Remove/suppress stray `console.error` calls in intake page
+- `frontend/src/lib/logger.ts` — level filtering via `NEXT_PUBLIC_LOG_LEVEL`, no debug in prod, Error/context serialization
+- All stray `console.*` calls replaced (page.tsx, intake page, useFaceDetection, socket.ts)
+- `lib/__tests__/logger.test.ts` — 7 tests; also fixed 7 pre-existing frontend typecheck errors
 
 **Est. effort:** 1.5h
 

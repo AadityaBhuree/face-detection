@@ -14,6 +14,7 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { SessionModule } from './modules/session/session.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { PmsModule } from './modules/pms/pms.module';
+import { ApiKeysModule } from './modules/api-keys/api-keys.module';
 import { TranscriptionModule } from './modules/transcription/transcription.module';
 import { HealthModule } from './modules/health/health.module';
 import { OpenTelemetryModule } from './modules/opentelemetry/opentelemetry.module';
@@ -74,6 +75,7 @@ import { validateEnv } from './config/validation.schema';
     SessionModule,
     AuditModule,
     PmsModule,
+    ApiKeysModule,
     TranscriptionModule,
 
     // ─── Rate Limiting Guard ───────────────────────────────────┐

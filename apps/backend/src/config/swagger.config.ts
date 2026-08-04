@@ -46,6 +46,7 @@ export function setupSwagger(app: INestApplication): void {
     .addTag('Health', 'Liveness, readiness & overall health checks')
     .addTag('API Keys', 'External integration keys (ADMIN/SYSTEM)')
     .addTag('Clinics', 'Clinic multi-tenancy management (ADMIN/SYSTEM)')
+    .addTag('Analytics', 'Admin analytics: KPIs, volume, peak hours, flow board (ADMIN/SYSTEM)')
     .addApiKey(
       {
         type: 'apiKey',

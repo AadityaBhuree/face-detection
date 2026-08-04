@@ -43,10 +43,7 @@ function createVideoElement(currentTime = 0): HTMLVideoElement {
   return el;
 }
 
-function createFaceDetectionResult(options?: {
-  hasLandmarks?: boolean;
-  numFaces?: number;
-}) {
+function createFaceDetectionResult(options?: { hasLandmarks?: boolean; numFaces?: number }) {
   const { hasLandmarks = true, numFaces = 1 } = options ?? {};
 
   if (!hasLandmarks) {
@@ -217,20 +214,68 @@ describe('useFaceDetection', () => {
   describe('startDetection / stopDetection', () => {
     it('should return error if called before model is ready', () => {
       // Keep init unresolved so landmarker is null
-      mockForVisionTasks.mockImplementation(
-        () => new Promise(() => {}),
-      );
+      mockForVisionTasks.mockImplementation(() => new Promise(() => {}));
 
-      const { result } = renderHook(() => useFaceDetection());
+      const { result } = renderHook(() => useFaceDetection({ autoStart: false }));
       const videoEl = createVideoElement(0);
 
       act(() => {
         result.current.startDetection(videoEl);
       });
 
-      expect(result.current.error).toBe(
-        'Face detection model not loaded yet. Please wait.',
+      expect(result.current.error).toBe('Face detection model not loaded yet. Please wait.');
+    });
+
+    it('should queue the video and auto-start once the model loads (autoStart default true)', async () => {
+      // Deferred FilesetResolver so we control when the model finishes loading
+      let resolveVision!: (v: unknown) => void;
+      mockForVisionTasks.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            resolveVision = resolve;
+          }),
       );
+
+      const { result } = renderHook(() => useFaceDetection());
+      const videoEl = createVideoElement(0);
+
+      // Camera activates before the model is ready — queued, not an error
+      act(() => {
+        result.current.startDetection(videoEl);
+      });
+      expect(result.current.error).toBeNull();
+
+      mockLandmarker.detectForVideo.mockReturnValue(createFaceDetectionResult());
+
+      // Model finishes loading
+      await act(async () => {
+        resolveVision({});
+        await Promise.resolve();
+      });
+
+      // Detection auto-started on the queued video
+      await act(async () => {
+        await vi.waitFor(() => {
+          expect(mockLandmarker.detectForVideo).toHaveBeenCalledTimes(1);
+        });
+      });
+
+      expect(result.current.isFaceDetected).toBe(true);
+    });
+
+    it('should NOT auto-start queued video when autoStart is false', () => {
+      mockForVisionTasks.mockImplementation(() => new Promise(() => {}));
+
+      const { result } = renderHook(() => useFaceDetection({ autoStart: false }));
+      const videoEl = createVideoElement(0);
+
+      act(() => {
+        result.current.startDetection(videoEl);
+      });
+
+      // Immediate error, no queuing
+      expect(result.current.error).toBe('Face detection model not loaded yet. Please wait.');
+      expect(result.current.isFaceDetected).toBe(false);
     });
 
     it('should start detection loop after init completes', async () => {
@@ -410,9 +455,7 @@ describe('useFaceDetection', () => {
       });
 
       const videoEl = createVideoElement(0.04);
-      mockLandmarker.detectForVideo.mockReturnValue(
-        createFaceDetectionResult(),
-      );
+      mockLandmarker.detectForVideo.mockReturnValue(createFaceDetectionResult());
 
       // startDetection calls detectLoop synchronously — runs frame 1
       act(() => {
@@ -445,9 +488,7 @@ describe('useFaceDetection', () => {
       });
 
       const videoEl = createVideoElement(0);
-      mockLandmarker.detectForVideo.mockReturnValue(
-        createFaceDetectionResult(),
-      );
+      mockLandmarker.detectForVideo.mockReturnValue(createFaceDetectionResult());
 
       act(() => {
         result.current.startDetection(videoEl);
@@ -471,9 +512,7 @@ describe('useFaceDetection', () => {
     });
 
     it('should not crash when detectForVideo throws', async () => {
-      const consoleWarnSpy = vi
-        .spyOn(globalThis.console, 'warn')
-        .mockImplementation(() => {});
+      const consoleWarnSpy = vi.spyOn(globalThis.console, 'warn').mockImplementation(() => {});
 
       const { result } = renderHook(() => useFaceDetection());
 
@@ -491,10 +530,7 @@ describe('useFaceDetection', () => {
       });
 
       // detectLoop runs synchronously inside startDetection, catches error
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        'Face detection error:',
-        expect.any(Error),
-      );
+      expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('Face detection error'));
       expect(result.current.result).toBeNull();
       expect(result.current.isFaceDetected).toBe(false);
       expect(mockLandmarker.detectForVideo).toHaveBeenCalledTimes(1);
@@ -503,18 +539,14 @@ describe('useFaceDetection', () => {
     });
 
     it('should handle multiple faces when configured', async () => {
-      const { result } = renderHook(() =>
-        useFaceDetection({ numFaces: 2 }),
-      );
+      const { result } = renderHook(() => useFaceDetection({ numFaces: 2 }));
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
       });
 
       const videoEl = createVideoElement(0);
-      mockLandmarker.detectForVideo.mockReturnValue(
-        createFaceDetectionResult({ numFaces: 2 }),
-      );
+      mockLandmarker.detectForVideo.mockReturnValue(createFaceDetectionResult({ numFaces: 2 }));
 
       act(() => {
         result.current.startDetection(videoEl);

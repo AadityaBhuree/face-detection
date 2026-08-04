@@ -6,6 +6,8 @@ interface RequestOptions {
   body?: unknown;
   headers?: Record<string, string>;
   params?: Record<string, string | number | undefined>;
+  /** 'json' (default) parses response.data; 'text' returns the raw body. */
+  responseType?: 'json' | 'text';
 }
 
 class ApiError extends Error {
@@ -25,7 +27,7 @@ async function request<T>(
   options: RequestOptions = {},
   retryOn401 = true,
 ): Promise<T> {
-  const { method = 'GET', body, headers = {}, params } = options;
+  const { method = 'GET', body, headers = {}, params, responseType = 'json' } = options;
 
   let url = `${API_BASE_URL}${endpoint}`;
 
@@ -58,6 +60,14 @@ async function request<T>(
     if (refreshed) {
       return request<T>(endpoint, options, false);
     }
+  }
+
+  if (responseType === 'text') {
+    const text = await response.text();
+    if (!response.ok) {
+      throw new ApiError(response.status, 'HTTP_ERROR', text || 'An error occurred');
+    }
+    return text as T;
   }
 
   const json = await response.json();
@@ -265,21 +275,10 @@ export const analyticsApi = {
 
   getFlow: () => request<{ total: number; stages: FlowStage[] }>('/analytics/flow'),
 
-  /** Fetch the CSV as raw text (the export endpoint returns text/csv, not JSON). */
-  fetchCsv: async (days = 30): Promise<string> => {
-    const accessToken = useAuthStore.getState().accessToken;
-    const response = await fetch(`${API_BASE_URL}/analytics/export?days=${days}`, {
-      headers: {
-        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-      },
-    });
-
-    if (!response.ok) {
-      throw new ApiError(response.status, 'CSV_EXPORT_FAILED', 'Failed to export analytics');
-    }
-
-    return response.text();
-  },
+  /** Fetch the CSV as raw text (text/csv — routed through the shared request
+   *  helper so Bearer auth and refresh-on-401 behave like every other call). */
+  fetchCsv: (days = 30) =>
+    request<string>('/analytics/export', { params: { days }, responseType: 'text' }),
 };
 
 // ─── Auth API ──────────────────────────────────────────────────

@@ -115,6 +115,36 @@ describe('AnalyticsService', () => {
       );
     });
 
+    it('scopes the brief count through the session clinic when clinicId is set', async () => {
+      mockPrisma.intakeSession.findMany.mockResolvedValue([]);
+
+      await service.getOverview(30, 'clinic-1');
+
+      expect(mockPrisma.intakeRecord.count).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            session: { clinicId: 'clinic-1' },
+          }),
+        }),
+      );
+    });
+
+    it('keeps the brief count global when no clinic filter is set', async () => {
+      mockPrisma.intakeSession.findMany.mockResolvedValue([]);
+
+      await service.getOverview(30);
+
+      expect(mockPrisma.intakeRecord.count).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            generatedAt: { gte: expect.any(Date) },
+          }),
+        }),
+      );
+      const callWhere = mockPrisma.intakeRecord.count.mock.calls[0][0].where;
+      expect(callWhere).not.toHaveProperty('session');
+    });
+
     it('logs an audit event', async () => {
       await service.getOverview(30);
 
@@ -146,8 +176,10 @@ describe('AnalyticsService', () => {
       const result = await service.getVolume(7);
 
       expect(result.data.reduce((sum, d) => sum + d.count, 0)).toBe(2);
-      const today = new Date().toISOString().slice(0, 10);
-      const yesterday = new Date(Date.now() - 24 * 3600000).toISOString().slice(0, 10);
+      const dayKey = (d: Date) =>
+        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const today = dayKey(new Date());
+      const yesterday = dayKey(new Date(Date.now() - 24 * 3600000));
       expect(result.data.find((d) => d.date === today)!.count).toBe(1);
       expect(result.data.find((d) => d.date === yesterday)!.count).toBe(1);
     });
@@ -254,7 +286,7 @@ describe('AnalyticsService', () => {
       const lines = csv.trim().split('\n');
       expect(lines).toHaveLength(8); // header + 7 days
       // The two sessions landed on today's bucket (the last data row).
-      const today = new Date().toISOString().slice(0, 10);
+      const today = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`;
       expect(lines[7]).toBe(`${today},2`);
     });
 

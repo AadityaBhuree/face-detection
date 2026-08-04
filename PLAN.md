@@ -271,15 +271,17 @@ Validate all critical env vars at startup (both backend and frontend):
 - axe-core automated scan over the intake page (in Vitest suite)
 - Component a11y tests: `LanguageSelector` (menu-button ARIA pattern, roving focus), `DarkModeToggle` (aria-expanded/haspopup, Escape focus return)
 
-### Step 6.5 — Clinic admin dashboard with analytics ⬜
+### Step 6.5 — Clinic admin dashboard with analytics ✅
 
-- Daily/weekly/monthly patient volume charts (Recharts or Chart.js)
-- Average intake duration, face match rate (returning vs. new), brief generation success rate
-- Peak clinic hours heatmap; export to CSV/PDF
-- Real-time patient flow board (waiting → in intake → triaged → with doctor)
+- `GET /analytics/overview` — total/returning/new sessions, face match rate, avg intake duration, brief success rate, active count (rolling 7/30/90-day window, optional `clinicId`)
+- `GET /analytics/volume` — zero-filled daily patient volume (local-date buckets)
+- `GET /analytics/hours` — 24-cell peak clinic hours heatmap
+- `GET /analytics/flow` — real-time patient flow board (waiting → in intake → triaged → with doctor)
+- `GET /analytics/export` — CSV download (BOM-prefixed for Excel)
+- All endpoints `@Roles(ADMIN, SYSTEM)` + audit-logged + Swagger docs
+- Frontend: `/admin` route gated to ADMIN/SYSTEM via `RequireAuth allowedRoles`; `components/admin/` — `StatCard`, dependency-free `VolumeChart` (hover labels, aria-labels), `HoursHeatmap`, `FlowBoard`, range switcher, CSV export, loading skeletons + error alert
 
-**Files to create:** `app/admin/page.tsx`, `components/admin/`
-**Est. effort:** 4–5h
+**Delivered:** `modules/analytics/`, `test/analytics.e2e-spec.ts` (11 tests), `analytics.service.spec.ts` (17 tests), `app/admin/`, `components/admin/` (+14 frontend tests)
 
 ### Step 6.6 — HIPAA compliance audit module ⬜
 

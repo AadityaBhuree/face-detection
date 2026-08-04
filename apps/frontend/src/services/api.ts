@@ -281,6 +281,79 @@ export const analyticsApi = {
     request<string>('/analytics/export', { params: { days }, responseType: 'text' }),
 };
 
+// ─── Clinics API (ADMIN/SYSTEM) ───────────────────────────────
+
+export interface Clinic {
+  id: string;
+  name: string;
+  code: string;
+  address: string | null;
+  phone: string | null;
+  email: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const clinicsApi = {
+  list: (page = 1, limit = 50) =>
+    request<{ data: Clinic[]; pagination: Record<string, unknown> }>('/clinics', {
+      params: { page, limit },
+    }),
+
+  getById: (id: string) => request<Clinic>(`/clinics/${id}`),
+
+  create: (data: {
+    name: string;
+    code: string;
+    address?: string;
+    phone?: string;
+    email?: string;
+  }) => request<Clinic>('/clinics', { method: 'POST', body: data }),
+
+  update: (
+    id: string,
+    data: Partial<{
+      name: string;
+      code: string;
+      address?: string | null;
+      phone?: string | null;
+      email?: string | null;
+    }>,
+  ) => request<Clinic>(`/clinics/${id}`, { method: 'PATCH', body: data }),
+
+  deactivate: (id: string) =>
+    request<{ success: boolean; message: string }>(`/clinics/${id}`, { method: 'DELETE' }),
+};
+
+// ─── API Keys API (ADMIN/SYSTEM) ──────────────────────────────
+
+export interface ApiKeyRecord {
+  id: string;
+  name: string;
+  prefix: string;
+  clinicId: string | null;
+  isActive: boolean;
+  lastUsedAt: string | null;
+  expiresAt: string | null;
+  createdAt: string;
+  revokedAt: string | null;
+}
+
+export interface CreatedApiKey extends ApiKeyRecord {
+  apiKey: string;
+}
+
+export const apiKeysApi = {
+  list: () => request<ApiKeyRecord[]>('/api-keys'),
+
+  create: (data: { name: string; clinicId?: string | null; expiresInDays?: number }) =>
+    request<CreatedApiKey>('/api-keys', { method: 'POST', body: data }),
+
+  revoke: (id: string) =>
+    request<{ success: boolean; message: string }>(`/api-keys/${id}`, { method: 'DELETE' }),
+};
+
 // ─── Auth API ──────────────────────────────────────────────────
 
 export const authApi = {

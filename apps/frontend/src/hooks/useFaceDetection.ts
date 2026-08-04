@@ -6,11 +6,12 @@ import {
   type FaceLandmarkerResult,
   FilesetResolver,
 } from '@mediapipe/tasks-vision';
+import { logger } from '@/lib/logger';
 
 export interface DetectionResult {
   landmarks: Array<{ x: number; y: number; z: number }>;
   blendshapes?: Array<{ categories: Array<{ categoryName: string; score: number }> }>;
-  faceMatrix?: Float32Array;
+  faceMatrix?: number[];
   detectionTimeMs: number;
 }
 
@@ -55,9 +56,7 @@ interface UseFaceDetectionReturn {
 const DEFAULT_MODEL_URL =
   'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task';
 
-export function useFaceDetection(
-  options: UseFaceDetectionOptions = {},
-): UseFaceDetectionReturn {
+export function useFaceDetection(options: UseFaceDetectionOptions = {}): UseFaceDetectionReturn {
   const {
     numFaces = 1,
     outputBlendshapes = false,
@@ -83,6 +82,7 @@ export function useFaceDetection(
   const frameCountRef = useRef(0);
   const lastFpsTimeRef = useRef(performance.now());
   const lastVideoTimeRef = useRef(-1);
+  const pendingStartRef = useRef<HTMLVideoElement | null>(null);
   const delegateRef = useRef<'GPU' | 'CPU'>(useCPUDelegate ? 'CPU' : 'GPU');
 
   // Initialize FaceLandmarker
@@ -99,31 +99,40 @@ export function useFaceDetection(
 
         const delegate = delegateRef.current;
 
-        faceLandmarkerRef.current = await FaceLandmarker.createFromOptions(
-          vision,
-          {
-            baseOptions: {
-              modelAssetPath,
-              delegate,
-            },
-            runningMode: 'VIDEO',
-            outputFaceBlendshapes: outputBlendshapes,
-            outputFacialTransformationMatrixes: outputFaceMatrix,
-            numFaces,
-            minFaceDetectionConfidence: minDetectionConfidence,
-            minTrackingConfidence: minTrackingConfidence,
+        faceLandmarkerRef.current = await FaceLandmarker.createFromOptions(vision, {
+          baseOptions: {
+            modelAssetPath,
+            delegate,
           },
-        );
+          runningMode: 'VIDEO',
+          outputFaceBlendshapes: outputBlendshapes,
+          outputFacialTransformationMatrixes: outputFaceMatrix,
+          numFaces,
+          minFaceDetectionConfidence: minDetectionConfidence,
+          minTrackingConfidence: minTrackingConfidence,
+        });
 
         setIsLoading(false);
+
+        // If a video element was queued while the model was loading,
+        // auto-start detection on it now that the model is ready.
+        if (autoStart && pendingStartRef.current) {
+          const queuedVideo = pendingStartRef.current;
+          pendingStartRef.current = null;
+          videoRef.current = queuedVideo;
+          isRunningRef.current = true;
+          lastVideoTimeRef.current = -1;
+          detectLoop();
+        }
       } catch (err) {
         if (mounted) {
           // If GPU delegate failed on mobile, recommend CPU fallback
-      const message = err instanceof Error ? err.message : 'MediaPipe initialization failed';
-      const suggestion = delegateRef.current === 'GPU' && useCPUDelegate === false
-        ? ' Try enabling CPU mode on mobile devices.'
-        : '';
-      setError(message + suggestion);
+          const message = err instanceof Error ? err.message : 'MediaPipe initialization failed';
+          const suggestion =
+            delegateRef.current === 'GPU' && useCPUDelegate === false
+              ? ' Try enabling CPU mode on mobile devices.'
+              : '';
+          setError(message + suggestion);
           setIsLoading(false);
         }
       }
@@ -151,13 +160,9 @@ export function useFaceDetection(
       lastVideoTimeRef.current = video.currentTime;
 
       try {
-        const detectionResult: FaceLandmarkerResult =
-          landmarker.detectForVideo(video, startTimeMs);
+        const detectionResult: FaceLandmarkerResult = landmarker.detectForVideo(video, startTimeMs);
 
-        if (
-          detectionResult.faceLandmarks &&
-          detectionResult.faceLandmarks.length > 0
-        ) {
+        if (detectionResult.faceLandmarks && detectionResult.faceLandmarks.length > 0) {
           const faceLandmarks = detectionResult.faceLandmarks[0]!;
 
           setResult({
@@ -167,8 +172,7 @@ export function useFaceDetection(
               z: lm.z ?? 0,
             })),
             blendshapes: detectionResult.faceBlendshapes,
-            faceMatrix:
-              detectionResult.facialTransformationMatrixes?.[0]?.data,
+            faceMatrix: detectionResult.facialTransformationMatrixes?.[0]?.data,
             detectionTimeMs: performance.now() - startTimeMs,
           });
 
@@ -180,7 +184,9 @@ export function useFaceDetection(
       } catch (detectErr) {
         // Silently skip failed detections (e.g., when video is paused)
         if (isRunningRef.current) {
-          console.warn('Face detection error:', detectErr);
+          logger.warn('Face detection error', {
+            detail: detectErr instanceof Error ? detectErr.message : String(detectErr),
+          });
         }
       }
 
@@ -201,21 +207,30 @@ export function useFaceDetection(
   const startDetection = useCallback(
     (videoElement: HTMLVideoElement) => {
       if (!faceLandmarkerRef.current) {
+        if (autoStart) {
+          // Queue the video element — detection auto-starts once the
+          // model finishes loading (avoids a permanent "not loaded"
+          // error when the camera activates before the model download).
+          pendingStartRef.current = videoElement;
+          return;
+        }
         setError('Face detection model not loaded yet. Please wait.');
         return;
       }
       if (isRunningRef.current) return;
 
+      pendingStartRef.current = null;
       videoRef.current = videoElement;
       isRunningRef.current = true;
       lastVideoTimeRef.current = -1;
       detectLoop();
     },
-    [detectLoop],
+    [detectLoop, autoStart],
   );
 
   const stopDetection = useCallback(() => {
     isRunningRef.current = false;
+    pendingStartRef.current = null;
     if (animFrameRef.current) {
       cancelAnimationFrame(animFrameRef.current);
       animFrameRef.current = 0;

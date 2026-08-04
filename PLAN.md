@@ -163,7 +163,7 @@ Validate all critical env vars at startup (both backend and frontend):
 
 ---
 
-## Phase 4 — Authentication & Multi-Tenancy 🔶 (in progress)
+## Phase 4 — Authentication & Multi-Tenancy ✅
 
 > **Goal:** Complete the auth system: login/register endpoints, API key management, role-based access control, clinic multi-tenancy, and frontend session/RBAC UI.
 
@@ -186,33 +186,33 @@ Validate all critical env vars at startup (both backend and frontend):
 
 **Delivered:** `common/guards/jwt-auth.guard.ts`, `common/guards/roles.guard.ts`, `common/decorators/*.ts` (+31 unit tests in Step 3.4b).
 
-### Step 4.2b — Apply RBAC to sensitive endpoints 🔶
+### Step 4.2b — Apply RBAC to sensitive endpoints ✅
 
 - `GET /dashboard/*` → `@Roles(DOCTOR, RECEPTIONIST)`; remove `@Public()`
 - `PATCH /brief/:id/review` → `@Roles(DOCTOR)` only
 - `POST /face/register-patient` → `@Roles(RECEPTIONIST, DOCTOR)`; kiosk endpoints (`search`, `search-with-details`, `embedding`) stay `@Public`
 - JWT payload + strategy now carry `clinicId`
 
-### Step 4.3 — API key authentication for external integrations 🔶
+### Step 4.3 — API key authentication for external integrations ✅
 
 - `ApiKeyGuard` validating `X-API-Key` header; `api_keys` table (SHA-256 hashed keys, prefix for identification)
 - API key management endpoints (ADMIN/SYSTEM): `POST /api-keys`, `GET /api-keys`, `DELETE /api-keys/:id`
 - `ApiKeyGuard` applied to `POST /sync/pms` + `POST /sync/patient-context`
 
-### Step 4.4 — Clinic multi-tenancy 🔶
+### Step 4.4 — Clinic multi-tenancy ✅
 
 - `Clinic` model + `clinicId` FK on `clinic_users`, `patients`, `intake_sessions`, `api_keys`
 - `ClinicsModule` CRUD (ADMIN/SYSTEM only) with audit logging
 - `clinicId` propagated through JWT payload, `GET /auth/profile`, and login response
 
-### Step 4.5 — Frontend login UI & session management 🔶
+### Step 4.5 — Frontend login UI & session management ✅
 
 - `/login` page with email/password form + client validation
 - Zustand `auth-store` (tokens + user in localStorage, hydrate on boot)
 - `api.ts` attaches `Authorization: Bearer` + single-attempt refresh on 401
 - `useAuth` hook; logout action in dashboard header
 
-### Step 4.6 — Frontend RBAC UI 🔶
+### Step 4.6 — Frontend RBAC UI ✅
 
 - `RequireAuth` route wrapper (redirect to `/login` when guest, access-denied when wrong role)
 - Role badge in header; hide doctor-only actions (e.g. Mark Reviewed) from RECEPTIONIST

@@ -25,8 +25,14 @@ const EMPTY_FORM: ClinicForm = { name: '', code: '', address: '', phone: '', ema
 function validate(form: ClinicForm): string | null {
   if (!form.name.trim()) return 'Name is required';
   if (!form.code.trim()) return 'Code is required';
-  if (!CODE_RE.test(form.code.trim())) {
-    return 'Code must be uppercase A-Z, 0-9, _ or -';
+  // Backend schema: /^[A-Z0-9_-]+$/ with min 2, max 20. Validate against the
+  // uppercased value (submission normalizes case) so lowercase input is accepted.
+  const code = form.code.trim().toUpperCase();
+  if (code.length < 2 || code.length > 20) {
+    return 'Code must be 2–20 characters';
+  }
+  if (!CODE_RE.test(code)) {
+    return 'Code may only contain A-Z, 0-9, _ or -';
   }
   if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
     return 'Enter a valid email address';

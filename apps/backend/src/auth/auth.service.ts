@@ -35,6 +35,7 @@ interface JwtPayload {
   email: string;
   role: UserRole;
   type: 'access' | 'refresh';
+  clinicId?: string;
 }
 
 @Injectable()
@@ -122,7 +123,12 @@ export class AuthService {
       data: { lastLoginAt: new Date() },
     });
 
-    const tokens = await this.issueTokens(user.id, user.email, user.role as UserRole);
+    const tokens = await this.issueTokens(
+      user.id,
+      user.email,
+      user.role as UserRole,
+      user.clinicId ?? undefined,
+    );
 
     await this.auditService.log({
       action: 'AUTH_USER_LOGIN',
@@ -181,7 +187,12 @@ export class AuthService {
       throw new UnauthorizedException('Refresh token has been revoked');
     }
 
-    const tokens = await this.issueTokens(user.id, user.email, user.role as UserRole);
+    const tokens = await this.issueTokens(
+      user.id,
+      user.email,
+      user.role as UserRole,
+      user.clinicId ?? undefined,
+    );
 
     await this.auditService.log({
       action: 'AUTH_TOKEN_REFRESHED',
@@ -221,12 +232,18 @@ export class AuthService {
   }
 
   // ─── Internals ───────────────────────────────────────────────
-  private async issueTokens(userId: string, email: string, role: UserRole): Promise<TokenPair> {
+  private async issueTokens(
+    userId: string,
+    email: string,
+    role: UserRole,
+    clinicId?: string,
+  ): Promise<TokenPair> {
     const accessPayload: JwtPayload = {
       sub: userId,
       email,
       role,
       type: 'access',
+      ...(clinicId ? { clinicId } : {}),
     };
 
     const accessToken = await this.jwtService.signAsync(accessPayload, {
@@ -238,6 +255,7 @@ export class AuthService {
       email,
       role,
       type: 'refresh',
+      ...(clinicId ? { clinicId } : {}),
     };
     const refreshToken = await this.jwtService.signAsync(refreshPayload, {
       secret: this.refreshSecret,

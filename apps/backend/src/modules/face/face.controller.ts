@@ -1,5 +1,5 @@
 import { Controller, Post, Body, Get, Param, HttpCode, HttpStatus } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiParam } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires runtime value import
 import { FaceService } from './face.service';
@@ -7,6 +7,8 @@ import { FaceService } from './face.service';
 import { FaceRegistrationService } from './face-registration.service';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { Public } from '../../common/decorators/public.decorator';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { UserRole } from '@jeevandata/shared-types';
 import {
   faceEmbeddingSchema,
   faceSearchQuerySchema,
@@ -17,14 +19,15 @@ import {
 import { RegisterPatientDto, SearchByFaceDto } from './dto/register-patient.dto';
 
 @ApiTags('Face')
+@ApiBearerAuth('access-token')
 @Controller('face')
-@Public()
 export class FaceController {
   constructor(
     private readonly faceService: FaceService,
     private readonly registrationService: FaceRegistrationService,
   ) {}
 
+  @Public()
   @Post('embedding')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
@@ -38,6 +41,7 @@ export class FaceController {
     return this.faceService.upsertEmbedding(data);
   }
 
+  @Public()
   @Post('search')
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   @HttpCode(HttpStatus.OK)
@@ -52,6 +56,7 @@ export class FaceController {
     return this.faceService.searchByFace(query);
   }
 
+  @Public()
   @Post('search-with-details')
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   @HttpCode(HttpStatus.OK)
@@ -65,6 +70,7 @@ export class FaceController {
   }
 
   @Post('register-patient')
+  @Roles(UserRole.RECEPTIONIST, UserRole.DOCTOR)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Register a new patient with a face embedding',
@@ -76,6 +82,7 @@ export class FaceController {
   }
 
   @Get(':patientId/embeddings')
+  @Roles(UserRole.RECEPTIONIST, UserRole.DOCTOR)
   @ApiOperation({
     summary: "List a patient's embeddings",
     description: 'Returns the embedding history (capturedAt timestamps) for a patient.',

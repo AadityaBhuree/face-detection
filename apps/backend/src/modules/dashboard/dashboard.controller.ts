@@ -1,9 +1,10 @@
 import { Controller, Get, Param, Query, Patch, HttpCode, HttpStatus } from '@nestjs/common';
-import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires runtime value import
 import { DashboardService } from './dashboard.service';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
-import { Public } from '../../common/decorators/public.decorator';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { UserRole } from '@jeevandata/shared-types';
 import {
   paginationQuerySchema,
   patientHistoryQuerySchema,
@@ -14,8 +15,9 @@ import {
 } from '@jeevandata/shared-schemas';
 
 @ApiTags('Dashboard')
+@ApiBearerAuth('access-token')
 @Controller()
-@Public()
+@Roles(UserRole.DOCTOR, UserRole.RECEPTIONIST)
 export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 
@@ -55,6 +57,7 @@ export class DashboardController {
   }
 
   @Patch('brief/:id/review')
+  @Roles(UserRole.DOCTOR)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Mark a brief as reviewed' })
   async markBriefReviewed(

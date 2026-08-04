@@ -72,10 +72,15 @@ export class AnalyticsService {
     }, 0);
     const avgIntakeMinutes =
       withEnd.length > 0 ? Math.round((totalMinutes / withEnd.length) * 10) / 10 : 0;
-
     const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    // IntakeRecord has no clinicId column, so scope the count via its session
+    // when a clinic filter is active (per-clinic stats must not leak other
+    // clinics' briefs into the success rate).
     const briefCount = await this.prisma.intakeRecord.count({
-      where: { generatedAt: { gte: since } },
+      where: {
+        generatedAt: { gte: since },
+        ...(clinicId ? { session: { clinicId } } : {}),
+      },
     });
     const briefSuccessRate = total > 0 ? Math.round((briefCount / total) * 1000) / 10 : 0;
 
@@ -107,8 +112,19 @@ export class AnalyticsService {
   async getVolume(days: number, clinicId?: string) {
     const sessions = await this.fetchSessions(days, clinicId);
 
-    const dayKey = (d: Date) => d.toISOString().slice(0, 10);
+    // Local-date bucketing (clinic timezone) so the volume chart and the
+    // peak-hours heatmap agree; avoids UTC-shifted day attribution.
+    const dayKey = (d: Date) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    };
     const buckets = new Map<string, number>();
+    // Seed today back through the window (days-1 … 0). The fetch window is
+    // `gte now - days*24h`; a session older than the oldest seeded bucket is
+    // dropped by the `buckets.has` guard below, keeping the two windows
+    // consistent without an off-by-one on the oldest day.
     for (let i = days - 1; i >= 0; i--) {
       const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
       buckets.set(dayKey(d), 0);

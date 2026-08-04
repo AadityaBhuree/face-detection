@@ -226,6 +226,62 @@ export const aiApi = {
     }),
 };
 
+// ─── Analytics API (ADMIN/SYSTEM) ─────────────────────────────
+
+export interface VolumePoint {
+  date: string;
+  count: number;
+}
+
+export interface HourPoint {
+  hour: number;
+  count: number;
+}
+
+export interface FlowStage {
+  key: string;
+  label: string;
+  count: number;
+}
+
+export const analyticsApi = {
+  getOverview: (days = 30) =>
+    request<{
+      days: number;
+      totalSessions: number;
+      returningPatients: number;
+      newPatients: number;
+      faceMatchRate: number;
+      avgIntakeMinutes: number;
+      briefSuccessRate: number;
+      activeSessions: number;
+    }>('/analytics/overview', { params: { days } }),
+
+  getVolume: (days = 30) =>
+    request<{ days: number; data: VolumePoint[] }>('/analytics/volume', { params: { days } }),
+
+  getHours: (days = 30) =>
+    request<{ days: number; data: HourPoint[] }>('/analytics/hours', { params: { days } }),
+
+  getFlow: () => request<{ total: number; stages: FlowStage[] }>('/analytics/flow'),
+
+  /** Fetch the CSV as raw text (the export endpoint returns text/csv, not JSON). */
+  fetchCsv: async (days = 30): Promise<string> => {
+    const accessToken = useAuthStore.getState().accessToken;
+    const response = await fetch(`${API_BASE_URL}/analytics/export?days=${days}`, {
+      headers: {
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
+    });
+
+    if (!response.ok) {
+      throw new ApiError(response.status, 'CSV_EXPORT_FAILED', 'Failed to export analytics');
+    }
+
+    return response.text();
+  },
+};
+
 // ─── Auth API ──────────────────────────────────────────────────
 
 export const authApi = {

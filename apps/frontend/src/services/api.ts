@@ -1,4 +1,5 @@
 import { API_BASE_URL } from '@/lib/utils';
+import { useAuthStore, type AuthUser } from '@/stores/auth-store';
 
 interface RequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
@@ -19,7 +20,11 @@ class ApiError extends Error {
   }
 }
 
-async function request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
+async function request<T>(
+  endpoint: string,
+  options: RequestOptions = {},
+  retryOn401 = true,
+): Promise<T> {
   const { method = 'GET', body, headers = {}, params } = options;
 
   let url = `${API_BASE_URL}${endpoint}`;
@@ -35,14 +40,25 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
     if (queryString) url += `?${queryString}`;
   }
 
+  const accessToken = useAuthStore.getState().accessToken;
+
   const response = await fetch(url, {
     method,
     headers: {
       'Content-Type': 'application/json',
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
       ...headers,
     },
     body: body ? JSON.stringify(body) : undefined,
   });
+
+  // Expired access token → try a single refresh, then replay the request.
+  if (response.status === 401 && retryOn401 && !endpoint.startsWith('/auth/')) {
+    const refreshed = await tryRefreshToken();
+    if (refreshed) {
+      return request<T>(endpoint, options, false);
+    }
+  }
 
   const json = await response.json();
 
@@ -58,6 +74,36 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
   return json.data as T;
 }
 
+/**
+ * Single-attempt refresh: swaps the refresh token for a fresh access token.
+ * On any failure the session is cleared (fail-closed → back to /login).
+ */
+async function tryRefreshToken(): Promise<boolean> {
+  const { refreshToken, setAccessToken, clearSession } = useAuthStore.getState();
+
+  if (!refreshToken) return false;
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken }),
+    });
+    const json = await response.json();
+
+    if (!response.ok) {
+      clearSession();
+      return false;
+    }
+
+    setAccessToken(json.data.accessToken as string);
+    return true;
+  } catch {
+    clearSession();
+    return false;
+  }
+}
+
 // ─── Intake API ────────────────────────────────────────────────
 
 export const intakeApi = {
@@ -67,8 +113,7 @@ export const intakeApi = {
       body: data,
     }),
 
-  getSession: (id: string) =>
-    request<Record<string, unknown>>(`/intake/session/${id}`),
+  getSession: (id: string) => request<Record<string, unknown>>(`/intake/session/${id}`),
 
   completeSession: (id: string, intakeData: Record<string, unknown>) =>
     request<Record<string, unknown>>(`/intake/session/${id}/complete`, {
@@ -84,7 +129,7 @@ export const intakeApi = {
 
 export const faceApi = {
   upsertEmbedding: (data: { patientId: string; vector: number[] }) =>
-    request<void>('/face/embedding', {
+    request<undefined>('/face/embedding', {
       method: 'POST',
       body: data,
     }),
@@ -95,11 +140,7 @@ export const faceApi = {
       body: data,
     }),
 
-  searchWithDetails: (data: {
-    vector: number[];
-    threshold?: number;
-    limit?: number;
-  }) =>
+  searchWithDetails: (data: { vector: number[]; threshold?: number; limit?: number }) =>
     request<{
       matches: Array<{
         patientId: string;
@@ -121,13 +162,10 @@ export const faceApi = {
     consent: boolean;
     embedding: number[];
   }) =>
-    request<{ id: string; name: string; message: string }>(
-      '/face/register-patient',
-      {
-        method: 'POST',
-        body: data,
-      },
-    ),
+    request<{ id: string; name: string; message: string }>('/face/register-patient', {
+      method: 'POST',
+      body: data,
+    }),
 };
 
 // ─── Dashboard API ─────────────────────────────────────────────
@@ -143,10 +181,9 @@ export const dashboardApi = {
     ),
 
   getRecentBriefs: (page = 1, limit = 20) =>
-    request<{ data: unknown[]; pagination: Record<string, unknown> }>(
-      '/dashboard/recent-briefs',
-      { params: { page, limit } },
-    ),
+    request<{ data: unknown[]; pagination: Record<string, unknown> }>('/dashboard/recent-briefs', {
+      params: { page, limit },
+    }),
 
   markBriefReviewed: (briefId: string) =>
     request<{ success: boolean; message: string }>(`/brief/${briefId}/review`, {
@@ -187,6 +224,31 @@ export const aiApi = {
       method: 'POST',
       body: data,
     }),
+};
+
+// ─── Auth API ──────────────────────────────────────────────────
+
+export const authApi = {
+  register: (data: { name: string; email: string; password: string }) =>
+    request<AuthUser>('/auth/register', { method: 'POST', body: data }),
+
+  login: (data: { email: string; password: string }) =>
+    request<{
+      user: AuthUser;
+      accessToken: string;
+      refreshToken: string;
+      expiresIn: number;
+    }>('/auth/login', { method: 'POST', body: data }),
+
+  refresh: (refreshToken: string) =>
+    request<{ accessToken: string; refreshToken: string; expiresIn: number }>('/auth/refresh', {
+      method: 'POST',
+      body: { refreshToken },
+    }),
+
+  getProfile: () => request<AuthUser>('/auth/profile'),
+
+  logout: () => request<{ success: boolean }>('/auth/logout', { method: 'POST' }),
 };
 
 export { ApiError };

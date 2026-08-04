@@ -163,57 +163,59 @@ Validate all critical env vars at startup (both backend and frontend):
 
 ---
 
-## Phase 4 — Authentication & Multi-Tenancy ⬜
+## Phase 4 — Authentication & Multi-Tenancy 🔶 (in progress)
 
-> **Goal:** Complete the auth system: login/register endpoints, API key management, role-based access control, clinic multi-tenancy.
-> **Current state:** Guards exist (`jwt-auth.guard.ts`, `roles.guard.ts`, `throttler.guard.ts`) but there are **no auth endpoints** yet.
+> **Goal:** Complete the auth system: login/register endpoints, API key management, role-based access control, clinic multi-tenancy, and frontend session/RBAC UI.
 
-### Step 4.1 — Auth endpoints: login, register, profile
+### Step 4.1 — Auth endpoints: login, register, profile ✅
 
-- `POST /auth/register` — Create clinic user with hashed password (bcrypt)
-- `POST /auth/login` — Validate credentials, return JWT + refresh token
-- `GET /auth/profile` — Return current user info
-- `POST /auth/refresh` — Rotate refresh token
-- Password strength validation (min 8 chars, mixed case, number)
+- `POST /auth/register` — creates a RECEPTIONIST account (bcrypt-hashed password; role/clinicId never accepted from the client)
+- `POST /auth/login` — returns access JWT + refresh token + expiry
+- `GET /auth/profile` — current user info (JWT-protected)
+- `POST /auth/refresh` — token rotation with SHA-256 hashed storage + reuse protection
+- `POST /auth/logout` — revokes all refresh tokens
+- Password strength validation (min 8 chars, mixed case, number) via `registerUserSchema`
 
-**Files to create:** `modules/auth/auth.controller.ts`, `modules/auth/auth.service.ts`, `dto/auth.dto.ts`
-**Est. effort:** 2h
+**Delivered:** `auth/auth.controller.ts`, `auth/auth.service.ts`, `auth/auth.module.ts`, `common/strategies/jwt.strategy.ts`, `test/auth.e2e-spec.ts` (14 tests).
 
-### Step 4.2 — Role-based access control (RBAC)
+### Step 4.2 — RBAC infrastructure (guards + decorators) ✅
 
-- Create `@Roles()` decorator that accepts `UserRole[]`
-- Create `RolesGuard` that checks JWT payload role against allowed roles
-- Apply to sensitive endpoints: `PATCH /brief/:id/review` → DOCTOR only; `GET /dashboard/*` → DOCTOR, RECEPTIONIST; `POST /face/register-patient` → RECEPTIONIST, DOCTOR; `POST /pms/sync` → ADMIN, SYSTEM
-- Remove `@Public()` from endpoints that should require auth
+- `@Roles()` decorator + `RolesGuard` (reads `user.role` from JWT payload)
+- `JwtAuthGuard` registered as global `APP_GUARD`; `@Public()` opt-out
+- `CurrentUser` param decorator (`id`, `email`, `role`, `clinicId`)
 
-**Est. effort:** 2h
+**Delivered:** `common/guards/jwt-auth.guard.ts`, `common/guards/roles.guard.ts`, `common/decorators/*.ts` (+31 unit tests in Step 3.4b).
 
-### Step 4.3 — API key authentication for external integrations
+### Step 4.2b — Apply RBAC to sensitive endpoints 🔶
 
-- `ApiKeyGuard` validating `X-API-Key` header; `api_keys` table in Prisma
-- API key management endpoints: `POST /api-keys`, `GET /api-keys`, `DELETE /api-keys/:id`
-- Apply `ApiKeyGuard` to PMS sync endpoint
+- `GET /dashboard/*` → `@Roles(DOCTOR, RECEPTIONIST)`; remove `@Public()`
+- `PATCH /brief/:id/review` → `@Roles(DOCTOR)` only
+- `POST /face/register-patient` → `@Roles(RECEPTIONIST, DOCTOR)`; kiosk endpoints (`search`, `search-with-details`, `embedding`) stay `@Public`
+- JWT payload + strategy now carry `clinicId`
 
-**Est. effort:** 1.5h
+### Step 4.3 — API key authentication for external integrations 🔶
 
-### Step 4.4 — Clinic multi-tenancy
+- `ApiKeyGuard` validating `X-API-Key` header; `api_keys` table (SHA-256 hashed keys, prefix for identification)
+- API key management endpoints (ADMIN/SYSTEM): `POST /api-keys`, `GET /api-keys`, `DELETE /api-keys/:id`
+- `ApiKeyGuard` applied to `POST /sync/pms` + `POST /sync/patient-context`
 
-- Add `clinicId` to patients, intake_sessions, clinic_users
-- `ClinicModule` with CRUD; `@Clinic()` decorator; `ClinicGuard` scoping all queries
+### Step 4.4 — Clinic multi-tenancy 🔶
 
-**Est. effort:** 3h
+- `Clinic` model + `clinicId` FK on `clinic_users`, `patients`, `intake_sessions`, `api_keys`
+- `ClinicsModule` CRUD (ADMIN/SYSTEM only) with audit logging
+- `clinicId` propagated through JWT payload, `GET /auth/profile`, and login response
 
-### Step 4.5 — Frontend login UI & session management
+### Step 4.5 — Frontend login UI & session management 🔶
 
-- `/login` page, `useAuth` hook, httpOnly-cookie JWT, `AuthProvider`, redirect on expiry
+- `/login` page with email/password form + client validation
+- Zustand `auth-store` (tokens + user in localStorage, hydrate on boot)
+- `api.ts` attaches `Authorization: Bearer` + single-attempt refresh on 401
+- `useAuth` hook; logout action in dashboard header
 
-**Est. effort:** 2–3h
+### Step 4.6 — Frontend RBAC UI 🔶
 
-### Step 4.6 — Frontend RBAC UI
-
-- Hide unauthorized actions, role-appropriate views, role badge in header
-
-**Est. effort:** 1.5h
+- `RequireAuth` route wrapper (redirect to `/login` when guest, access-denied when wrong role)
+- Role badge in header; hide doctor-only actions (e.g. Mark Reviewed) from RECEPTIONIST
 
 ---
 

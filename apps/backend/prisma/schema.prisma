@@ -38,6 +38,45 @@ enum AppointmentStatus {
   NO_SHOW
 }
 
+// ─── Clinic (multi-tenancy) ────────────────────────────────────
+model Clinic {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @db.VarChar(200)
+  code      String   @unique @db.VarChar(20)
+  address   String?  @db.VarChar(500)
+  phone     String?  @db.VarChar(20)
+  email     String?  @db.VarChar(255)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users    ClinicUser[]
+  patients Patient[]
+  sessions IntakeSession[]
+  apiKeys  ApiKey[]
+
+  @@map("clinics")
+}
+
+// ─── API Key (external integrations) ────────────────────────────
+model ApiKey {
+  id         String    @id @default(uuid()) @db.Uuid
+  name       String    @db.VarChar(100)
+  keyHash    String    @unique @db.Char(64) // SHA-256 of the raw key
+  prefix     String    @unique @db.VarChar(24) // e.g. jk_a1B2c3 for identification
+  clinicId   String?   @db.Uuid
+  isActive   Boolean   @default(true)
+  lastUsedAt DateTime?
+  expiresAt  DateTime?
+  createdAt  DateTime  @default(now())
+  revokedAt  DateTime?
+
+  clinic Clinic? @relation(fields: [clinicId], references: [id], onDelete: SetNull)
+
+  @@index([clinicId])
+  @@map("api_keys")
+}
+
 // ─── Patient ───────────────────────────────────────────────────
 model Patient {
   id             String          @id @default(uuid()) @db.Uuid
@@ -46,13 +85,16 @@ model Patient {
   mobile         String          @unique @db.VarChar(15)
   aadhaarRef     String?         @db.Char(64) // SHA-256 hash only
   consentGranted Boolean         @default(false)
+  clinicId       String?         @db.Uuid
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 
   faceEmbeddings  FaceEmbedding[]
   intakeSessions  IntakeSession[]
   intakeRecords   IntakeRecord[]
+  clinic          Clinic?         @relation(fields: [clinicId], references: [id], onDelete: SetNull)
 
+  @@index([clinicId])
   @@map("patients")
 }
 
@@ -73,6 +115,7 @@ model FaceEmbedding {
 model IntakeSession {
   id        String        @id @default(uuid()) @db.Uuid
   patientId String?       @db.Uuid
+  clinicId  String?       @db.Uuid
   startedAt DateTime      @default(now())
   endedAt   DateTime?
   status    SessionStatus @default(INITIATED)
@@ -82,10 +125,12 @@ model IntakeSession {
   updatedAt DateTime      @updatedAt
 
   patient     Patient?              @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  clinic      Clinic?               @relation(fields: [clinicId], references: [id], onDelete: SetNull)
   intakeRecords IntakeRecord[]
   transcripts   SessionTranscript[]
 
   @@index([patientId])
+  @@index([clinicId])
   @@index([status])
   @@index([startedAt])
   @@map("intake_sessions")
@@ -150,13 +195,14 @@ model ClinicUser {
   passwordHash String   @db.VarChar(255)
   name         String   @db.VarChar(200)
   role         UserRole @default(RECEPTIONIST)
-  clinicId     String?  @db.VarChar(100)
+  clinicId     String?  @db.Uuid
   isActive     Boolean  @default(true)
   lastLoginAt  DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   refreshTokens RefreshToken[]
+  clinic        Clinic?           @relation(fields: [clinicId], references: [id], onDelete: SetNull)
 
   @@index([email])
   @@index([clinicId])

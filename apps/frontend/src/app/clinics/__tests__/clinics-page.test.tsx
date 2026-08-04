@@ -105,7 +105,7 @@ describe('ClinicsPage', () => {
     expect(clinicsApiMock.list).toHaveBeenCalledTimes(2);
   });
 
-  it('rejects an invalid clinic code', async () => {
+  it('rejects a code with invalid characters', async () => {
     renderPage();
 
     fireEvent.click(await screen.findByRole('button', { name: /add clinic/i }));
@@ -113,12 +113,48 @@ describe('ClinicsPage', () => {
       target: { value: 'X' },
     });
     fireEvent.change(screen.getByLabelText(/clinic code/i), {
-      target: { value: 'lower case!' },
+      target: { value: 'bad code!' },
     });
     fireEvent.click(screen.getByRole('button', { name: /create clinic/i }));
 
-    expect(await screen.findByText(/uppercase a-z/i)).toBeInTheDocument();
+    expect(await screen.findByText(/only contain a-z, 0-9/i)).toBeInTheDocument();
     expect(clinicsApiMock.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects a code shorter than 2 characters', async () => {
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('button', { name: /add clinic/i }));
+    fireEvent.change(screen.getByLabelText(/clinic name/i), {
+      target: { value: 'X' },
+    });
+    fireEvent.change(screen.getByLabelText(/clinic code/i), {
+      target: { value: 'A' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /create clinic/i }));
+
+    expect(await screen.findByText(/2–20 characters/i)).toBeInTheDocument();
+    expect(clinicsApiMock.create).not.toHaveBeenCalled();
+  });
+
+  it('accepts lowercase codes and normalizes them to uppercase', async () => {
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('button', { name: /add clinic/i }));
+    fireEvent.change(screen.getByLabelText(/clinic name/i), {
+      target: { value: 'Lowercase Clinic' },
+    });
+    fireEvent.change(screen.getByLabelText(/clinic code/i), {
+      target: { value: 'lc-01' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /create clinic/i }));
+
+    await waitFor(() => {
+      expect(clinicsApiMock.create).toHaveBeenCalledWith(
+        expect.objectContaining({ code: 'LC-01' }),
+      );
+    });
+    expect(clinicsApiMock.create).toHaveBeenCalledTimes(1);
   });
 
   it('edits a clinic and saves changes', async () => {

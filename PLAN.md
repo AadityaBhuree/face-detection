@@ -237,7 +237,7 @@ Validate all critical env vars at startup (both backend and frontend):
 
 ---
 
-## Phase 6 — Feature Expansion 🔶 (4 steps remain)
+## Phase 6 — Feature Expansion 🔶 (3 steps remain)
 
 > **Goal:** Ship the remaining major features: patient registration UI, mobile support, multi-language, accessibility, admin dashboard, HIPAA compliance, offline mode, and monitoring.
 

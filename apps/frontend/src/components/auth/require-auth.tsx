@@ -20,7 +20,8 @@ interface RequireAuthProps {
   allowedRoles?: readonly UserRole[];
   /**
    * Optional — when set, denied users are redirected here instead of seeing
-   * the access-denied screen.
+   * the access-denied screen. Point this at a route the user IS allowed to
+   * access, otherwise the redirect could loop.
    */
   deniedRedirectTo?: string;
 }

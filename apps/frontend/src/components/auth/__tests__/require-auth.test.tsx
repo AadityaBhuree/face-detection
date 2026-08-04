@@ -138,7 +138,7 @@ describe('RequireAuth — role-based access control', () => {
     expect(replaceMock).not.toHaveBeenCalled();
   });
 
-  it('does not call the logout or redirect on denied users', () => {
+  it('keeps the session intact and shows the denied view (no forced logout)', () => {
     useAuthStore.getState().setSession({ accessToken: 'a', refreshToken: 'r' }, receptionistUser);
 
     render(

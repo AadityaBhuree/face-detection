@@ -38,8 +38,11 @@ export class ApiKeyService {
    * its SHA-256 hash and a short identifying prefix are persisted.
    */
   async generate(data: CreateApiKeyInput, actor: ApiKeyActor) {
+    // The full key is `jk_<256-bit-random>`; its hash is stored, and the
+    // leading segment doubles as the human-readable prefix in logs/UI.
     const rawKey = randomBytes(KEY_BYTES).toString('base64url');
-    const prefix = `${KEY_PREFIX}_${rawKey.slice(0, 12)}`;
+    const apiKey = `${KEY_PREFIX}_${rawKey}`;
+    const prefix = apiKey.slice(0, 15);
     const expiresAt = data.expiresInDays
       ? new Date(Date.now() + data.expiresInDays * 24 * 60 * 60 * 1000)
       : null;
@@ -47,7 +50,7 @@ export class ApiKeyService {
     const record = await this.prisma.apiKey.create({
       data: {
         name: data.name,
-        keyHash: this.hashKey(rawKey),
+        keyHash: this.hashKey(apiKey),
         prefix,
         clinicId: data.clinicId ?? null,
         expiresAt,
@@ -73,8 +76,8 @@ export class ApiKeyService {
       clinicId: record.clinicId,
       createdAt: record.createdAt,
       expiresAt: record.expiresAt,
-      // The only time the raw key is ever exposed.
-      apiKey: rawKey,
+      // The only time the full key is ever exposed.
+      apiKey,
     };
   }
 

@@ -210,6 +210,19 @@ export const apiKeyIdParamSchema = z.object({
   id: z.string().uuid(),
 });
 
+// ─── Analytics Schemas ─────────────────────────────────────────────
+
+export const analyticsRangeQuerySchema = z.object({
+  // Rolling look-back window, in days. 7, 30, 90 or 365.
+  days: z.coerce.number().int().min(1).max(365).default(30),
+  clinicId: z.string().uuid().optional(),
+});
+
+export const analyticsExportQuerySchema = z.object({
+  days: z.coerce.number().int().min(1).max(365).default(30),
+  clinicId: z.string().uuid().optional(),
+});
+
 // ─── Clinic Schemas (multi-tenancy) ───────────────────────────────
 
 export const createClinicSchema = z.object({
@@ -286,3 +299,5 @@ export type ApiKeyIdParam = z.infer<typeof apiKeyIdParamSchema>;
 export type CreateClinicInput = z.infer<typeof createClinicSchema>;
 export type UpdateClinicInput = z.infer<typeof updateClinicSchema>;
 export type ClinicIdParam = z.infer<typeof clinicIdParamSchema>;
+export type AnalyticsRangeQuery = z.infer<typeof analyticsRangeQuerySchema>;
+export type AnalyticsExportQuery = z.infer<typeof analyticsExportQuerySchema>;

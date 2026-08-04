@@ -198,6 +198,38 @@ export const transcribeAudioSchema = z.object({
   sessionId: z.string().uuid(),
 });
 
+// ─── API Key Schemas ─────────────────────────────────────────────
+
+export const createApiKeySchema = z.object({
+  name: z.string().min(1).max(100),
+  clinicId: z.string().uuid().optional().nullable(),
+  expiresInDays: z.coerce.number().int().min(1).max(365).optional(),
+});
+
+export const apiKeyIdParamSchema = z.object({
+  id: z.string().uuid(),
+});
+
+// ─── Clinic Schemas (multi-tenancy) ───────────────────────────────
+
+export const createClinicSchema = z.object({
+  name: z.string().min(1).max(200),
+  code: z
+    .string()
+    .min(2)
+    .max(20)
+    .regex(/^[A-Z0-9_-]+$/, 'Clinic code must be uppercase alphanumeric (A-Z, 0-9, _ or -)'),
+  address: z.string().max(500).optional(),
+  phone: z.string().max(20).optional(),
+  email: z.string().email().max(255).optional().nullable(),
+});
+
+export const updateClinicSchema = createClinicSchema.partial();
+
+export const clinicIdParamSchema = z.object({
+  id: z.string().uuid(),
+});
+
 // ─── Auth Schemas ────────────────────────────────────────────────
 
 // NOTE: role and clinicId are intentionally NOT accepted on public
@@ -249,3 +281,8 @@ export type TranscribeAudioInput = z.infer<typeof transcribeAudioSchema>;
 export type SessionIdParam = z.infer<typeof sessionIdParamSchema>;
 export type PatientIdParam = z.infer<typeof patientIdParamSchema>;
 export type UuidParam = z.infer<typeof uuidParamSchema>;
+export type CreateApiKeyInput = z.infer<typeof createApiKeySchema>;
+export type ApiKeyIdParam = z.infer<typeof apiKeyIdParamSchema>;
+export type CreateClinicInput = z.infer<typeof createClinicSchema>;
+export type UpdateClinicInput = z.infer<typeof updateClinicSchema>;
+export type ClinicIdParam = z.infer<typeof clinicIdParamSchema>;

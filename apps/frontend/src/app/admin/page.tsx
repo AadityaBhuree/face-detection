@@ -149,6 +149,16 @@ export default function AdminPage() {
               >
                 Sign out
               </Button>
+              <Link href="/clinics">
+                <Button variant="ghost" size="sm">
+                  Clinics
+                </Button>
+              </Link>
+              <Link href="/api-keys">
+                <Button variant="ghost" size="sm">
+                  API Keys
+                </Button>
+              </Link>
               <Link href="/dashboard">
                 <Button variant="ghost" size="sm">
                   Dashboard

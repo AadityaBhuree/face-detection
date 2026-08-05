@@ -354,6 +354,84 @@ export const apiKeysApi = {
     request<{ success: boolean; message: string }>(`/api-keys/${id}`, { method: 'DELETE' }),
 };
 
+// ─── Audit / HIPAA API (ADMIN/SYSTEM) ─────────────────────────
+
+export interface AuditLogRecord {
+  id: string;
+  action: string;
+  actorId: string;
+  actorRole: string;
+  resourceType: string;
+  resourceId: string;
+  details: Record<string, unknown>;
+  ipAddress: string;
+  timestamp: string;
+}
+
+export interface PhiAccessDay {
+  date: string;
+  accessCount: number;
+  uniqueActors: number;
+  actors: string[];
+  actions: Record<string, number>;
+}
+
+export interface AuditFilters {
+  action?: string;
+  actorId?: string;
+  actorRole?: string;
+  resourceType?: string;
+  from?: string;
+  to?: string;
+}
+
+export const auditApi = {
+  getLogs: (filters: AuditFilters = {}, page = 1, limit = 50) =>
+    request<{ data: AuditLogRecord[]; pagination: Record<string, unknown> }>('/audit/logs', {
+      params: {
+        ...(filters.action ? { action: filters.action } : {}),
+        ...(filters.actorId ? { actorId: filters.actorId } : {}),
+        ...(filters.actorRole ? { actorRole: filters.actorRole } : {}),
+        ...(filters.resourceType ? { resourceType: filters.resourceType } : {}),
+        ...(filters.from ? { from: filters.from } : {}),
+        ...(filters.to ? { to: filters.to } : {}),
+        page,
+        limit,
+      },
+    }),
+
+  /** Fetch the anonymized CSV as raw text (text/csv — via the shared helper). */
+  exportCsv: (filters: AuditFilters = {}) =>
+    request<string>('/audit/logs/export', {
+      params: {
+        ...(filters.action ? { action: filters.action } : {}),
+        ...(filters.actorId ? { actorId: filters.actorId } : {}),
+        ...(filters.actorRole ? { actorRole: filters.actorRole } : {}),
+        ...(filters.resourceType ? { resourceType: filters.resourceType } : {}),
+        ...(filters.from ? { from: filters.from } : {}),
+        ...(filters.to ? { to: filters.to } : {}),
+      },
+      responseType: 'text',
+    }),
+
+  getPhiAccessSummary: (patientId: string, days = 30) =>
+    request<{
+      patientId: string;
+      days: number;
+      totalAccesses: number;
+      uniqueActors: number;
+      perDay: PhiAccessDay[];
+    }>(`/audit/patients/${patientId}/access-summary`, { params: { days } }),
+
+  getRetention: () => request<{ retentionDays: number }>('/audit/retention'),
+
+  runRetentionCleanup: (days?: number) =>
+    request<{ deleted: number; retentionDays: number; cutoff: string }>(
+      '/audit/retention/cleanup',
+      { method: 'POST', body: days ? { days } : {} },
+    ),
+};
+
 // ─── Auth API ──────────────────────────────────────────────────
 
 export const authApi = {

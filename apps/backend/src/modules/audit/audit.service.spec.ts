@@ -279,7 +279,8 @@ describe('AuditService', () => {
             resourceType: { contains: 'patient', mode: 'insensitive' },
             timestamp: {
               gte: new Date('2026-01-01'),
-              lte: new Date('2026-01-31'),
+              // Date-only `to` is end-of-day inclusive (Jan 31 23:59:59.999)
+              lte: new Date(new Date('2026-01-31').getTime() + 86_400_000 - 1),
             },
           },
           skip: 25, // (2-1) * 25
@@ -297,6 +298,19 @@ describe('AuditService', () => {
 
       const args = mockPrisma.auditLog.findMany.mock.calls[0][0];
       expect(args.where.timestamp).toBeUndefined();
+    });
+
+    it('should treat date-only `to` as inclusive end-of-day', async () => {
+      mockPrisma.auditLog.findMany.mockResolvedValue([]);
+      mockPrisma.auditLog.count.mockResolvedValue(0);
+
+      await service.queryLogs({ to: '2026-07-15', page: 1, limit: 50 });
+
+      const args = mockPrisma.auditLog.findMany.mock.calls[0][0];
+      // 2026-07-15T23:59:59.999Z — the whole day is included
+      expect(args.where.timestamp.lte.getTime()).toBe(
+        new Date('2026-07-15').getTime() + 86_400_000 - 1,
+      );
     });
 
     it('should return pagination metadata', async () => {
@@ -343,6 +357,27 @@ describe('AuditService', () => {
       expect(csv).toContain('PATIENT_PROFILE_VIEW');
       expect(csv).toContain('user-123');
       expect(csv).toContain('2026-07-15T10:30:00.000Z');
+    });
+
+    it('should mask the last IP octet on export', async () => {
+      mockPrisma.auditLog.findMany.mockResolvedValue([
+        {
+          id: 'log-1',
+          action: 'PATIENT_PROFILE_VIEW',
+          actorId: 'user-123',
+          actorRole: 'ADMIN',
+          resourceType: 'patient',
+          resourceId: 'patient-456',
+          details: {},
+          ipAddress: '192.168.1.7',
+          timestamp: new Date('2026-07-15T10:30:00Z'),
+        },
+      ]);
+
+      const { csv } = await service.exportCsv({});
+
+      expect(csv).not.toContain('192.168.1.7');
+      expect(csv).toContain('192.168.1.x');
     });
 
     it('should redact PHI keys in the details JSON but keep structure', async () => {
@@ -394,7 +429,8 @@ describe('AuditService', () => {
       const { csv } = await service.exportCsv({});
 
       // The JSON cell is wrapped in quotes and inner quotes are doubled
-      expect(csv).toContain('10.0.0.1,"{""note""');
+      // (the IP is masked to 10.0.0.x before the cell)
+      expect(csv).toContain('10.0.0.x,"{""note""');
       // The original "quotes" value is preserved (backslash-escaped by JSON)
       expect(csv).toContain('has, ');
     });

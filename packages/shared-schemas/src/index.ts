@@ -167,6 +167,43 @@ export const auditLogSchema = z.object({
   ipAddress: z.string().ip().or(z.string().max(45)),
 });
 
+// Accepts ISO date or datetime strings for filtering (e.g. 2026-08-01).
+const isDateLike = (s: string) => !Number.isNaN(Date.parse(s));
+
+/** Filtered audit log viewer query (ADMIN/SYSTEM). */
+export const auditLogQuerySchema = z.object({
+  action: z.string().max(200).optional(),
+  actorId: z.string().max(100).optional(),
+  actorRole: z.enum(['RECEPTIONIST', 'DOCTOR', 'ADMIN', 'SYSTEM']).optional(),
+  resourceType: z.string().max(100).optional(),
+  resourceId: z.string().max(100).optional(),
+  from: z.string().refine(isDateLike, { message: 'from must be a valid date' }).optional(),
+  to: z.string().refine(isDateLike, { message: 'to must be a valid date' }).optional(),
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(200).default(50),
+});
+
+/** Same filters minus pagination — used for CSV export. */
+export const auditExportQuerySchema = z.object({
+  action: z.string().max(200).optional(),
+  actorId: z.string().max(100).optional(),
+  actorRole: z.enum(['RECEPTIONIST', 'DOCTOR', 'ADMIN', 'SYSTEM']).optional(),
+  resourceType: z.string().max(100).optional(),
+  resourceId: z.string().max(100).optional(),
+  from: z.string().refine(isDateLike, { message: 'from must be a valid date' }).optional(),
+  to: z.string().refine(isDateLike, { message: 'to must be a valid date' }).optional(),
+});
+
+/** PHI access summary query — patientId comes from the path param. */
+export const phiAccessSummaryQuerySchema = z.object({
+  days: z.coerce.number().int().min(1).max(365).default(30),
+});
+
+/** Retention cleanup trigger — optional override of the configured policy. */
+export const retentionCleanupSchema = z.object({
+  days: z.coerce.number().int().min(1).max(3650).optional(),
+});
+
 // ─── Dashboard Query Schemas ────────────────────────────────────
 
 export const paginationQuerySchema = z.object({
@@ -301,3 +338,7 @@ export type UpdateClinicInput = z.infer<typeof updateClinicSchema>;
 export type ClinicIdParam = z.infer<typeof clinicIdParamSchema>;
 export type AnalyticsRangeQuery = z.infer<typeof analyticsRangeQuerySchema>;
 export type AnalyticsExportQuery = z.infer<typeof analyticsExportQuerySchema>;
+export type AuditLogQuery = z.infer<typeof auditLogQuerySchema>;
+export type AuditExportQuery = z.infer<typeof auditExportQuerySchema>;
+export type PhiAccessSummaryQuery = z.infer<typeof phiAccessSummaryQuerySchema>;
+export type RetentionCleanupInput = z.infer<typeof retentionCleanupSchema>;

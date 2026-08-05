@@ -103,7 +103,9 @@ export class AuditService {
     if (query.from || query.to) {
       where.timestamp = {
         ...(query.from ? { gte: new Date(query.from) } : {}),
-        ...(query.to ? { lte: new Date(query.to) } : {}),
+        // Date-only `to` values (YYYY-MM-DD) are treated as end-of-day
+        // inclusive, so a full day of logs is never silently dropped.
+        ...(query.to ? { lte: inclusiveEndOfDay(query.to) } : {}),
       };
     }
 
@@ -153,7 +155,7 @@ export class AuditService {
         log.actorRole,
         log.resourceType,
         log.resourceId,
-        log.ipAddress,
+        maskIp(log.ipAddress),
         JSON.stringify(this.anonymizeDetails((log.details ?? {}) as Record<string, unknown>)),
       ]
         .map(csvEscape)
@@ -287,4 +289,25 @@ function csvEscape(value: unknown): string {
     return `"${s.replace(/"/g, '""')}"`;
   }
   return s;
+}
+
+/** Date-only (YYYY-MM-DD) values become inclusive end-of-day (23:59:59.999). */
+function inclusiveEndOfDay(value: string): Date {
+  const date = new Date(value);
+  // `new Date('YYYY-MM-DD')` parses as UTC midnight — safe check for date-only
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return new Date(date.getTime() + 86_400_000 - 1);
+  }
+  return date;
+}
+
+/** Masks the last octet/group of an IP so exports stay privacy-safe. */
+function maskIp(ip: string): string {
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(ip)) {
+    return ip.replace(/\.\d{1,3}$/, '.x');
+  }
+  if (ip.includes(':')) {
+    return ip.replace(/(:[\da-fA-F]{1,4})$/i, ':x');
+  }
+  return ip;
 }

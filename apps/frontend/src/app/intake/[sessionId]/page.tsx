@@ -13,6 +13,7 @@ import { useIntakeConversation } from '@/hooks/useIntakeConversation';
 import { useMobileDetection } from '@/hooks/useMobileDetection';
 import { useLanguage } from '@/hooks/useLanguage';
 import { socketService } from '@/services/socket';
+import { cachePatient, cacheSession } from '@/services/db';
 import { cn } from '@/lib/utils';
 import { logger } from '@/lib/logger';
 import { DarkModeToggle } from '@/components/ui/dark-mode-toggle';
@@ -193,6 +194,23 @@ export default function IntakeSessionPage() {
 
             // Notify through WebSocket
             socketService.joinSession(sessionId);
+
+            // Cache patient + session for offline resilience
+            void cachePatient({
+              id: result.patientId,
+              name: result.patientName ?? 'Patient',
+              dob: '',
+              mobile: '',
+              lastSyncedAt: new Date().toISOString(),
+              data: {},
+            }).catch(() => {});
+            void cacheSession({
+              id: sessionId,
+              patientId: result.patientId,
+              status: 'FACE_MATCHED',
+              startedAt: new Date().toISOString(),
+              localData: {},
+            }).catch(() => {});
 
             // Auto-start the AI intake conversation
             if (!conversationStartedRef.current) {
@@ -682,6 +700,21 @@ export default function IntakeSessionPage() {
               dob: '',
               mobile: '',
             });
+            void cachePatient({
+              id: patientId,
+              name: patientName,
+              dob: '',
+              mobile: '',
+              lastSyncedAt: new Date().toISOString(),
+              data: {},
+            }).catch(() => {});
+            void cacheSession({
+              id: sessionId,
+              patientId,
+              status: 'FACE_MATCHED',
+              startedAt: new Date().toISOString(),
+              localData: {},
+            }).catch(() => {});
             socketService.joinSession(sessionId);
             if (!conversationStartedRef.current) {
               conversationStartedRef.current = true;

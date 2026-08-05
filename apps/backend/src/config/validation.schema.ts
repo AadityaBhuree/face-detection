@@ -52,6 +52,7 @@ const DEFAULTS = {
   AUDIO_FORMAT: 'opus',
   AUDIO_SAMPLE_RATE: '48000',
   ARCHIVAL_COLD_AFTER_DAYS: '90',
+  AUDIT_RETENTION_DAYS: '90',
   PMS_FHIR_ENDPOINT: '',
   PMS_CUSTOM_ENDPOINT: '',
   PMS_API_KEY: '',
@@ -166,6 +167,12 @@ const envSchema = z
     AUDIO_FORMAT: optionalString(DEFAULTS.AUDIO_FORMAT),
     AUDIO_SAMPLE_RATE: optionalInt(DEFAULTS.AUDIO_SAMPLE_RATE),
     ARCHIVAL_COLD_AFTER_DAYS: optionalInt(DEFAULTS.ARCHIVAL_COLD_AFTER_DAYS),
+    AUDIT_RETENTION_DAYS: optionalInt(DEFAULTS.AUDIT_RETENTION_DAYS).refine(
+      (n) => n >= 1 && n <= 3650,
+      {
+        message: 'AUDIT_RETENTION_DAYS must be between 1 and 3650',
+      },
+    ),
 
     // ── PMS / EMR sync ──────────────────────────────────────────
     PMS_FHIR_ENDPOINT: optionalString(DEFAULTS.PMS_FHIR_ENDPOINT),

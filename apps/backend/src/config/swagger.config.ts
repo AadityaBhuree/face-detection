@@ -47,6 +47,10 @@ export function setupSwagger(app: INestApplication): void {
     .addTag('API Keys', 'External integration keys (ADMIN/SYSTEM)')
     .addTag('Clinics', 'Clinic multi-tenancy management (ADMIN/SYSTEM)')
     .addTag('Analytics', 'Admin analytics: KPIs, volume, peak hours, flow board (ADMIN/SYSTEM)')
+    .addTag(
+      'Audit',
+      'HIPAA audit trail: filtered log viewer, anonymized CSV export, PHI access summary, retention (ADMIN/SYSTEM)',
+    )
     .addApiKey(
       {
         type: 'apiKey',

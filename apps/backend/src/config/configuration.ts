@@ -72,6 +72,9 @@ export interface AppConfiguration {
   archival: {
     coldAfterDays: number;
   };
+  audit: {
+    retentionDays: number;
+  };
   pms: {
     fhirEndpoint: string;
     customEndpoint: string;
@@ -147,6 +150,9 @@ export const configuration = (): AppConfiguration => ({
   },
   archival: {
     coldAfterDays: parseInt(process.env.ARCHIVAL_COLD_AFTER_DAYS ?? '90', 10),
+  },
+  audit: {
+    retentionDays: parseInt(process.env.AUDIT_RETENTION_DAYS ?? '90', 10),
   },
   pms: {
     fhirEndpoint: process.env.PMS_FHIR_ENDPOINT ?? '',

@@ -159,6 +159,11 @@ export default function AdminPage() {
                   API Keys
                 </Button>
               </Link>
+              <Link href="/admin/audit">
+                <Button variant="ghost" size="sm">
+                  Audit
+                </Button>
+              </Link>
               <Link href="/dashboard">
                 <Button variant="ghost" size="sm">
                   Dashboard

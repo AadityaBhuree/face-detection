@@ -2,7 +2,10 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useFaceStore } from '@/stores/face-store';
+import { useOfflineStore } from '@/stores/offline-store';
 import { faceApi } from '@/services/api';
+import { cachePatient } from '@/services/db';
+import { enqueueIntakeMutation } from '@/services/sync';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { cn } from '@/lib/utils';
 import {
@@ -178,24 +181,48 @@ export function FaceRegistrationDialog({
       return;
     }
 
+    const payload = {
+      name: name.trim(),
+      dob,
+      mobile: formatMobile(mobile),
+      consent,
+      embedding,
+    };
+
     setIsRegistering(true);
     try {
-      const result = await faceApi.registerPatient({
-        name: name.trim(),
-        dob,
-        mobile: formatMobile(mobile),
-        consent,
-        embedding,
-      });
+      const result = await faceApi.registerPatient(payload);
 
       setRegisteredName(result.name);
       setStep('success');
+
+      // Cache the patient locally for offline lookup
+      void cachePatient({
+        id: result.id,
+        name: result.name,
+        dob,
+        mobile: formatMobile(mobile),
+        lastSyncedAt: new Date().toISOString(),
+        data: {},
+      }).catch(() => {});
 
       // Auto-transition to intake after showing success for 2 seconds
       setTimeout(() => {
         onRegistered(result.id, result.name);
       }, 2000);
     } catch (err) {
+      // Offline — queue registration for replay, then continue with a temp id
+      if (!useOfflineStore.getState().isOnline) {
+        await enqueueIntakeMutation('REGISTER_PATIENT', payload).catch(() => {});
+        const tempId = `offline-${Date.now()}`;
+        setRegisteredName(payload.name);
+        setStep('success');
+        setTimeout(() => {
+          onRegistered(tempId, payload.name);
+        }, 2000);
+        return;
+      }
+
       const message = err instanceof Error ? err.message : 'Registration failed';
       setError(message);
     } finally {

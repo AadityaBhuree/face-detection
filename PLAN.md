@@ -237,7 +237,7 @@ Validate all critical env vars at startup (both backend and frontend):
 
 ---
 
-## Phase 6 — Feature Expansion 🔶 (3 steps remain)
+## Phase 6 — Feature Expansion 🔶 (2 steps remain)
 
 > **Goal:** Ship the remaining major features: patient registration UI, mobile support, multi-language, accessibility, admin dashboard, HIPAA compliance, offline mode, and monitoring.
 
@@ -283,13 +283,16 @@ Validate all critical env vars at startup (both backend and frontend):
 
 **Delivered:** `modules/analytics/`, `test/analytics.e2e-spec.ts` (11 tests), `analytics.service.spec.ts` (17 tests), `app/admin/`, `components/admin/` (+14 frontend tests)
 
-### Step 6.6 — HIPAA compliance audit module ⬜
+### Step 6.6 — HIPAA compliance audit module ✅
 
-- Audit log viewer (filter by action type, date range, user); export to CSV
-- Log retention policy (90 days default, configurable); data anonymization on export
-- PHI access summary per patient per day
+- `GET /audit/logs` — paginated audit trail viewer filtered by action, actor, role, resource type, and date range (end-of-day inclusive `to`)
+- `GET /audit/logs/export` — CSV download with PHI anonymization (names, mobiles, Aadhaar, emails redacted in `details`; IP last octet/group masked; RFC-4180 escaping, 10k row cap)
+- `GET /audit/patients/:patientId/access-summary` — PHI access accounting per patient per day (access counts, unique actors, action breakdown, rolling 7/30/90/365-day window)
+- `GET /audit/retention` + `POST /audit/retention/cleanup` — retention policy (default 90 days via `AUDIT_RETENTION_DAYS`, validated 1–3650) and manual cleanup trigger
+- All endpoints `@Roles(ADMIN, SYSTEM)` + Swagger tag; every read is audit-logged
+- Frontend: `/admin/audit` route gated to ADMIN/SYSTEM; filter bar, log table with role badges + pagination, anonymized CSV export, PHI access summary card, retention policy card with confirmed cleanup; dark mode + skeletons + error alert
 
-**Est. effort:** 3–4h
+**Delivered:** `modules/audit/` controller + service extensions, `test/audit.e2e-spec.ts` (16 tests), `audit.service.spec.ts` (34 tests), `app/admin/audit/` (+13 frontend tests). Review fixes: inclusive date range, IP masking, keystroke-driven refetch elimination.
 
 ### Step 6.7 — Offline mode with IndexedDB sync ⬜
 

@@ -2,7 +2,10 @@
 
 import { useCallback, useRef, useState } from 'react';
 import { useSessionStore } from '@/stores/session-store';
+import { useOfflineStore } from '@/stores/offline-store';
 import { aiApi, intakeApi } from '@/services/api';
+import { cacheTranscripts, cacheBrief } from '@/services/db';
+import { enqueueIntakeMutation } from '@/services/sync';
 import { toast } from '@/hooks/use-toast';
 
 export interface ConversationTurn {
@@ -18,22 +21,16 @@ interface UseIntakeConversationReturn {
   patientInput: string;
   setPatientInput: (input: string) => void;
   sendPatientMessage: (text: string) => Promise<void>;
-  startConversation: (patientName: string, patientContext?: string, language?: string) => Promise<void>;
+  startConversation: (
+    patientName: string,
+    patientContext?: string,
+    language?: string,
+  ) => Promise<void>;
   completeIntake: () => Promise<void>;
   reset: () => void;
 }
 
-const SYSTEM_CONTEXT =
-  'You are a warm, professional medical intake assistant conducting a symptom intake conversation. ' +
-  'Your goal is to gather structured clinical information through natural conversation. ' +
-  'Ask one question at a time. Be empathetic and conversational. ' +
-  'Do NOT make diagnoses. ' +
-  'Once you have all the information (chief complaint, onset, severity, associated symptoms, medications, allergies), ' +
-  'summarize and confirm with the patient, then indicate completion.';
-
-export function useIntakeConversation(
-  sessionId: string,
-): UseIntakeConversationReturn {
+export function useIntakeConversation(sessionId: string): UseIntakeConversationReturn {
   const [turns, setTurns] = useState<ConversationTurn[]>([]);
   const [isAiThinking, setIsAiThinking] = useState(false);
   const [isIntakeComplete, setIsIntakeComplete] = useState(false);
@@ -82,6 +79,16 @@ export function useIntakeConversation(
         timestamp: Date.now(),
       });
 
+      // Persist the transcript locally for offline viewing
+      void cacheTranscripts(
+        sessionId,
+        turnsRef.current.map((t) => ({
+          speaker: t.role,
+          text: t.content,
+          timestamp: t.timestamp,
+        })),
+      ).catch(() => {});
+
       if (greeting.intakeComplete) {
         setIsIntakeComplete(true);
       }
@@ -112,13 +119,23 @@ export function useIntakeConversation(
         timestamp: Date.now(),
       });
 
+      // Cache locally so the conversation survives an offline reconnect
+      void cacheTranscripts(
+        sessionId,
+        updatedTurns.map((t) => ({
+          speaker: t.role,
+          text: t.content,
+          timestamp: t.timestamp,
+        })),
+      ).catch(() => {});
+
       setPatientInput('');
       setIsAiThinking(true);
 
       try {
         // Build conversation history for the API
         const conversationHistory = updatedTurns.slice(0, -1).map((t) => ({
-          role: t.role === 'ai' ? 'assistant' as const : 'user' as const,
+          role: t.role === 'ai' ? ('assistant' as const) : ('user' as const),
           content: t.content,
         }));
 
@@ -147,6 +164,15 @@ export function useIntakeConversation(
           timestamp: Date.now(),
         });
 
+        void cacheTranscripts(
+          sessionId,
+          finalTurns.map((t) => ({
+            speaker: t.role,
+            text: t.content,
+            timestamp: t.timestamp,
+          })),
+        ).catch(() => {});
+
         if (response.intakeComplete) {
           setIsIntakeComplete(true);
           toast({
@@ -156,8 +182,7 @@ export function useIntakeConversation(
           });
         }
       } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : 'AI response failed';
+        const errorMessage = err instanceof Error ? err.message : 'AI response failed';
         toast({
           title: 'Conversation Error',
           description: errorMessage,
@@ -188,20 +213,24 @@ export function useIntakeConversation(
 
     // For production, this would send to the /ai/brief endpoint
     // with the AI extracting structured data from the transcript
+    const intakeData = {
+      chiefComplaint: turnsRef.current.length > 0 ? (turnsRef.current[0]?.content ?? '') : '',
+      symptoms: [],
+      associated: [],
+      medicationChanges: '',
+      allergyUpdates: '',
+      patientNotes: transcript,
+    };
+
     try {
-      const result = await intakeApi.completeSession(sessionId, {
-        chiefComplaint: turnsRef.current.length > 0 ? turnsRef.current[0]?.content ?? '' : '',
-        symptoms: [],
-        associated: [],
-        medicationChanges: '',
-        allergyUpdates: '',
-        patientNotes: transcript,
-      });
+      const result = await intakeApi.completeSession(sessionId, intakeData);
 
       // Store the generated brief so the BriefCard can display real AI-generated data
       const briefData = 'brief' in result ? (result.brief as Record<string, unknown>) : null;
       if (briefData) {
         setBrief(briefData);
+        // Cache the brief locally for offline viewing
+        void cacheBrief(sessionId, briefData).catch(() => {});
       }
 
       toast({
@@ -210,6 +239,22 @@ export function useIntakeConversation(
         variant: 'success',
       });
     } catch (err) {
+      // Offline (or network failure) — queue the mutation for later replay
+      if (!useOfflineStore.getState().isOnline) {
+        await enqueueIntakeMutation('COMPLETE_SESSION', {
+          sessionId,
+          intakeData,
+        }).catch(() => {});
+        toast({
+          title: 'Saved Offline',
+          description:
+            'You are offline. The intake was saved on this device and will sync automatically when you reconnect.',
+          variant: 'success',
+        });
+        // Do NOT re-throw — the data is safe in the outbox
+        return;
+      }
+
       toast({
         title: 'Failed to Generate Brief',
         description: err instanceof Error ? err.message : 'Unknown error',
@@ -217,7 +262,7 @@ export function useIntakeConversation(
       });
       throw err; // Re-throw so the calling page can gate the phase transition
     }
-  }, [sessionId, setStatus]);
+  }, [sessionId, setStatus, setBrief]);
 
   const reset = useCallback(() => {
     setTurns([]);

@@ -68,25 +68,24 @@ export default function AdminAuditPage() {
   const [cleanupBusy, setCleanupBusy] = useState(false);
   const [cleanupResult, setCleanupResult] = useState<string | null>(null);
 
-  const load = useCallback(
-    async (useDraft = false) => {
-      setLoading(true);
-      setError(null);
-      const active = useDraft ? draft : filters;
-      try {
-        const res = await auditApi.getLogs(active, page, PAGE_SIZE);
-        setLogs(res.data);
-        setTotal(Number(res.pagination?.total ?? 0));
-        setFilteredCount(Object.values(active).some((v) => v !== undefined && v !== ''));
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load audit logs');
-        logger.error('Audit log load failed', err);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [draft, filters, page],
-  );
+  // Only re-fetches when the APPLIED filters or the page change. `draft` is
+  // intentionally excluded from the deps so typing in filter inputs does not
+  // fire a request on every keystroke — filters apply on form submit.
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await auditApi.getLogs(filters, page, PAGE_SIZE);
+      setLogs(res.data);
+      setTotal(Number(res.pagination?.total ?? 0));
+      setFilteredCount(Object.values(filters).some((v) => v !== undefined && v !== ''));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load audit logs');
+      logger.error('Audit log load failed', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [filters, page]);
 
   useEffect(() => {
     load();
@@ -173,6 +172,10 @@ export default function AdminAuditPage() {
     try {
       const res = await auditApi.runRetentionCleanup();
       setCleanupResult(`Deleted ${res.deleted} logs older than ${res.retentionDays} days.`);
+      // Deleted rows may shrink the result set — go back to page 1
+      setPage(1);
+      setFilters({});
+      setDraft({});
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Cleanup failed');

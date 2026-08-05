@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- test mocks */
+
 import { Test, type TestingModule } from '@nestjs/testing';
 import { type INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
@@ -5,6 +7,7 @@ import { FaceModule } from '../src/modules/face/face.module';
 import { FaceService } from '../src/modules/face/face.service';
 import { FaceRegistrationService } from '../src/modules/face/face-registration.service';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { AuditService } from '../src/modules/audit/audit.service';
 
 // ─── Qdrant Mock ────────────────────────────────────────────────
 // Prevents FaceService constructor from attempting real Qdrant connection
@@ -34,6 +37,10 @@ const mockFaceRegistrationService = {
   searchWithDetails: jest.fn(),
 };
 
+const mockAuditService = {
+  log: jest.fn().mockResolvedValue(undefined),
+};
+
 // ─── Test Data ──────────────────────────────────────────────────
 
 const validVector = new Array(512).fill(0.1);
@@ -60,6 +67,8 @@ describe('FaceController (E2E)', () => {
       .useValue(mockFaceService)
       .overrideProvider(FaceRegistrationService)
       .useValue(mockFaceRegistrationService)
+      .overrideProvider(AuditService)
+      .useValue(mockAuditService)
       .compile();
 
     app = moduleFixture.createNestApplication();
@@ -150,10 +159,7 @@ describe('FaceController (E2E)', () => {
     });
 
     it('should reject empty body', async () => {
-      await request(app.getHttpServer())
-        .post('/face/embedding')
-        .send({})
-        .expect(400);
+      await request(app.getHttpServer()).post('/face/embedding').send({}).expect(400);
     });
   });
 
@@ -202,10 +208,7 @@ describe('FaceController (E2E)', () => {
     });
 
     it('should reject missing vector', async () => {
-      await request(app.getHttpServer())
-        .post('/face/search')
-        .send({})
-        .expect(400);
+      await request(app.getHttpServer()).post('/face/search').send({}).expect(400);
     });
 
     it('should reject vector with wrong length', async () => {
@@ -245,7 +248,13 @@ describe('FaceController (E2E)', () => {
     it('should return matches with patient details', async () => {
       mockFaceRegistrationService.searchWithDetails.mockResolvedValue({
         matches: [
-          { patientId: validPatientId, score: 0.94, patientName: 'Test Patient', dob: '1990-01-01', mobile: '+919876543210' },
+          {
+            patientId: validPatientId,
+            score: 0.94,
+            patientName: 'Test Patient',
+            dob: '1990-01-01',
+            mobile: '+919876543210',
+          },
         ],
         total: 1,
       });
@@ -273,10 +282,7 @@ describe('FaceController (E2E)', () => {
     });
 
     it('should reject missing vector', async () => {
-      await request(app.getHttpServer())
-        .post('/face/search-with-details')
-        .send({})
-        .expect(400);
+      await request(app.getHttpServer()).post('/face/search-with-details').send({}).expect(400);
     });
   });
 
@@ -327,7 +333,9 @@ describe('FaceController (E2E)', () => {
     });
 
     it('should handle service errors as 500', async () => {
-      mockFaceRegistrationService.registerPatient.mockRejectedValue(new Error('DB connection failed'));
+      mockFaceRegistrationService.registerPatient.mockRejectedValue(
+        new Error('DB connection failed'),
+      );
 
       await request(app.getHttpServer())
         .post('/face/register-patient')
@@ -358,17 +366,13 @@ describe('FaceController (E2E)', () => {
     it('should return 500 when service throws generic error', async () => {
       mockFaceService.getPatientEmbeddings.mockRejectedValue(new Error('No embeddings found'));
 
-      await request(app.getHttpServer())
-        .get(`/face/${validUuid}/embeddings`)
-        .expect(500);
+      await request(app.getHttpServer()).get(`/face/${validUuid}/embeddings`).expect(500);
     });
 
     it('should handle service errors as 500', async () => {
       mockFaceService.getPatientEmbeddings.mockRejectedValue(new Error('Service unavailable'));
 
-      await request(app.getHttpServer())
-        .get(`/face/${validUuid}/embeddings`)
-        .expect(500);
+      await request(app.getHttpServer()).get(`/face/${validUuid}/embeddings`).expect(500);
     });
   });
 });

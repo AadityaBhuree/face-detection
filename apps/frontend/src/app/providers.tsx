@@ -1,9 +1,11 @@
 'use client';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { ThemeProvider } from '@/components/ui/theme-provider';
 import { LanguageProvider } from '@/hooks/useLanguage';
+import { OfflineIndicator } from '@/components/ui/offline-indicator';
+import { initOfflineSync } from '@/services/sync';
 
 interface ProvidersProps {
   children: ReactNode;
@@ -27,10 +29,18 @@ export function Providers({ children }: ProvidersProps) {
       }),
   );
 
+  // ─── Offline sync: connectivity listeners + queued-mutation count ───
+  useEffect(() => {
+    return initOfflineSync();
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <LanguageProvider>
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <OfflineIndicator />
+          {children}
+        </ThemeProvider>
       </LanguageProvider>
     </QueryClientProvider>
   );

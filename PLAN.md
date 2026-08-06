@@ -359,12 +359,19 @@ Validate all critical env vars at startup (both backend and frontend):
 
 **Est. effort:** 1.5h
 
-### Step 7.6 — Monitoring stack (Prometheus + Grafana)
+### Step 7.6 — Monitoring stack (Prometheus + Grafana) 🔶
 
-- Prometheus scrape config; Grafana dashboards (API perf, business, infra)
-- Alertmanager (PagerDuty/Slack); uptime monitoring
+**Delivered so far:**
 
-**Est. effort:** 3h
+- `monitoring/prometheus.yml` — scrape config targeting the backend `GET /metrics` (`host.docker.internal:4000`, 15s interval, 15d retention); backend exposes counters/histograms/gauges from Phase 6.8
+- `monitoring/grafana/provisioning/` — auto-registered Prometheus datasource + dashboard provider (folder watched for updates)
+- `monitoring/grafana/dashboards/jeevandata.json` — **Jeevandata — API & Clinic Monitoring** dashboard: request rate by route, 5xx error rate (threshold 1% → yellow, 5% → red), HTTP latency p50/p95/p99, Qdrant search latency, face-match p95 (threshold 2s), active sessions, session timeouts, request volume vs 5xx, Node.js memory/event-loop/CPU panels
+- `docker-compose.yml` — `prometheus` (port 9090, `host-gateway` extra host) + `grafana` (port 3001, admin/admin) services with healthchecks and volumes
+- Validated: dashboard JSON parses, all YAML parses, `docker compose config` passes
+
+**Remaining:** Alertmanager (PagerDuty/Slack) + uptime monitoring
+
+**Est. effort:** 3h (≈1.5h remaining)
 
 ---
 
@@ -408,7 +415,7 @@ Validate all critical env vars at startup (both backend and frontend):
 | Secrets management                          | Phase 7.3     | ⬜     |
 | DB backup & disaster recovery               | Phase 7.4     | ⬜     |
 | SSL/TLS & domain                            | Phase 7.5     | ⬜     |
-| Monitoring stack                            | Phase 7.6     | ⬜     |
+| Monitoring stack (Prometheus + Grafana)     | Phase 7.6     | 🔶     |
 
 ---
 

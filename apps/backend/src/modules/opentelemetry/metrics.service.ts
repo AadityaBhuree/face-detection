@@ -59,6 +59,7 @@ export class MetricsService {
   private readonly faceSearchLatency: Histogram<string>;
   private readonly activeSessions: Gauge<string>;
   private readonly sessionTimeoutsTotal: Counter<string>;
+  private readonly sessionsCompletedTotal: Counter<string>;
 
   // ─── In-memory rolling windows (for percentiles + error rate) ─
   private readonly outcomeWindow: OutcomeSample[] = [];
@@ -118,6 +119,12 @@ export class MetricsService {
       help: 'Total intake sessions that timed out',
       registers: [this.registry],
     });
+
+    this.sessionsCompletedTotal = new Counter({
+      name: 'jeevandata_sessions_completed_total',
+      help: 'Total intake sessions completed',
+      registers: [this.registry],
+    });
   }
 
   // ─── HTTP request recording ──────────────────────────────────
@@ -156,6 +163,10 @@ export class MetricsService {
 
   incrementSessionTimeouts(): void {
     this.sessionTimeoutsTotal.inc();
+  }
+
+  incrementSessionsCompleted(): void {
+    this.sessionsCompletedTotal.inc();
   }
 
   // ─── Aggregations (monitoring endpoints) ─────────────────────
@@ -247,6 +258,7 @@ export class MetricsService {
     this.faceSearchLatency.reset();
     this.activeSessions.reset();
     this.sessionTimeoutsTotal.reset();
+    this.sessionsCompletedTotal.reset();
     this.outcomeWindow.length = 0;
     this.httpDurationSamples.length = 0;
     this.qdrantLatencySamples.length = 0;

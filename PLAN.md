@@ -19,8 +19,8 @@ Each phase contains numbered steps. Every step is sized for a **single atomic co
 | :---- | :----------------------------- | :----------------- | :---------- | :---------- |
 | **1** | Emergency Repairs              | ✅ **Done**        | 7/7         | Completed   |
 | **2** | Testing & Validation           | ✅ **Done**        | 8/8         | Completed   |
-| **3** | Backend Production Hardening   | 🔶 **In progress** | 4/7         | 4–6h remain |
-| **4** | Authentication & Multi-Tenancy | ⬜ **Not started** | 6           | 8–10h       |
+| **3** | Backend Production Hardening   | ✅ **Done**        | 7/7         | Completed   |
+| **4** | Authentication & Multi-Tenancy | ✅ **Done**        | 6/6         | Completed   |
 | **5** | UI/UX Excellence               | ✅ **Done**        | 8/8         | Completed   |
 | **6** | Feature Expansion              | ✅ **Done**        | 8/8         | Completed   |
 | **7** | Infrastructure & Deployment    | ⬜ **Not started** | 6           | 8–12h       |
@@ -237,7 +237,7 @@ Validate all critical env vars at startup (both backend and frontend):
 
 ---
 
-## Phase 6 — Feature Expansion 🔶 (1 step remains)
+## Phase 6 — Feature Expansion ✅
 
 > **Goal:** Ship the remaining major features: patient registration UI, mobile support, multi-language, accessibility, admin dashboard, HIPAA compliance, offline mode, and monitoring.
 
@@ -315,7 +315,7 @@ Validate all critical env vars at startup (both backend and frontend):
 - **Admin UI** — `LatencyPanel` (percentile bars with counts), `AlertsPanel` (severity badges OK/WARNING/CRITICAL, value vs threshold), wired into `/admin` with skeletons + error handling
 - `/metrics` is `@Public()` and skips the response envelope + throttle for scrape compatibility
 
-**Delivered:** `modules/opentelemetry/metrics.service.ts` + `prometheus.controller.ts`, `common/interceptors/metrics.interceptor.ts`, `modules/monitoring/` (service + controller + module), FaceService/SessionService/gateway instrumentation, `test/prometheus.e2e-spec.ts` (10 tests), `metrics.service.spec.ts` + `monitoring.service.spec.ts` (18 tests); frontend `monitoringApi` + `LatencyPanel` + `AlertsPanel` (+11 tests). Backend 281 unit + 191 E2E, frontend 599 tests — all green.
+**Delivered:** `modules/opentelemetry/metrics.service.ts` + `prometheus.controller.ts`, `common/interceptors/metrics.interceptor.ts`, `modules/monitoring/` (service + controller + module), FaceService/SessionService/gateway instrumentation, `test/prometheus.e2e-spec.ts` (10 tests), `metrics.service.spec.ts` + `monitoring.service.spec.ts` (18 tests); frontend `monitoringApi` + `LatencyPanel` + `AlertsPanel` (+11 tests). Review fixes: min-sample guards on all three alert thresholds + interceptor failure isolation (+3 tests). Backend 284 unit + 191 E2E, frontend 599 tests — all green.
 
 **Est. effort:** 3–4h (✅ complete)
 
@@ -382,9 +382,9 @@ Validate all critical env vars at startup (both backend and frontend):
 | Rate limiting                               | Phase 1       | ✅     |
 | Input validation (Zod)                      | Phase 1       | ✅     |
 | Session timeout worker                      | Phase 1       | ✅     |
-| Backend unit tests (7 services, 76 tests)   | Phase 2.2     | ✅     |
-| Backend E2E tests (8 suites, 113 tests)     | Phase 2.1     | ✅     |
-| Frontend Vitest suite (24 files, 440 tests) | Phase 2.5–2.7 | ✅     |
+| Backend unit tests (284 tests)              | Phase 2.2     | ✅     |
+| Backend E2E tests (13 suites, 191 tests)    | Phase 2.1     | ✅     |
+| Frontend Vitest suite (45 files, 599 tests) | Phase 2.5–2.7 | ✅     |
 | PMS/EMR sync adapters                       | Phase 3.1     | ✅     |
 | Audit logging wiring                        | Phase 3.2     | ✅     |
 | Health checks + OpenTelemetry tracing       | Phase 3.3     | ✅     |
@@ -393,14 +393,14 @@ Validate all critical env vars at startup (both backend and frontend):
 | Multi-language intake support               | Phase 6.3     | ✅     |
 | Advanced accessibility (axe, keyboard)      | Phase 6.4     | ✅     |
 | Dark mode UI                                | Phase 5.8–5.9 | ✅     |
-| Config validation                           | Phase 3.5     | ⬜     |
-| Swagger/OpenAPI docs                        | Phase 3.6     | ⬜     |
-| Frontend structured logger                  | Phase 3.7     | ⬜     |
-| Auth endpoints + RBAC                       | Phase 4.1–4.2 | ⬜     |
-| API keys + multi-tenancy                    | Phase 4.3–4.4 | ⬜     |
-| Login UI + frontend auth                    | Phase 4.5–4.6 | ⬜     |
-| Clinic admin dashboard with analytics       | Phase 6.5     | ⬜     |
-| HIPAA compliance audit module               | Phase 6.6     | ⬜     |
+| Config validation                           | Phase 3.5     | ✅     |
+| Swagger/OpenAPI docs                        | Phase 3.6     | ✅     |
+| Frontend structured logger                  | Phase 3.7     | ✅     |
+| Auth endpoints + RBAC                       | Phase 4.1–4.2 | ✅     |
+| API keys + multi-tenancy                    | Phase 4.3–4.4 | ✅     |
+| Login UI + frontend auth                    | Phase 4.5–4.6 | ✅     |
+| Clinic admin dashboard with analytics       | Phase 6.5     | ✅     |
+| HIPAA compliance audit module               | Phase 6.6     | ✅     |
 | Offline mode with IndexedDB sync            | Phase 6.7     | ✅     |
 | Performance monitoring & alerting           | Phase 6.8     | ✅     |
 | CI/CD pipeline                              | Phase 7.1     | ⬜     |
@@ -446,7 +446,7 @@ git commit -m "feat: complete patient registration dialog with form validation"
 
 ## How to Use This Plan
 
-1. **Pick a phase** — Phase 3 finish-out (Swagger, config validation, logger) is the quickest win
+1. **Pick a phase** — Phase 7 (Infrastructure & Deployment) is the only remaining phase
 2. **Pick a step** — Each step is self-contained and commit-sized
 3. **Implement** — Follow the Elite Engineer protocol: research → plan → implement → verify → report
 4. **Commit & push** — Use conventional commits, one logical change per commit

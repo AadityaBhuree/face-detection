@@ -95,6 +95,15 @@ describe('MetricsService', () => {
       expect(errorAlert.severity).toBe('critical');
     });
 
+    it('should NOT flag critical when error rate exceeds 1% but sample count is tiny', () => {
+      // 1 request, 1 error → 100% but below the MIN_ERROR_SAMPLES guard → no false alarm
+      service.recordHttpRequest('GET', '/x', 500, 5);
+
+      const alerts = service.evaluateAlerts();
+      const errorAlert = alerts.find((a) => a.key === 'http_error_rate')!;
+      expect(errorAlert.severity).toBe('ok');
+    });
+
     it('should flag warning when face-match p95 exceeds 2s', () => {
       // 10% of searches take 2.5s → p95 lands above the 2s threshold
       for (let i = 0; i < 100; i++) {
@@ -105,6 +114,17 @@ describe('MetricsService', () => {
       const latencyAlert = alerts.find((a) => a.key === 'face_match_latency')!;
       expect(latencyAlert.severity).toBe('warning');
       expect(latencyAlert.value).toBeGreaterThanOrEqual(2000);
+    });
+
+    it('should NOT flag warning on a single slow search (min-sample guard)', () => {
+      // 1 slow search + 3 fast = 4 samples < MIN_LATENCY_SAMPLES → no false alarm,
+      // even though interpolated p95 would exceed the 2s threshold.
+      service.recordQdrantLatency('search', 2500);
+      for (let i = 0; i < 3; i++) service.recordQdrantLatency('search', 100);
+
+      const alerts = service.evaluateAlerts();
+      const latencyAlert = alerts.find((a) => a.key === 'face_match_latency')!;
+      expect(latencyAlert.severity).toBe('ok');
     });
 
     it('should return ok for all alerts on a healthy system', () => {

@@ -86,6 +86,19 @@ describe('MonitoringService', () => {
       expect(timeoutAlert.value).toBe(5);
     });
 
+    it('should NOT flag a high timeout rate when the session count is tiny', async () => {
+      // 1 of 2 sessions timed out → 50% but below MIN_TIMEOUT_SESSIONS → no false alarm
+      mockPrisma.intakeSession.findMany.mockResolvedValue([
+        { status: 'TIMED_OUT' },
+        { status: 'COMPLETED' },
+      ]);
+
+      const alerts = await service.getAlerts();
+      const timeoutAlert = alerts.find((a) => a.key === 'session_timeout_rate')!;
+      expect(timeoutAlert.severity).toBe('ok');
+      expect(timeoutAlert.value).toBe(50);
+    });
+
     it('should return 0 timeout rate when no sessions exist in the window', async () => {
       mockPrisma.intakeSession.findMany.mockResolvedValue([]);
 

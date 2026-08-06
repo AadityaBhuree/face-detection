@@ -139,6 +139,10 @@ vi.mock('dexie', () => {
             for (const name of Object.keys(_schemaMap)) {
               (this as Record<string, unknown>)[name] = tableFor(name, primaryKeys[name]);
             }
+            // Real Dexie's version().stores() returns a Version handle with
+            // .upgrade(cb) — make it chainable. The upgrade callback is a
+            // no-op here (tests seed fresh in-memory tables).
+            return { upgrade: () => this };
           },
         };
       }
@@ -177,18 +181,40 @@ describe('IndexedDB helpers (in-memory Dexie)', () => {
   // ─── Patients ──────────────────────────────────────────────
 
   describe('patient cache', () => {
-    it('should cache and retrieve a patient', async () => {
+    it('should cache and retrieve a patient (PII decrypted on read)', async () => {
       await cachePatient({
         id: 'p1',
         name: 'Priya',
         dob: '1990-01-01',
         mobile: '+919999999999',
         lastSyncedAt: '2026-08-05T00:00:00Z',
-        data: {},
+        data: { allergies: ['penicillin'] },
       });
 
       const cached = await getCachedPatient('p1');
       expect(cached?.name).toBe('Priya');
+      expect(cached?.data).toEqual({ allergies: ['penicillin'] });
+    });
+
+    it('should store patient PII encrypted at rest (no plaintext name/mobile)', async () => {
+      await cachePatient({
+        id: 'p1',
+        name: 'Priya Sharma',
+        dob: '1990-01-01',
+        mobile: '+919999999999',
+        lastSyncedAt: '2026-08-05T00:00:00Z',
+        data: {},
+      });
+
+      const raw = tables.get('patients')!.store.get('p1') as Record<string, unknown>;
+      expect(raw).toBeDefined();
+      // The encrypted envelope must be present…
+      expect(typeof raw.enc).toBe('string');
+      // …and no plaintext PII may live on the row.
+      expect(raw.name).toBeUndefined();
+      expect(raw.mobile).toBeUndefined();
+      expect(JSON.stringify(raw)).not.toContain('Priya');
+      expect(JSON.stringify(raw)).not.toContain('+919999999999');
     });
 
     it('should search patients by name (case-insensitive)', async () => {
@@ -223,13 +249,13 @@ describe('IndexedDB helpers (in-memory Dexie)', () => {
   // ─── Sessions ──────────────────────────────────────────────
 
   describe('session cache', () => {
-    it('should cache and list pending sessions', async () => {
+    it('should cache and list pending sessions (localData encrypted at rest)', async () => {
       await cacheSession({
         id: 's1',
         patientId: 'p1',
         status: 'INTAKE_IN_PROGRESS',
         startedAt: '2026-08-05T00:00:00Z',
-        localData: {},
+        localData: { language: 'hi' },
       });
       await cacheSession({
         id: 's2',
@@ -241,6 +267,11 @@ describe('IndexedDB helpers (in-memory Dexie)', () => {
 
       const pending = await getPendingSessions();
       expect(pending.map((s) => s.id)).toEqual(['s1']);
+      expect(pending[0]!.localData).toEqual({ language: 'hi' });
+
+      const raw = tables.get('sessions')!.store.get('s1') as Record<string, unknown>;
+      expect(typeof raw.localDataEnc).toBe('string');
+      expect(JSON.stringify(raw)).not.toContain('hi');
     });
   });
 
@@ -268,16 +299,30 @@ describe('IndexedDB helpers (in-memory Dexie)', () => {
       const cached = await getCachedTranscripts('s1');
       expect(cached?.entries.map((e) => e.timestamp)).toEqual([100, 300]);
     });
+
+    it('should store transcript text encrypted at rest', async () => {
+      await cacheTranscripts('s1', [
+        { speaker: 'patient', text: 'I have chest pain', timestamp: 100 },
+      ]);
+
+      const raw = tables.get('transcripts')!.store.get('s1') as Record<string, unknown>;
+      expect(typeof raw.enc).toBe('string');
+      expect(JSON.stringify(raw)).not.toContain('chest pain');
+    });
   });
 
   // ─── Briefs ────────────────────────────────────────────────
 
   describe('brief cache', () => {
-    it('should cache and retrieve a brief per session', async () => {
-      await cacheBrief('s1', { summary: 'Fever' });
+    it('should cache and retrieve a brief per session (encrypted at rest)', async () => {
+      await cacheBrief('s1', { summary: 'Fever, vitals stable' });
 
       const cached = await getCachedBrief('s1');
-      expect(cached?.brief.summary).toBe('Fever');
+      expect(cached?.brief.summary).toBe('Fever, vitals stable');
+
+      const raw = tables.get('briefs')!.store.get('s1') as Record<string, unknown>;
+      expect(typeof raw.enc).toBe('string');
+      expect(JSON.stringify(raw)).not.toContain('Fever');
     });
   });
 
@@ -309,6 +354,43 @@ describe('IndexedDB helpers (in-memory Dexie)', () => {
       expect(pending).toHaveLength(2);
       // Same clientTimestamp here (same ms) — oldest-first means id asc
       expect(pending[0]!.payload.sessionId).toBe('new');
+    });
+
+    it('should store mutation payloads encrypted at rest (no plaintext PHI)', async () => {
+      const sensitive = {
+        sessionId: 's-secret-1',
+        intakeData: {
+          chiefComplaint: 'High fever and severe headache',
+          patientNotes: 'Patient is diabetic',
+        },
+      };
+      await enqueueMutation('COMPLETE_SESSION', sensitive);
+
+      const rows = Array.from(tables.get('mutations')!.store.values()) as Array<
+        Record<string, unknown>
+      >;
+      const raw = rows[0]!;
+      expect(typeof raw.payloadEnc).toBe('string');
+      // No plaintext payload on the row…
+      expect(raw.payload).toBeUndefined();
+      // …and the raw serialization must not contain any PHI substrings.
+      const serialized = JSON.stringify(raw);
+      expect(serialized).not.toContain('High fever');
+      expect(serialized).not.toContain('diabetic');
+      expect(serialized).not.toContain('s-secret-1');
+    });
+
+    it('should decrypt the payload when reading pending mutations', async () => {
+      await enqueueMutation('COMPLETE_SESSION', {
+        sessionId: 's1',
+        intakeData: { chiefComplaint: 'Fever' },
+      });
+
+      const pending = await getPendingMutations();
+      expect(pending[0]!.payload).toEqual({
+        sessionId: 's1',
+        intakeData: { chiefComplaint: 'Fever' },
+      });
     });
   });
 

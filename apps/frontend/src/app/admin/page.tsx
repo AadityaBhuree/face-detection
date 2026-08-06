@@ -2,7 +2,15 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { analyticsApi, type VolumePoint, type HourPoint, type FlowStage } from '@/services/api';
+import {
+  analyticsApi,
+  monitoringApi,
+  type VolumePoint,
+  type HourPoint,
+  type FlowStage,
+  type LatencySnapshot,
+  type MonitoredAlert,
+} from '@/services/api';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { DarkModeToggle } from '@/components/ui/dark-mode-toggle';
@@ -10,6 +18,8 @@ import { StatCard } from '@/components/admin/stat-card';
 import { VolumeChart } from '@/components/admin/volume-chart';
 import { HoursHeatmap } from '@/components/admin/hours-heatmap';
 import { FlowBoard } from '@/components/admin/flow-board';
+import { LatencyPanel } from '@/components/admin/latency-panel';
+import { AlertsPanel } from '@/components/admin/alerts-panel';
 import { useAuth } from '@/hooks/useAuth';
 import { ROLE_LABELS } from '@/lib/roles';
 import { logger } from '@/lib/logger';
@@ -55,6 +65,30 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [latency, setLatency] = useState<LatencySnapshot | null>(null);
+  const [alerts, setAlerts] = useState<MonitoredAlert[]>([]);
+  const [monitoringLoading, setMonitoringLoading] = useState(true);
+  const [monitoringError, setMonitoringError] = useState<string | null>(null);
+
+  const loadMonitoring = useCallback(async () => {
+    setMonitoringLoading(true);
+    setMonitoringError(null);
+    try {
+      const [lat, alr] = await Promise.all([monitoringApi.getLatency(), monitoringApi.getAlerts()]);
+      setLatency(lat);
+      setAlerts(alr);
+    } catch (err) {
+      setMonitoringError(err instanceof Error ? err.message : 'Failed to load monitoring');
+      logger.error('Admin monitoring load failed', err);
+    } finally {
+      setMonitoringLoading(false);
+    }
+  }, []);
+
+  // Load the monitoring panel once on mount + on refresh
+  useEffect(() => {
+    loadMonitoring();
+  }, [loadMonitoring]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -196,9 +230,12 @@ export default function AdminPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={load}
+                onClick={() => {
+                  load();
+                  loadMonitoring();
+                }}
                 leftIcon={<RefreshCw className="h-3.5 w-3.5" />}
-                loading={loading}
+                loading={loading || monitoringLoading}
               >
                 Refresh
               </Button>
@@ -331,6 +368,42 @@ export default function AdminPage() {
               <HoursHeatmap data={hours} />
             )}
           </Card>
+
+          {/* System monitoring (Phase 6.8) */}
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Card className="animate-fade-in-up p-5" style={{ animationDelay: '560ms' }}>
+              <h2 className="mb-4 text-sm font-semibold text-slate-900 dark:text-white">
+                API Latency
+              </h2>
+              {monitoringLoading ? (
+                <div className="space-y-3">
+                  <div className="skeleton h-16 w-full" />
+                  <div className="skeleton h-16 w-full" />
+                </div>
+              ) : monitoringError ? (
+                <p className="text-sm text-red-600 dark:text-red-400">{monitoringError}</p>
+              ) : latency ? (
+                <LatencyPanel http={latency.http} qdrant={latency.qdrant} />
+              ) : null}
+            </Card>
+
+            <Card className="animate-fade-in-up p-5" style={{ animationDelay: '640ms' }}>
+              <h2 className="mb-4 text-sm font-semibold text-slate-900 dark:text-white">
+                Active Alerts
+              </h2>
+              {monitoringLoading ? (
+                <div className="space-y-2">
+                  <div className="skeleton h-14 w-full" />
+                  <div className="skeleton h-14 w-full" />
+                  <div className="skeleton h-14 w-full" />
+                </div>
+              ) : monitoringError ? (
+                <p className="text-sm text-red-600 dark:text-red-400">{monitoringError}</p>
+              ) : alerts.length > 0 ? (
+                <AlertsPanel alerts={alerts} />
+              ) : null}
+            </Card>
+          </div>
         </main>
       </div>
     </div>

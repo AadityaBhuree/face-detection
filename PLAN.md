@@ -359,63 +359,64 @@ Validate all critical env vars at startup (both backend and frontend):
 
 **Est. effort:** 1.5h
 
-### Step 7.6 — Monitoring stack (Prometheus + Grafana) 🔶
+### Step 7.6 — Monitoring stack (Prometheus + Grafana + Alertmanager) ✅
 
-**Delivered so far:**
+**Delivered:**
 
 - `monitoring/prometheus.yml` — scrape config targeting the backend `GET /metrics` (`host.docker.internal:4000`, 15s interval, 15d retention); backend exposes counters/histograms/gauges from Phase 6.8
 - `monitoring/grafana/provisioning/` — auto-registered Prometheus datasource + dashboard provider (folder watched for updates)
 - `monitoring/grafana/dashboards/jeevandata.json` — **Jeevandata — API & Clinic Monitoring** dashboard: request rate by route, 5xx error rate (threshold 1% → yellow, 5% → red), HTTP latency p50/p95/p99, Qdrant search latency, face-match p95 (threshold 2s), active sessions, session timeouts, request volume vs 5xx, Node.js memory/event-loop/CPU panels
-- `docker-compose.yml` — `prometheus` (port 9090, `host-gateway` extra host) + `grafana` (port 3001, admin/admin) services with healthchecks and volumes
-- Validated: dashboard JSON parses, all YAML parses, `docker compose config` passes
+- `monitoring/prometheus-alerts.yml` — 4 Prometheus rules (validated via `promtool check rules`): 5xx error rate > 1% over 5m (critical, min 20 requests), face-match p95 > 2s over 10m (warning, min 5 samples), session timeout rate > 5% over 24h (warning, min 10 sessions — mirrors backend `MIN_TIMEOUT_SESSIONS`), backend-down (critical)
+- `monitoring/alertmanager.yml` — Slack webhook receiver (`${SLACK_WEBHOOK_URL}`, placeholder default keeps the container bootable), grouping by alertname/severity/service, `send_resolved`, null receiver for info-level
+- Backend: new `jeevandata_sessions_completed_total` counter (+`incrementSessionsCompleted`) wired into `SessionService.updateStatus` (COMPLETED) **and** `DashboardService.markBriefReviewed` (which writes COMPLETED directly, bypassing the FSM) so the timeout-rate denominator is accurate
+- `docker-compose.yml` — `prometheus` (:9090, `host-gateway`) + `grafana` (:3001) + `alertmanager` (:9093, `SLACK_WEBHOOK_URL` env) with healthchecks, volumes, and `rule_files`/`alerting.alertmanagers` wiring
+- Validated: dashboard JSON parses, all YAML parses, `promtool check rules` (4 rules OK), `amtool check-config` (2 receivers OK), `docker compose config` passes, backend 287 unit + 191 E2E green
 
-**Remaining:** Alertmanager (PagerDuty/Slack) + uptime monitoring
-
-**Est. effort:** 3h (≈1.5h remaining)
+**Est. effort:** 3h (✅ complete)
 
 ---
 
 ## README Roadmap — Feature Status
 
-| Feature                                     | Phase         | Status |
-| :------------------------------------------ | :------------ | :----- |
-| Core face detection & liveness verification | Built-in      | ✅     |
-| Qdrant vector search integration            | Built-in      | ✅     |
-| Gemini 2.0 Flash AI intake agent            | Built-in      | ✅     |
-| Clinical brief generation pipeline          | Built-in      | ✅     |
-| WebSocket session management                | Built-in      | ✅     |
-| Doctor dashboard with briefs                | Built-in      | ✅     |
-| JWT authentication infrastructure           | Phase 1       | ✅     |
-| Rate limiting                               | Phase 1       | ✅     |
-| Input validation (Zod)                      | Phase 1       | ✅     |
-| Session timeout worker                      | Phase 1       | ✅     |
-| Backend unit tests (284 tests)              | Phase 2.2     | ✅     |
-| Backend E2E tests (13 suites, 191 tests)    | Phase 2.1     | ✅     |
-| Frontend Vitest suite (45 files, 599 tests) | Phase 2.5–2.7 | ✅     |
-| PMS/EMR sync adapters                       | Phase 3.1     | ✅     |
-| Audit logging wiring                        | Phase 3.2     | ✅     |
-| Health checks + OpenTelemetry tracing       | Phase 3.3     | ✅     |
-| Patient registration UI & flow              | Phase 6.1     | ✅     |
-| Mobile camera support (iOS/Android)         | Phase 6.2     | ✅     |
-| Multi-language intake support               | Phase 6.3     | ✅     |
-| Advanced accessibility (axe, keyboard)      | Phase 6.4     | ✅     |
-| Dark mode UI                                | Phase 5.8–5.9 | ✅     |
-| Config validation                           | Phase 3.5     | ✅     |
-| Swagger/OpenAPI docs                        | Phase 3.6     | ✅     |
-| Frontend structured logger                  | Phase 3.7     | ✅     |
-| Auth endpoints + RBAC                       | Phase 4.1–4.2 | ✅     |
-| API keys + multi-tenancy                    | Phase 4.3–4.4 | ✅     |
-| Login UI + frontend auth                    | Phase 4.5–4.6 | ✅     |
-| Clinic admin dashboard with analytics       | Phase 6.5     | ✅     |
-| HIPAA compliance audit module               | Phase 6.6     | ✅     |
-| Offline mode with IndexedDB sync            | Phase 6.7     | ✅     |
-| Performance monitoring & alerting           | Phase 6.8     | ✅     |
-| CI/CD pipeline                              | Phase 7.1     | ⬜     |
-| Container orchestration                     | Phase 7.2     | ⬜     |
-| Secrets management                          | Phase 7.3     | ⬜     |
-| DB backup & disaster recovery               | Phase 7.4     | ⬜     |
-| SSL/TLS & domain                            | Phase 7.5     | ⬜     |
-| Monitoring stack (Prometheus + Grafana)     | Phase 7.6     | 🔶     |
+| Feature                                                | Phase         | Status |
+| :----------------------------------------------------- | :------------ | :----- |
+| Core face detection & liveness verification            | Built-in      | ✅     |
+| Qdrant vector search integration                       | Built-in      | ✅     |
+| Gemini 2.0 Flash AI intake agent                       | Built-in      | ✅     |
+| Clinical brief generation pipeline                     | Built-in      | ✅     |
+| WebSocket session management                           | Built-in      | ✅     |
+| Doctor dashboard with briefs                           | Built-in      | ✅     |
+| JWT authentication infrastructure                      | Phase 1       | ✅     |
+| Rate limiting                                          | Phase 1       | ✅     |
+| Input validation (Zod)                                 | Phase 1       | ✅     |
+| Session timeout worker                                 | Phase 1       | ✅     |
+| Backend unit tests (284 tests)                         | Phase 2.2     | ✅     |
+| Backend E2E tests (13 suites, 191 tests)               | Phase 2.1     | ✅     |
+| Frontend Vitest suite (45 files, 599 tests)            | Phase 2.5–2.7 | ✅     |
+| PMS/EMR sync adapters                                  | Phase 3.1     | ✅     |
+| Audit logging wiring                                   | Phase 3.2     | ✅     |
+| Health checks + OpenTelemetry tracing                  | Phase 3.3     | ✅     |
+| Patient registration UI & flow                         | Phase 6.1     | ✅     |
+| Mobile camera support (iOS/Android)                    | Phase 6.2     | ✅     |
+| Multi-language intake support                          | Phase 6.3     | ✅     |
+| Advanced accessibility (axe, keyboard)                 | Phase 6.4     | ✅     |
+| Dark mode UI                                           | Phase 5.8–5.9 | ✅     |
+| Config validation                                      | Phase 3.5     | ✅     |
+| Swagger/OpenAPI docs                                   | Phase 3.6     | ✅     |
+| Frontend structured logger                             | Phase 3.7     | ✅     |
+| Auth endpoints + RBAC                                  | Phase 4.1–4.2 | ✅     |
+| API keys + multi-tenancy                               | Phase 4.3–4.4 | ✅     |
+| Login UI + frontend auth                               | Phase 4.5–4.6 | ✅     |
+| Clinic admin dashboard with analytics                  | Phase 6.5     | ✅     |
+| HIPAA compliance audit module                          | Phase 6.6     | ✅     |
+| Offline mode with IndexedDB sync                       | Phase 6.7     | ✅     |
+| Performance monitoring & alerting                      | Phase 6.8     | ✅     |
+| CI/CD pipeline                                         | Phase 7.1     | ⬜     |
+| Container orchestration                                | Phase 7.2     | ⬜     |
+| Secrets management                                     | Phase 7.3     | ⬜     |
+| DB backup & disaster recovery                          | Phase 7.4     | ⬜     |
+| SSL/TLS & domain                                       | Phase 7.5     | ⬜     |
+| Monitoring stack (Prometheus + Grafana + Alertmanager) | Phase 7.6     | ✅     |
 
 ---
 

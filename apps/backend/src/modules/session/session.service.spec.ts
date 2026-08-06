@@ -3,6 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { SessionService } from './session.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { MetricsService } from '../opentelemetry/metrics.service';
+import type { SessionStatus } from '@jeevandata/shared-types';
 
 // ─── Mocks ─────────────────────────────────────────────────────
 
@@ -26,6 +28,7 @@ const mockPrisma = {
 
 describe('SessionService', () => {
   let service: SessionService;
+  let module: TestingModule;
 
   const mockConfig: Record<string, unknown> = {
     'redis.url': 'redis://localhost:6379',
@@ -38,7 +41,7 @@ describe('SessionService', () => {
   beforeEach(async () => {
     jest.clearAllMocks();
 
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       providers: [
         SessionService,
         {
@@ -49,6 +52,13 @@ describe('SessionService', () => {
           provide: ConfigService,
           useValue: {
             get: jest.fn((key: string) => mockConfig[key]),
+          },
+        },
+        {
+          provide: MetricsService,
+          useValue: {
+            incrementSessionTimeouts: jest.fn(),
+            setActiveSessions: jest.fn(),
           },
         },
       ],
@@ -70,34 +80,67 @@ describe('SessionService', () => {
       { from: 'SYNCED', to: 'COMPLETED' },
     ];
 
-    it.each(validTransitions)(
-      'should allow transition from $from to $to',
-      async ({ from, to }) => {
-        mockPrisma.intakeSession.findUnique.mockResolvedValue({
-          id: validSessionId,
-          status: from,
-          updatedAt: new Date(),
-        });
-        mockPrisma.intakeSession.update.mockResolvedValue({
-          id: validSessionId,
-          status: to,
-        });
-        mockRedis.set.mockResolvedValue('OK');
+    it.each(validTransitions)('should allow transition from $from to $to', async ({ from, to }) => {
+      mockPrisma.intakeSession.findUnique.mockResolvedValue({
+        id: validSessionId,
+        status: from,
+        updatedAt: new Date(),
+      });
+      mockPrisma.intakeSession.update.mockResolvedValue({
+        id: validSessionId,
+        status: to,
+      });
+      mockRedis.set.mockResolvedValue('OK');
 
-        await expect(
-          service.updateStatus(validSessionId, to as any),
-        ).resolves.not.toThrow();
+      await expect(
+        service.updateStatus(validSessionId, to as SessionStatus),
+      ).resolves.not.toThrow();
 
-        expect(mockPrisma.intakeSession.update).toHaveBeenCalledWith(
-          expect.objectContaining({
-            where: { id: validSessionId },
-            data: expect.objectContaining({
-              status: to,
-            }),
+      expect(mockPrisma.intakeSession.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: validSessionId },
+          data: expect.objectContaining({
+            status: to,
           }),
-        );
-      },
-    );
+        }),
+      );
+    });
+
+    it('should increment the timeout metric when transitioning to TIMED_OUT', async () => {
+      mockPrisma.intakeSession.findUnique.mockResolvedValue({
+        id: validSessionId,
+        status: 'INTAKE_IN_PROGRESS',
+        updatedAt: new Date(),
+      });
+      mockPrisma.intakeSession.update.mockResolvedValue({
+        id: validSessionId,
+        status: 'TIMED_OUT',
+      });
+      mockRedis.set.mockResolvedValue('OK');
+      const metrics = module.get<MetricsService>(MetricsService);
+
+      await service.updateStatus(validSessionId, 'TIMED_OUT' as SessionStatus);
+
+      expect(metrics.incrementSessionTimeouts).toHaveBeenCalledTimes(1);
+    });
+
+    it('should not increment the timeout metric for non-timeout transitions', async () => {
+      mockPrisma.intakeSession.findUnique.mockResolvedValue({
+        id: validSessionId,
+        status: 'INITIATED',
+        updatedAt: new Date(),
+      });
+      mockPrisma.intakeSession.update.mockResolvedValue({
+        id: validSessionId,
+        status: 'FACE_MATCHED',
+      });
+      mockRedis.set.mockResolvedValue('OK');
+      const metrics = module.get<MetricsService>(MetricsService);
+
+      await service.updateStatus(validSessionId, 'FACE_MATCHED' as SessionStatus);
+
+      expect(metrics.incrementSessionTimeouts).not.toHaveBeenCalled();
+    });
 
     it('should set endedAt when transitioning to COMPLETED', async () => {
       mockPrisma.intakeSession.findUnique.mockResolvedValue({
@@ -110,7 +153,7 @@ describe('SessionService', () => {
         status: 'COMPLETED',
       });
 
-      await service.updateStatus(validSessionId, 'COMPLETED' as any);
+      await service.updateStatus(validSessionId, 'COMPLETED' as SessionStatus);
 
       expect(mockPrisma.intakeSession.update).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -133,7 +176,7 @@ describe('SessionService', () => {
         status: 'FACE_MATCHED',
       });
 
-      await service.updateStatus(validSessionId, 'FACE_MATCHED' as any);
+      await service.updateStatus(validSessionId, 'FACE_MATCHED' as SessionStatus);
 
       expect(mockRedis.set).toHaveBeenCalledWith(
         `session:${validSessionId}:status`,
@@ -166,9 +209,9 @@ describe('SessionService', () => {
           updatedAt: new Date(),
         });
 
-        await expect(
-          service.updateStatus(validSessionId, to as any),
-        ).rejects.toThrow(BadRequestException);
+        await expect(service.updateStatus(validSessionId, to as SessionStatus)).rejects.toThrow(
+          BadRequestException,
+        );
 
         expect(mockPrisma.intakeSession.update).not.toHaveBeenCalled();
         expect(mockRedis.set).not.toHaveBeenCalled();
@@ -183,7 +226,7 @@ describe('SessionService', () => {
       mockPrisma.intakeSession.findUnique.mockResolvedValue(null);
 
       await expect(
-        service.updateStatus(validSessionId, 'FACE_MATCHED' as any),
+        service.updateStatus(validSessionId, 'FACE_MATCHED' as SessionStatus),
       ).rejects.toThrow(NotFoundException);
 
       expect(mockPrisma.intakeSession.update).not.toHaveBeenCalled();
@@ -200,9 +243,7 @@ describe('SessionService', () => {
         const status = await service.getCachedStatus(validSessionId);
 
         expect(status).toBe('INTAKE_IN_PROGRESS');
-        expect(mockRedis.get).toHaveBeenCalledWith(
-          `session:${validSessionId}:status`,
-        );
+        expect(mockRedis.get).toHaveBeenCalledWith(`session:${validSessionId}:status`);
       });
 
       it('should return null when no cached status exists', async () => {
@@ -313,9 +354,7 @@ describe('SessionService', () => {
     it('should silently return when session does not exist', async () => {
       mockPrisma.intakeSession.findUnique.mockResolvedValue(null);
 
-      await expect(
-        service.handleInactivityTimeout(validSessionId),
-      ).resolves.not.toThrow();
+      await expect(service.handleInactivityTimeout(validSessionId)).resolves.not.toThrow();
 
       expect(mockPrisma.intakeSession.update).not.toHaveBeenCalled();
     });

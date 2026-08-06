@@ -1,10 +1,11 @@
 import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { BullModule } from '@nestjs/bullmq';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from './logger/logger.module';
 import { CustomThrottlerGuard } from './common/guards/throttler.guard';
+import { MetricsInterceptor } from './common/interceptors/metrics.interceptor';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { FaceModule } from './modules/face/face.module';
@@ -20,6 +21,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { TranscriptionModule } from './modules/transcription/transcription.module';
 import { HealthModule } from './modules/health/health.module';
 import { OpenTelemetryModule } from './modules/opentelemetry/opentelemetry.module';
+import { MonitoringModule } from './modules/monitoring/monitoring.module';
 import { configuration } from './config/configuration';
 import { validateEnv } from './config/validation.schema';
 
@@ -89,6 +91,9 @@ import { validateEnv } from './config/validation.schema';
     // ─── OpenTelemetry / Tracing ────────────────────────────────┘
     OpenTelemetryModule,
 
+    // ─── Monitoring / Alerts ────────────────────────────────────
+    MonitoringModule,
+
     // ─── Health / Observability ────────────────────────────────
     HealthModule,
   ],
@@ -96,6 +101,11 @@ import { validateEnv } from './config/validation.schema';
     {
       provide: APP_GUARD,
       useClass: CustomThrottlerGuard,
+    },
+    {
+      // Records every HTTP request into the Prometheus MetricsService.
+      provide: APP_INTERCEPTOR,
+      useClass: MetricsInterceptor,
     },
   ],
 })

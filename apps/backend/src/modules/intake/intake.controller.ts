@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Param, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, HttpCode, HttpStatus, Headers } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiParam } from '@nestjs/swagger';
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires runtime value import
 import { IntakeService } from './intake.service';
@@ -45,15 +45,16 @@ export class IntakeController {
   @ApiOperation({
     summary: 'Complete a session with intake data',
     description:
-      'Accepts the structured intake data, generates the clinical brief, and finalizes the session.',
+      'Accepts the structured intake data, generates the clinical brief, and finalizes the session. Accepts an optional Idempotency-Key header (offline outbox replay) — repeated deliveries of the same completion are safe no-ops.',
   })
   @ApiParam({ name: 'id', description: 'Session UUID' })
   async completeSession(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(intakeDataSchema))
     intakeData: IntakeDataInput,
+    @Headers('idempotency-key') idempotencyKey?: string,
   ) {
-    return this.intakeService.completeWithIntake(id, intakeData);
+    return this.intakeService.completeWithIntake(id, intakeData, idempotencyKey);
   }
 
   @Get('session/:id/status')

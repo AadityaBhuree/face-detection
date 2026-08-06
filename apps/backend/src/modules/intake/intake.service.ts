@@ -77,7 +77,11 @@ export class IntakeService {
     return session;
   }
 
-  async completeWithIntake(sessionId: string, intakeData: IntakeDataInput) {
+  async completeWithIntake(
+    sessionId: string,
+    intakeData: IntakeDataInput,
+    idempotencyKey?: string,
+  ) {
     const session = await this.prisma.intakeSession.findUnique({
       where: { id: sessionId },
     });
@@ -87,6 +91,20 @@ export class IntakeService {
     }
 
     if (session.status === 'COMPLETED' || session.status === 'BRIEF_GENERATED') {
+      // Idempotent replay: a completed session re-delivered from the offline
+      // outbox (with an Idempotency-Key) returns the existing record instead
+      // of failing — the first delivery already succeeded server-side even if
+      // its response was lost in transit.
+      if (idempotencyKey) {
+        const existing = await this.prisma.intakeRecord.findFirst({
+          where: { sessionId },
+          orderBy: { generatedAt: 'desc' },
+        });
+        if (existing) {
+          this.logger.log(`Idempotent replay for session ${sessionId} (key ${idempotencyKey})`);
+          return { session, intakeRecord: existing, brief: existing.brief };
+        }
+      }
       throw new BadRequestException('Session is already completed');
     }
 

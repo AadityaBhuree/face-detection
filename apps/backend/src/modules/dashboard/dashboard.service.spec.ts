@@ -3,6 +3,7 @@ import { NotFoundException } from '@nestjs/common';
 import { DashboardService } from './dashboard.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { MetricsService } from '../opentelemetry/metrics.service';
 
 // ─── Mocks ─────────────────────────────────────────────────────
 
@@ -22,6 +23,12 @@ const mockPrisma = {
 
 const mockAuditService = {
   log: jest.fn().mockResolvedValue(undefined),
+};
+
+const mockMetricsService = {
+  incrementSessionsCompleted: jest.fn(),
+  incrementSessionTimeouts: jest.fn(),
+  setActiveSessions: jest.fn(),
 };
 
 // ─── Test Data ──────────────────────────────────────────────────
@@ -75,6 +82,7 @@ describe('DashboardService', () => {
         DashboardService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: AuditService, useValue: mockAuditService },
+        { provide: MetricsService, useValue: mockMetricsService },
       ],
     }).compile();
 
@@ -115,9 +123,7 @@ describe('DashboardService', () => {
     it('should throw NotFoundException when no records exist', async () => {
       mockPrisma.intakeRecord.findFirst.mockResolvedValue(null);
 
-      await expect(
-        service.getLatestBrief(validPatientId),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.getLatestBrief(validPatientId)).rejects.toThrow(NotFoundException);
     });
 
     it('should log audit event on successful retrieval', async () => {
@@ -258,7 +264,10 @@ describe('DashboardService', () => {
   describe('markBriefReviewed', () => {
     it('should mark a brief as reviewed and complete the session', async () => {
       mockPrisma.intakeRecord.findUnique.mockResolvedValue(mockIntakeRecord);
-      mockPrisma.intakeSession.update.mockResolvedValue({ id: validSessionId, status: 'COMPLETED' });
+      mockPrisma.intakeSession.update.mockResolvedValue({
+        id: validSessionId,
+        status: 'COMPLETED',
+      });
 
       const result = await service.markBriefReviewed(validBriefId);
 
@@ -272,15 +281,16 @@ describe('DashboardService', () => {
     it('should throw NotFoundException when brief does not exist', async () => {
       mockPrisma.intakeRecord.findUnique.mockResolvedValue(null);
 
-      await expect(
-        service.markBriefReviewed(validBriefId),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.markBriefReviewed(validBriefId)).rejects.toThrow(NotFoundException);
       expect(mockPrisma.intakeSession.update).not.toHaveBeenCalled();
     });
 
     it('should log audit event on successful review', async () => {
       mockPrisma.intakeRecord.findUnique.mockResolvedValue(mockIntakeRecord);
-      mockPrisma.intakeSession.update.mockResolvedValue({ id: validSessionId, status: 'COMPLETED' });
+      mockPrisma.intakeSession.update.mockResolvedValue({
+        id: validSessionId,
+        status: 'COMPLETED',
+      });
 
       await service.markBriefReviewed(validBriefId);
 
@@ -290,6 +300,18 @@ describe('DashboardService', () => {
           resourceId: validBriefId,
         }),
       );
+    });
+
+    it('should increment the sessions-completed metric (direct COMPLETED path)', async () => {
+      mockPrisma.intakeRecord.findUnique.mockResolvedValue(mockIntakeRecord);
+      mockPrisma.intakeSession.update.mockResolvedValue({
+        id: validSessionId,
+        status: 'COMPLETED',
+      });
+
+      await service.markBriefReviewed(validBriefId);
+
+      expect(mockMetricsService.incrementSessionsCompleted).toHaveBeenCalledTimes(1);
     });
   });
 

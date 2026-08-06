@@ -8,8 +8,10 @@ x-logging: &default-logging
 
 services:
   # ─── PostgreSQL (Primary Database) ───────────────────────────
+  # pgvector/pgvector:pg16 ships the `vector` extension needed for
+  # face-embedding vectors (stock postgres:16-alpine does not include it).
   postgres:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     container_name: jeevandata-postgres
     restart: unless-stopped
     ports:

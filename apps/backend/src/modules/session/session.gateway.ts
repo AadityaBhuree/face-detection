@@ -12,6 +12,8 @@ import { type Server, type Socket } from 'socket.io';
 import { PrismaService } from '../../prisma/prisma.service';
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires runtime value import
 import { TranscriptionService } from '../transcription/transcription.service';
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires runtime value import
+import { MetricsService } from '../opentelemetry/metrics.service';
 import type { SessionStatus } from '@jeevandata/shared-types';
 
 @WebSocketGateway({
@@ -34,6 +36,7 @@ export class SessionGateway implements OnGatewayInit, OnGatewayConnection, OnGat
   constructor(
     private readonly prisma: PrismaService,
     private readonly transcriptionService: TranscriptionService,
+    private readonly metrics: MetricsService,
   ) {}
 
   afterInit(): void {
@@ -43,10 +46,12 @@ export class SessionGateway implements OnGatewayInit, OnGatewayConnection, OnGat
   handleConnection(client: Socket): void {
     this.logger.log(`Client connected: ${client.id}`);
     client.emit('connected', { clientId: client.id });
+    this.metrics.setActiveSessions(this.server.engine.clientsCount);
   }
 
   handleDisconnect(_client: Socket): void {
     this.logger.log(`Client disconnected: ${_client.id}`);
+    this.metrics.setActiveSessions(this.server.engine.clientsCount);
     // Clean up any in-progress audio recordings for this client's sessions
     // Iterate over audioBuffers and remove entries that are stale (>30s old)
     const now = Date.now();

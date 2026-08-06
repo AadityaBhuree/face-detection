@@ -3,6 +3,8 @@ import { Injectable, Logger, NotFoundException, BadRequestException } from '@nes
 import { ConfigService } from '@nestjs/config';
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires runtime value import
 import { PrismaService } from '../../prisma/prisma.service';
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires runtime value import
+import { MetricsService } from '../opentelemetry/metrics.service';
 import { Redis } from 'ioredis';
 import type { SessionStatus } from '@jeevandata/shared-types';
 
@@ -27,6 +29,7 @@ export class SessionService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    private readonly metrics: MetricsService,
   ) {
     this.redis = new Redis(this.configService.get<string>('redis.url')!);
   }
@@ -54,6 +57,11 @@ export class SessionService {
     });
 
     await this.redis.set(`session:${sessionId}:status`, newStatus, 'EX', 900);
+
+    // Track timeouts for the session-timeout-rate alert (Phase 6.8).
+    if (newStatus === 'TIMED_OUT') {
+      this.metrics.incrementSessionTimeouts();
+    }
 
     this.logger.debug(`Session ${sessionId} status: ${session.status} → ${newStatus}`);
   }

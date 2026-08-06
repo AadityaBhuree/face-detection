@@ -9,7 +9,7 @@
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL%2016%20%2F%20Prisma-4169e1?logo=postgresql)
 ![Qdrant](https://img.shields.io/badge/vector-Qdrant%20512--dim-e31c3d?logo=qdrant)
 ![Redis](https://img.shields.io/badge/Redis%207%20%2F%20BullMQ-dc382d?logo=redis)
-![Tests](https://img.shields.io/badge/tests-739%20passing-22c55e)
+![Tests](https://img.shields.io/badge/tests-1074%20passing-22c55e)
 ![License](https://img.shields.io/badge/license-MIT-8b5cf6)
 
 **Jeevandata** is a privacy-first, AI-driven patient intake platform for clinics and hospitals. Patients check in at a camera kiosk, the system recognizes returning patients from a 512-dimensional face embedding stored in a vector database, and an AI voice assistant interviews them about their symptoms. A structured **Clinical Brief** — chief complaint, risk flags, suggested vitals, ICD-10 hints — is waiting for the doctor when the patient sits down.
@@ -69,7 +69,10 @@ The result: shorter queues, no repeated intake questions, and early emergency sc
 - **PMS/EMR sync** — HL7 FHIR and custom API adapters with an offline patient cache (`PmsPatientCache`) for zero-downtime operation during internet outages.
 - **Multilingual intake** — UI and AI prompts support English, Hindi, Marathi, and Spanish.
 - **Mobile-first PWA** — installable, offline-capable, front/rear camera toggle for clinic tablets and phones.
-- **Production observability** — OpenTelemetry/Jaeger tracing, structured pino logging with correlation IDs, and liveness/readiness health checks.
+- **Production observability** — OpenTelemetry/Jaeger tracing, structured pino logging with correlation IDs, liveness/readiness health checks, and a Prometheus `/metrics` endpoint.
+- **Performance monitoring & alerting** — admin latency panel (p50/p95/p99 for HTTP + Qdrant) and alert thresholds (error rate > 1%, face-match p95 > 2s, session timeout rate > 5%).
+- **Offline-first with PHI protection** — IndexedDB patient/session cache encrypted with AES-256-GCM at rest, outbox mutation queue replayed with idempotency keys when connectivity returns.
+- **Role-based access + multi-tenancy** — JWT auth with refresh rotation, RBAC guards (receptionist/doctor/admin/system), API keys for external integrations, and per-clinic data isolation.
 
 ---
 
@@ -286,13 +289,24 @@ All routes are prefixed by the backend base URL (default `http://localhost:4000`
 | POST   | `/sync/pms`                      | Push intake data to the connected PMS/EMR        |
 | POST   | `/sync/patient-context`          | Pull patient context from the PMS into the cache |
 
-### Health
+### Health & Monitoring
 
-| Method | Route           | Description                             |
-| :----- | :-------------- | :-------------------------------------- |
-| GET    | `/health`       | Aggregate health check                  |
-| GET    | `/health/live`  | Liveness (process up)                   |
-| GET    | `/health/ready` | Readiness (DB, Redis, Qdrant reachable) |
+| Method | Route                                | Description                                              | Auth  |
+| :----- | :----------------------------------- | :------------------------------------------------------- | :---- |
+| GET    | `/health`                            | Aggregate health check                                   | 🔓    |
+| GET    | `/health/live`                       | Liveness (process up)                                    | 🔓    |
+| GET    | `/health/ready`                      | Readiness (DB, Redis, Qdrant reachable)                  | 🔓    |
+| GET    | `/metrics`                           | Prometheus scrape endpoint (raw text)                    | 🔓    |
+| GET    | `/monitoring/latency`                | p50/p95/p99 latency snapshot for HTTP + Qdrant           | ADMIN |
+| GET    | `/monitoring/alerts`                 | Evaluated alert thresholds                               | ADMIN |
+| GET    | `/analytics/overview`                | Clinic KPIs (sessions, face-match rate, intake duration) | ADMIN |
+| GET    | `/analytics/volume`                  | Daily patient volume (7/30/90-day)                       | ADMIN |
+| GET    | `/analytics/hours`                   | Peak clinic hours heatmap                                | ADMIN |
+| GET    | `/analytics/flow`                    | Real-time patient flow board                             | ADMIN |
+| GET    | `/analytics/export`                  | Analytics CSV download                                   | ADMIN |
+| GET    | `/audit/logs`                        | Paginated audit trail                                    | ADMIN |
+| GET    | `/audit/logs/export`                 | Anonymized audit CSV export                              | ADMIN |
+| GET    | `/audit/patients/:id/access-summary` | Per-patient PHI access accounting                        | ADMIN |
 
 ---
 
@@ -310,11 +324,15 @@ jeevandata/
 │   │   │   ├── logger/           # pino structured logging
 │   │   │   ├── modules/
 │   │   │   │   ├── ai/           # Gemini intake agent + brief generator
-│   │   │   │   ├── audit/        # immutable AuditLog service
+│   │   │   │   ├── analytics/    # clinic KPIs, volume, hours, flow, export
+│   │   │   │   ├── audit/        # immutable AuditLog service + HIPAA viewer
+│   │   │   │   ├── clinics/      # clinic multi-tenancy CRUD
 │   │   │   │   ├── dashboard/    # doctor metrics & briefs
 │   │   │   │   ├── face/         # Qdrant search + registration
 │   │   │   │   ├── health/       # liveness/readiness endpoints
 │   │   │   │   ├── intake/       # session record management
+│   │   │   │   ├── monitoring/   # latency percentiles + alert evaluation
+│   │   │   │   ├── opentelemetry/# tracing + Prometheus metrics
 │   │   │   │   ├── pms/          # FHIR/custom EMR adapters + cache
 │   │   │   │   ├── session/      # Socket.IO realtime gateway
 │   │   │   │   └── transcription/# Whisper STT client
@@ -411,9 +429,9 @@ sequenceDiagram
 
 | Suite                                             | Runner                   | Count | Command                                      |
 | :------------------------------------------------ | :----------------------- | :---: | :------------------------------------------- |
-| Backend unit                                      | Jest                     |  162  | `pnpm --filter @jeevandata/backend test`     |
-| Backend E2E (HTTP)                                | Jest + Supertest         |  129  | `pnpm --filter @jeevandata/backend test:e2e` |
-| Frontend (components, hooks, stores, utils, i18n) | Vitest + Testing Library |  448  | `pnpm --filter @jeevandata/frontend test`    |
+| Backend unit                                      | Jest                     |  284  | `pnpm --filter @jeevandata/backend test`     |
+| Backend E2E (HTTP)                                | Jest + Supertest         |  191  | `pnpm --filter @jeevandata/backend test:e2e` |
+| Frontend (components, hooks, stores, utils, i18n) | Vitest + Testing Library |  599  | `pnpm --filter @jeevandata/frontend test`    |
 
 Coverage report: [COVERAGE_REPORT.md](./COVERAGE_REPORT.md)
 
@@ -449,13 +467,15 @@ docker compose up -d --build        # build + start the full stack
 
 ## Roadmap
 
-- [x] Phase 1 — Foundation: auth, `@Public()` routes, env validation
-- [x] Phase 2 — Backend E2E test suite (all controllers)
-- [x] Phase 3 — Observability: audit logging, OpenTelemetry/Jaeger tracing, rate limiting, health checks
-- [x] Phase 4 — Frontend test infrastructure (Vitest + Testing Library, 448 tests)
-- [x] Phase 5 — UI/UX: dark mode, accessibility, design system
-- [x] Phase 6 — PWA mobile camera support + multilingual intake
-- [ ] Phase 7 — Production hardening: deployment pipeline, load testing, SLOs, audit dashboards
+All of Phases 1–6 are **complete and shipped**. The detailed, step-by-step plan lives in [PLAN.md](./PLAN.md).
+
+- [x] **Phase 1 — Emergency Repairs**: JWT auth infra, `@Public()` routes, Zod validation on all controllers, rate limiting, BullMQ session-timeout worker
+- [x] **Phase 2 — Testing & Validation**: 284 backend unit tests, 191 backend E2E (13 suites), 599 frontend Vitest tests, guard/pipe/worker coverage, coverage reporting
+- [x] **Phase 3 — Backend Production Hardening**: PMS/EMR sync adapters (HL7 FHIR + custom), audit logging across all modules, health checks + OpenTelemetry tracing, config validation (Zod env), Swagger/OpenAPI docs, structured logger
+- [x] **Phase 4 — Authentication & Multi-Tenancy**: register/login/refresh/logout endpoints, RBAC guards + decorators, API-key auth, clinic multi-tenancy, frontend login UI + role-gated routes
+- [x] **Phase 5 — UI/UX Excellence**: design-system animations, dark mode, accessibility (axe + keyboard), responsive kiosk/dashboard redesign
+- [x] **Phase 6 — Feature Expansion**: patient registration UI, mobile camera PWA, multilingual intake (EN/HI/MR/ES), advanced a11y, admin analytics dashboard, HIPAA audit module, offline mode with encrypted IndexedDB + idempotent sync, performance monitoring & alerting (Prometheus + admin panels)
+- [ ] **Phase 7 — Infrastructure & Deployment** (remaining): CI/CD pipeline, container orchestration, secrets management, DB backup & DR, SSL/TLS + domain, Prometheus/Grafana monitoring stack
 
 ---
 

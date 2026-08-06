@@ -14,6 +14,15 @@ global:
   external_labels:
     environment: dev
 
+# Alerting rules evaluated every 15s; fired alerts are routed to Alertmanager.
+rule_files:
+  - /etc/prometheus/rules/*.yml
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
+
 scrape_configs:
   # ─── Jeevandata API ──────────────────────────────────────────
   - job_name: 'jeevandata-backend'

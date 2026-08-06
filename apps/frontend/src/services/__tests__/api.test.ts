@@ -1,11 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import {
-  intakeApi,
-  faceApi,
-  dashboardApi,
-  aiApi,
-  ApiError,
-} from '../api';
+import { intakeApi, faceApi, dashboardApi, aiApi, monitoringApi, ApiError } from '../api';
 
 // ─── Mock fetch globally ──────────────────────────────────────
 
@@ -42,11 +36,7 @@ function mockErrorResponse(
   });
 }
 
-function verifyFetchCall(
-  expectedMethod: string,
-  expectedUrl: string,
-  expectedBody?: unknown,
-) {
+function verifyFetchCall(expectedMethod: string, expectedUrl: string, expectedBody?: unknown) {
   expect(mockFetch).toHaveBeenCalledWith(
     expectedUrl,
     expect.objectContaining({
@@ -100,10 +90,7 @@ describe('request internals', () => {
 
     await dashboardApi.getActiveSessions(2, 10);
 
-    verifyFetchCall(
-      'GET',
-      'http://localhost:4000/dashboard/active-sessions?page=2&limit=10',
-    );
+    verifyFetchCall('GET', 'http://localhost:4000/dashboard/active-sessions?page=2&limit=10');
   });
 
   it('should skip undefined parameters', async () => {
@@ -111,10 +98,7 @@ describe('request internals', () => {
 
     await dashboardApi.getActiveSessions(1, 20);
 
-    verifyFetchCall(
-      'GET',
-      'http://localhost:4000/dashboard/active-sessions?page=1&limit=20',
-    );
+    verifyFetchCall('GET', 'http://localhost:4000/dashboard/active-sessions?page=1&limit=20');
   });
 
   it('should send POST with JSON body', async () => {
@@ -216,11 +200,9 @@ describe('intakeApi', () => {
     });
 
     expect(result).toHaveProperty('brief');
-    verifyFetchCall(
-      'POST',
-      'http://localhost:4000/intake/session/s1/complete',
-      { chiefComplaint: 'Headache' },
-    );
+    verifyFetchCall('POST', 'http://localhost:4000/intake/session/s1/complete', {
+      chiefComplaint: 'Headache',
+    });
   });
 
   it('getSessionStatus should GET status endpoint', async () => {
@@ -229,10 +211,7 @@ describe('intakeApi', () => {
     const result = await intakeApi.getSessionStatus('s1');
 
     expect(result).toEqual({ id: 's1', status: 'brief_generated' });
-    verifyFetchCall(
-      'GET',
-      'http://localhost:4000/intake/session/s1/status',
-    );
+    verifyFetchCall('GET', 'http://localhost:4000/intake/session/s1/status');
   });
 });
 
@@ -338,10 +317,7 @@ describe('dashboardApi', () => {
     const result = await dashboardApi.getLatestBrief('patient-1');
 
     expect(result).toHaveProperty('chiefComplaint', 'Fever');
-    verifyFetchCall(
-      'GET',
-      'http://localhost:4000/dashboard/patient/patient-1/latest-brief',
-    );
+    verifyFetchCall('GET', 'http://localhost:4000/dashboard/patient/patient-1/latest-brief');
   });
 
   it('getActiveSessions should use default pagination', async () => {
@@ -350,10 +326,7 @@ describe('dashboardApi', () => {
     const result = await dashboardApi.getActiveSessions();
 
     expect(result.pagination).toHaveProperty('page', 1);
-    verifyFetchCall(
-      'GET',
-      'http://localhost:4000/dashboard/active-sessions?page=1&limit=20',
-    );
+    verifyFetchCall('GET', 'http://localhost:4000/dashboard/active-sessions?page=1&limit=20');
   });
 
   it('getActiveSessions should use custom page and limit', async () => {
@@ -362,10 +335,7 @@ describe('dashboardApi', () => {
     const result = await dashboardApi.getActiveSessions(3, 10);
 
     expect(result.pagination).toHaveProperty('page', 3);
-    verifyFetchCall(
-      'GET',
-      'http://localhost:4000/dashboard/active-sessions?page=3&limit=10',
-    );
+    verifyFetchCall('GET', 'http://localhost:4000/dashboard/active-sessions?page=3&limit=10');
   });
 
   it('getRecentBriefs should return paginated briefs', async () => {
@@ -374,10 +344,7 @@ describe('dashboardApi', () => {
     const result = await dashboardApi.getRecentBriefs();
 
     expect(result.data).toHaveLength(1);
-    verifyFetchCall(
-      'GET',
-      'http://localhost:4000/dashboard/recent-briefs?page=1&limit=20',
-    );
+    verifyFetchCall('GET', 'http://localhost:4000/dashboard/recent-briefs?page=1&limit=20');
   });
 
   it('markBriefReviewed should PATCH to brief review endpoint', async () => {
@@ -386,10 +353,7 @@ describe('dashboardApi', () => {
     const result = await dashboardApi.markBriefReviewed('brief-1');
 
     expect(result.success).toBe(true);
-    verifyFetchCall(
-      'PATCH',
-      'http://localhost:4000/brief/brief-1/review',
-    );
+    verifyFetchCall('PATCH', 'http://localhost:4000/brief/brief-1/review');
   });
 
   it('getPatientHistory should GET history with pagination', async () => {
@@ -416,9 +380,7 @@ describe('aiApi', () => {
     const result = await aiApi.processIntake({
       sessionId: 's1',
       patientContext: 'Patient has headache',
-      conversationHistory: [
-        { role: 'patient', content: 'I have a headache' },
-      ],
+      conversationHistory: [{ role: 'patient', content: 'I have a headache' }],
       currentInput: 'For 3 days',
     });
 
@@ -472,5 +434,42 @@ describe('aiApi', () => {
       transcript: 'Patient said...',
       patientHistory: 'No prior issues',
     });
+  });
+});
+
+// ─── monitoringApi ─────────────────────────────────────────────
+
+describe('monitoringApi', () => {
+  it('getLatency should GET /monitoring/latency', async () => {
+    mockSuccessResponse({
+      http: { p50: 40, p95: 120, p99: 250, count: 100 },
+      qdrant: { p50: 80, p95: 300, p99: 900, count: 25 },
+    });
+
+    const result = await monitoringApi.getLatency();
+
+    expect(result.http.p95).toBe(120);
+    expect(result.qdrant.p99).toBe(900);
+    verifyFetchCall('GET', 'http://localhost:4000/monitoring/latency');
+  });
+
+  it('getAlerts should GET /monitoring/alerts', async () => {
+    mockSuccessResponse([
+      {
+        key: 'http_error_rate',
+        label: 'HTTP error rate (5xx, last 5 min)',
+        severity: 'ok',
+        value: 0.2,
+        threshold: 1,
+        message: 'Error rate is within the 1% threshold',
+      },
+    ]);
+
+    const result = await monitoringApi.getAlerts();
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toHaveProperty('key', 'http_error_rate');
+    expect(result[0]).toHaveProperty('severity', 'ok');
+    verifyFetchCall('GET', 'http://localhost:4000/monitoring/alerts');
   });
 });

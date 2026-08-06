@@ -5,6 +5,8 @@ import { QdrantClient } from '@qdrant/js-client-rest';
 import type { FaceEmbeddingInput, FaceSearchQuery } from '@jeevandata/shared-schemas';
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires runtime value import
 import { AuditService } from '../audit/audit.service';
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires runtime value import
+import { MetricsService } from '../opentelemetry/metrics.service';
 
 const FACE_COLLECTION = 'face_embeddings';
 
@@ -15,6 +17,7 @@ export class FaceService {
   constructor(
     private readonly configService: ConfigService,
     private readonly auditService: AuditService,
+    private readonly metrics: MetricsService,
   ) {
     this.qdrant = new QdrantClient({
       url: this.configService.get<string>('qdrant.url')!,
@@ -27,26 +30,35 @@ export class FaceService {
   }
 
   private async ensureCollection(): Promise<void> {
-    const collections = await this.qdrant.getCollections();
-    const exists = collections.collections.some((c) => c.name === FACE_COLLECTION);
+    const start = Date.now();
+    try {
+      const collections = await this.qdrant.getCollections();
+      this.metrics.recordQdrantLatency('get_collections', Date.now() - start);
+      const exists = collections.collections.some((c) => c.name === FACE_COLLECTION);
 
-    if (!exists) {
-      await this.qdrant.createCollection(FACE_COLLECTION, {
-        vectors: {
-          size: 512,
-          distance: 'Cosine',
-        },
-        optimizers_config: {
-          indexing_threshold: 100,
-        },
-      });
-      this.logger.log(`Created Qdrant collection: ${FACE_COLLECTION}`);
+      if (!exists) {
+        await this.qdrant.createCollection(FACE_COLLECTION, {
+          vectors: {
+            size: 512,
+            distance: 'Cosine',
+          },
+          optimizers_config: {
+            indexing_threshold: 100,
+          },
+        });
+        this.metrics.recordQdrantLatency('create_collection', Date.now() - start);
+        this.logger.log(`Created Qdrant collection: ${FACE_COLLECTION}`);
+      }
+    } catch (error) {
+      this.metrics.recordQdrantLatency('get_collections', Date.now() - start);
+      throw error;
     }
   }
 
   async upsertEmbedding(data: FaceEmbeddingInput): Promise<void> {
     const pointId = `${data.patientId}_${Date.now()}`;
 
+    const start = Date.now();
     await this.qdrant.upsert(FACE_COLLECTION, {
       wait: true,
       points: [
@@ -60,6 +72,7 @@ export class FaceService {
         },
       ],
     });
+    this.metrics.recordQdrantLatency('upsert', Date.now() - start);
 
     this.logger.debug(`Upserted face embedding for patient ${data.patientId}`);
 
@@ -77,12 +90,16 @@ export class FaceService {
   async searchByFace(
     query: FaceSearchQuery,
   ): Promise<Array<{ patientId: string; score: number; capturedAt: string }>> {
+    const start = Date.now();
     const searchResult = await this.qdrant.search(FACE_COLLECTION, {
       vector: query.vector,
       limit: query.limit,
       score_threshold: query.threshold,
       with_payload: true,
     });
+    const durationMs = Date.now() - start;
+    this.metrics.recordQdrantLatency('search', durationMs);
+    this.metrics.recordFaceSearchLatency('search', durationMs);
 
     this.logger.debug(`Face search returned ${searchResult.length} results`);
 
@@ -106,6 +123,7 @@ export class FaceService {
   async getPatientEmbeddings(
     patientId: string,
   ): Promise<Array<{ id: string; capturedAt: string }>> {
+    const start = Date.now();
     const result = await this.qdrant.scroll(FACE_COLLECTION, {
       filter: {
         must: [
@@ -119,6 +137,7 @@ export class FaceService {
       with_payload: true,
       with_vector: false,
     });
+    this.metrics.recordQdrantLatency('scroll', Date.now() - start);
 
     if (!result.points || result.points.length === 0) {
       throw new NotFoundException(`No embeddings found for patient ${patientId}`);

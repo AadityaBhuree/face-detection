@@ -2,6 +2,7 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { FaceService } from './face.service';
 import { AuditService } from '../audit/audit.service';
+import { MetricsService } from '../opentelemetry/metrics.service';
 import type { FaceEmbeddingInput, FaceSearchQuery } from '@jeevandata/shared-schemas';
 
 // ─── Mocks ─────────────────────────────────────────────────────
@@ -41,6 +42,13 @@ describe('FaceService', () => {
           },
         },
         { provide: AuditService, useValue: { log: jest.fn().mockResolvedValue(undefined) } },
+        {
+          provide: MetricsService,
+          useValue: {
+            recordQdrantLatency: jest.fn(),
+            recordFaceSearchLatency: jest.fn(),
+          },
+        },
       ],
     }).compile();
 

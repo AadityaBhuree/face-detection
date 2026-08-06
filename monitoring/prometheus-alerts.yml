@@ -1,0 +1,68 @@
+# Prometheus alerting rules for Jeevandata.
+#
+# Mirrors the Phase 6.8 / 7.6 alert thresholds evaluated by the backend
+# MonitoringService, expressed as PromQL so Alertmanager can page on them:
+#   • HTTP 5xx error rate  > 1% over 5 minutes      → critical
+#   • Face-match p95       > 2s over 10 minutes     → warning
+#   • Session timeout rate > 5% over the last 24h   → warning
+# Plus a synthetic up-alert for the backend itself.
+#
+# Rules reference metrics from the backend MetricsService:
+# jeevandata_http_requests_total{method,route,status},
+# jeevandata_http_errors_total{method,route}, jeevandata_face_search_latency_seconds,
+# jeevandata_session_timeouts_total, jeevandata_sessions_completed_total.
+
+groups:
+  - name: jeevandata-api
+    rules:
+      # ─── HTTP 5xx error rate > 1% ────────────────────────────
+      - alert: JeevandataHighErrorRate
+        expr: |
+          (sum(rate(jeevandata_http_errors_total[5m])) / clamp_min(sum(rate(jeevandata_http_requests_total[5m])), 0.0001)) * 100 > 1
+          and
+          sum(rate(jeevandata_http_requests_total[5m])) * 300 > 20
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'Jeevandata HTTP 5xx error rate above 1%'
+          description: '5xx error rate is {{ $value | humanize }}% over the last 5 minutes (threshold 1%). Sustained for > 5m with > 20 requests in the window.'
+
+      # ─── Face-match p95 latency > 2s ─────────────────────────
+      - alert: JeevandataFaceMatchSlow
+        expr: |
+          histogram_quantile(0.95, sum(rate(jeevandata_face_search_latency_seconds_bucket[10m])) by (le)) > 2
+          and
+          sum(rate(jeevandata_face_search_latency_seconds_count[10m])) * 600 > 5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Face-match p95 latency above 2s'
+          description: 'Face recognition p95 latency is {{ $value | humanize }}s over the last 10 minutes (threshold 2s).'
+
+      # ─── Session timeout rate > 5% over 24h ──────────────────
+      # Mirrors the backend MIN_TIMEOUT_SESSIONS=10 guard: a quiet clinic
+      # with a handful of sessions must not alarm on a single timeout.
+      - alert: JeevandataHighSessionTimeoutRate
+        expr: |
+          (sum(increase(jeevandata_session_timeouts_total[24h]))
+           / clamp_min(sum(increase(jeevandata_session_timeouts_total[24h])) + sum(increase(jeevandata_sessions_completed_total[24h])), 1)) * 100 > 5
+          and
+          sum(increase(jeevandata_session_timeouts_total[24h])) + sum(increase(jeevandata_sessions_completed_total[24h])) > 10
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Session timeout rate above 5% (24h)'
+          description: '{{ $value | humanize }}% of intake sessions (completed + timed out) ended in TIMED_OUT over the last 24 hours (threshold 5%; >= 10 sessions in window).'
+
+      # ─── Backend unreachable ──────────────────────────────────
+      - alert: JeevandataBackendDown
+        expr: up{job="jeevandata-backend"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'Jeevandata backend is unreachable'
+          description: 'Prometheus cannot scrape {{ $labels.instance }} — the API may be down.'

@@ -1,6 +1,11 @@
 import Dexie, { type Table } from 'dexie';
+import { encryptJson, decryptJson } from './crypto';
 
-interface CachedPatient {
+// ─── Public shapes (what the rest of the app sees) ─────────────
+
+/** Patient record cached for offline lookup. PII (name/dob/mobile/data)
+ *  is encrypted at rest — only `id` and `lastSyncedAt` are plaintext. */
+export interface CachedPatient {
   id: string;
   name: string;
   dob: string;
@@ -9,7 +14,7 @@ interface CachedPatient {
   data: Record<string, unknown>;
 }
 
-interface CachedSession {
+export interface CachedSession {
   id: string;
   patientId: string | null;
   status: string;
@@ -18,14 +23,14 @@ interface CachedSession {
 }
 
 /** Transcript entries cached per session for offline viewing. */
-interface CachedTranscripts {
+export interface CachedTranscripts {
   sessionId: string;
   entries: Array<{ speaker: string; text: string; timestamp: number }>;
   updatedAt: string;
 }
 
 /** Generated clinical brief cached per session for offline viewing. */
-interface CachedBrief {
+export interface CachedBrief {
   sessionId: string;
   brief: Record<string, unknown>;
   generatedAt: string;
@@ -33,8 +38,9 @@ interface CachedBrief {
 
 export type MutationType = 'COMPLETE_SESSION' | 'REGISTER_PATIENT';
 
-/** Outbox entry — an intake mutation queued while offline. */
-interface OutboxMutation {
+/** Outbox entry — an intake mutation queued while offline. The payload
+ *  (embeddings, intake data, PII) is encrypted at rest. */
+export interface OutboxMutation {
   id?: number;
   type: MutationType;
   payload: Record<string, unknown>;
@@ -45,8 +51,8 @@ interface OutboxMutation {
   status: 'pending' | 'synced' | 'failed';
 }
 
-/** Sync log — audit trail of every replayed mutation (last-write-wins). */
-interface SyncLogEntry {
+/** Sync log — audit trail of every replayed mutation. Kept PHI-free. */
+export interface SyncLogEntry {
   id?: number;
   entityId: string;
   entityType: string;
@@ -57,12 +63,50 @@ interface SyncLogEntry {
   note?: string;
 }
 
+// ─── At-rest row shapes (encrypted envelopes) ───────────────────
+
+interface PatientRow {
+  id: string;
+  lastSyncedAt: string;
+  enc: string;
+}
+
+interface SessionRow {
+  id: string;
+  patientId: string | null;
+  status: string;
+  startedAt: string;
+  localDataEnc: string;
+}
+
+interface TranscriptRow {
+  sessionId: string;
+  updatedAt: string;
+  enc: string;
+}
+
+interface BriefRow {
+  sessionId: string;
+  generatedAt: string;
+  enc: string;
+}
+
+interface MutationRow {
+  id?: number;
+  type: MutationType;
+  clientTimestamp: string;
+  createdAt: string;
+  attempts: number;
+  status: 'pending' | 'synced' | 'failed';
+  payloadEnc: string;
+}
+
 class JeevandataDB extends Dexie {
-  patients!: Table<CachedPatient, string>;
-  sessions!: Table<CachedSession, string>;
-  transcripts!: Table<CachedTranscripts, string>;
-  briefs!: Table<CachedBrief, string>;
-  mutations!: Table<OutboxMutation, number>;
+  patients!: Table<PatientRow, string>;
+  sessions!: Table<SessionRow, string>;
+  transcripts!: Table<TranscriptRow, string>;
+  briefs!: Table<BriefRow, string>;
+  mutations!: Table<MutationRow, number>;
   syncLog!: Table<SyncLogEntry, number>;
 
   constructor() {
@@ -82,6 +126,26 @@ class JeevandataDB extends Dexie {
       mutations: '++id, type, status, createdAt',
       syncLog: '++id, entityId, entityType, syncedAt',
     });
+
+    // v3 — PHI at rest is now encrypted. Any rows written by v1/v2 hold
+    // plaintext PII, so we purge the sensitive caches on upgrade. They
+    // repopulate on the next sync — losing an un-flushed outbox mutation
+    // is preferable to leaving plaintext PHI on disk.
+    this.version(3)
+      .stores({
+        patients: 'id, name, mobile, lastSyncedAt',
+        sessions: 'id, patientId, status, startedAt',
+        transcripts: 'sessionId, updatedAt',
+        briefs: 'sessionId, generatedAt',
+        mutations: '++id, type, status, createdAt',
+        syncLog: '++id, entityId, entityType, syncedAt',
+      })
+      .upgrade(async (tx) => {
+        await tx.table('patients').clear();
+        await tx.table('transcripts').clear();
+        await tx.table('briefs').clear();
+        await tx.table('mutations').clear();
+      });
   }
 }
 
@@ -90,54 +154,121 @@ export const db = new JeevandataDB();
 // ─── Patient Cache Operations ──────────────────────────────────
 
 export async function cachePatient(patient: CachedPatient): Promise<void> {
-  await db.patients.put(patient);
+  const enc = await encryptJson({
+    name: patient.name,
+    dob: patient.dob,
+    mobile: patient.mobile,
+    data: patient.data,
+  });
+  await db.patients.put({
+    id: patient.id,
+    lastSyncedAt: patient.lastSyncedAt,
+    enc,
+  });
+}
+
+async function decryptPatient(row: PatientRow): Promise<CachedPatient> {
+  const inner = await decryptJson<{
+    name: string;
+    dob: string;
+    mobile: string;
+    data: Record<string, unknown>;
+  }>(row.enc);
+  return {
+    id: row.id,
+    lastSyncedAt: row.lastSyncedAt,
+    name: inner.name,
+    dob: inner.dob,
+    mobile: inner.mobile,
+    data: inner.data,
+  };
 }
 
 export async function getCachedPatient(id: string): Promise<CachedPatient | undefined> {
-  return db.patients.get(id);
+  const row = await db.patients.get(id);
+  return row ? decryptPatient(row) : undefined;
 }
 
 export async function searchCachedPatients(query: string): Promise<CachedPatient[]> {
-  return db.patients
-    .filter((p) => p.name.toLowerCase().includes(query.toLowerCase()) || p.mobile.includes(query))
-    .toArray();
+  const rows = await db.patients.toArray();
+  const q = query.toLowerCase();
+  const patients = await Promise.all(rows.map(decryptPatient));
+  return patients.filter((p) => p.name.toLowerCase().includes(q) || p.mobile.includes(q));
 }
 
 export async function getAllCachedPatients(): Promise<CachedPatient[]> {
-  return db.patients.orderBy('name').toArray();
+  const rows = await db.patients.toArray();
+  const patients = await Promise.all(rows.map(decryptPatient));
+  return patients.sort((a, b) => a.name.localeCompare(b.name));
 }
 
 // ─── Session Cache Operations ──────────────────────────────────
 
 export async function cacheSession(session: CachedSession): Promise<void> {
-  await db.sessions.put(session);
+  const localDataEnc = await encryptJson(session.localData);
+  await db.sessions.put({
+    id: session.id,
+    patientId: session.patientId,
+    status: session.status,
+    startedAt: session.startedAt,
+    localDataEnc,
+  });
+}
+
+async function decryptSession(row: SessionRow): Promise<CachedSession> {
+  const localData = await decryptJson<Record<string, unknown>>(row.localDataEnc);
+  return {
+    id: row.id,
+    patientId: row.patientId,
+    status: row.status,
+    startedAt: row.startedAt,
+    localData,
+  };
 }
 
 export async function getCachedSession(id: string): Promise<CachedSession | undefined> {
-  return db.sessions.get(id);
+  const row = await db.sessions.get(id);
+  return row ? decryptSession(row) : undefined;
 }
 
 export async function getPendingSessions(): Promise<CachedSession[]> {
-  return db.sessions.where('status').notEqual('COMPLETED').toArray();
+  const rows = await db.sessions.where('status').notEqual('COMPLETED').toArray();
+  return Promise.all(rows.map(decryptSession));
 }
 
 // ─── Transcript Cache (offline viewing) ────────────────────────
 
 export async function cacheTranscripts(sessionId: string, entries: CachedTranscripts['entries']) {
-  const existing = (await db.transcripts.get(sessionId))?.entries ?? [];
+  const existing = await getCachedTranscriptEntries(sessionId);
   const merged = mergeTranscripts(existing, entries);
+  const enc = await encryptJson(merged);
   await db.transcripts.put({
     sessionId,
-    entries: merged,
+    enc,
     updatedAt: new Date().toISOString(),
   });
   return merged;
 }
 
+async function getCachedTranscriptEntries(
+  sessionId: string,
+): Promise<CachedTranscripts['entries']> {
+  const row = await db.transcripts.get(sessionId);
+  if (!row) return [];
+  try {
+    return await decryptJson<CachedTranscripts['entries']>(row.enc);
+  } catch {
+    return []; // corrupt/undecryptable — start fresh rather than crash
+  }
+}
+
 export async function getCachedTranscripts(
   sessionId: string,
 ): Promise<CachedTranscripts | undefined> {
-  return db.transcripts.get(sessionId);
+  const row = await db.transcripts.get(sessionId);
+  if (!row) return undefined;
+  const entries = await getCachedTranscriptEntries(sessionId);
+  return { sessionId: row.sessionId, entries, updatedAt: row.updatedAt };
 }
 
 /** Dedupes transcript entries by timestamp + speaker (idempotent appends). */
@@ -160,11 +291,19 @@ function mergeTranscripts(
 // ─── Brief Cache (offline viewing) ─────────────────────────────
 
 export async function cacheBrief(sessionId: string, brief: Record<string, unknown>) {
-  await db.briefs.put({ sessionId, brief, generatedAt: new Date().toISOString() });
+  const enc = await encryptJson(brief);
+  await db.briefs.put({ sessionId, enc, generatedAt: new Date().toISOString() });
 }
 
 export async function getCachedBrief(sessionId: string): Promise<CachedBrief | undefined> {
-  return db.briefs.get(sessionId);
+  const row = await db.briefs.get(sessionId);
+  if (!row) return undefined;
+  try {
+    const brief = await decryptJson<Record<string, unknown>>(row.enc);
+    return { sessionId: row.sessionId, brief, generatedAt: row.generatedAt };
+  } catch {
+    return undefined;
+  }
 }
 
 // ─── Outbox (offline mutation queue) ───────────────────────────
@@ -173,9 +312,10 @@ export async function enqueueMutation(
   type: MutationType,
   payload: Record<string, unknown>,
 ): Promise<number> {
+  const payloadEnc = await encryptJson(payload);
   return db.mutations.add({
     type,
-    payload,
+    payloadEnc,
     clientTimestamp: new Date().toISOString(),
     createdAt: new Date().toISOString(),
     attempts: 0,
@@ -187,12 +327,23 @@ export async function getPendingMutations(): Promise<OutboxMutation[]> {
   const pending = await db.mutations.where('status').equals('pending').toArray();
   // Oldest first — last-write-wins means the newest timestamp wins on replay.
   // Stable tie-break on id keeps insertion order when timestamps collide.
-  return pending.sort((a, b) => {
+  const sorted = [...pending].sort((a, b) => {
     if (a.clientTimestamp !== b.clientTimestamp) {
       return a.clientTimestamp < b.clientTimestamp ? -1 : 1;
     }
     return (a.id ?? 0) - (b.id ?? 0);
   });
+  return Promise.all(
+    sorted.map(async (row) => ({
+      id: row.id,
+      type: row.type,
+      payload: await decryptJson<Record<string, unknown>>(row.payloadEnc),
+      clientTimestamp: row.clientTimestamp,
+      createdAt: row.createdAt,
+      attempts: row.attempts,
+      status: row.status,
+    })),
+  );
 }
 
 export async function getPendingMutationCount(): Promise<number> {
@@ -213,6 +364,8 @@ export async function clearSyncedMutations(): Promise<void> {
 }
 
 // ─── Sync Log (last-write-wins audit trail) ────────────────────
+// Sync log entries are intentionally PHI-free (entityId is a session id
+// or a mutation id — never a mobile number or patient name).
 
 export async function logSyncEntry(entry: Omit<SyncLogEntry, 'id' | 'syncedAt'>) {
   await db.syncLog.add({ ...entry, syncedAt: new Date().toISOString() });
@@ -222,14 +375,3 @@ export async function getSyncLogs(limit = 100): Promise<SyncLogEntry[]> {
   const logs = await db.syncLog.orderBy('id').reverse().toArray();
   return logs.slice(0, limit);
 }
-
-// ─── Types for consumers ───────────────────────────────────────
-
-export type {
-  CachedPatient,
-  CachedSession,
-  CachedTranscripts,
-  CachedBrief,
-  OutboxMutation,
-  SyncLogEntry,
-};

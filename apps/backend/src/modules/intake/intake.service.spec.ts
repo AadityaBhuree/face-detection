@@ -15,6 +15,7 @@ const mockPrisma = {
   },
   intakeRecord: {
     create: jest.fn(),
+    findFirst: jest.fn(),
   },
 };
 
@@ -161,9 +162,7 @@ describe('IntakeService', () => {
     it('should throw NotFoundException when session does not exist', async () => {
       mockPrisma.intakeSession.findUnique.mockResolvedValue(null);
 
-      await expect(
-        service.getSession(validSessionId),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.getSession(validSessionId)).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -187,8 +186,7 @@ describe('IntakeService', () => {
     };
 
     it('should complete the full intake flow successfully', async () => {
-      mockPrisma.intakeSession.findUnique
-        .mockResolvedValue(mockSession);             // single call: check session
+      mockPrisma.intakeSession.findUnique.mockResolvedValue(mockSession); // single call: check session
       mockSessionService.updateStatus.mockResolvedValue(undefined);
       mockPrisma.intakeRecord.create.mockResolvedValue({
         id: 'record-1',
@@ -196,16 +194,10 @@ describe('IntakeService', () => {
         patientId: validPatientId,
       });
 
-      const result = await service.completeWithIntake(
-        validSessionId,
-        mockIntakeData,
-      );
+      const result = await service.completeWithIntake(validSessionId, mockIntakeData);
 
       // Verify FSM transition to TRANSCRIBING
-      expect(mockSessionService.updateStatus).toHaveBeenCalledWith(
-        validSessionId,
-        'TRANSCRIBING',
-      );
+      expect(mockSessionService.updateStatus).toHaveBeenCalledWith(validSessionId, 'TRANSCRIBING');
 
       // Verify intake record was created
       expect(mockPrisma.intakeRecord.create).toHaveBeenCalledWith({
@@ -225,17 +217,22 @@ describe('IntakeService', () => {
 
       // Verify the clinical brief was generated
       expect(result.brief).toBeDefined();
-      expect(result.brief.summary).toContain('Headache and fever');
-      expect(result.brief.chiefComplaint).toBe('Headache and fever');
-      expect(result.brief.vitalsToCheck).toContain('Blood Pressure');
+      const brief = result.brief as {
+        summary: string;
+        chiefComplaint: string;
+        vitalsToCheck: string[];
+      };
+      expect(brief.summary).toContain('Headache and fever');
+      expect(brief.chiefComplaint).toBe('Headache and fever');
+      expect(brief.vitalsToCheck).toContain('Blood Pressure');
     });
 
     it('should throw NotFoundException when session does not exist', async () => {
       mockPrisma.intakeSession.findUnique.mockResolvedValue(null);
 
-      await expect(
-        service.completeWithIntake(validSessionId, mockIntakeData),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.completeWithIntake(validSessionId, mockIntakeData)).rejects.toThrow(
+        NotFoundException,
+      );
 
       expect(mockSessionService.updateStatus).not.toHaveBeenCalled();
       expect(mockPrisma.intakeRecord.create).not.toHaveBeenCalled();
@@ -247,9 +244,9 @@ describe('IntakeService', () => {
         status: 'COMPLETED',
       });
 
-      await expect(
-        service.completeWithIntake(validSessionId, mockIntakeData),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.completeWithIntake(validSessionId, mockIntakeData)).rejects.toThrow(
+        BadRequestException,
+      );
 
       expect(mockSessionService.updateStatus).not.toHaveBeenCalled();
       expect(mockPrisma.intakeRecord.create).not.toHaveBeenCalled();
@@ -261,9 +258,64 @@ describe('IntakeService', () => {
         status: 'BRIEF_GENERATED',
       });
 
+      await expect(service.completeWithIntake(validSessionId, mockIntakeData)).rejects.toThrow(
+        'Session is already completed',
+      );
+    });
+
+    it('should return the existing record on idempotent replay (completed + key)', async () => {
+      mockPrisma.intakeSession.findUnique.mockResolvedValue({
+        ...mockSession,
+        status: 'BRIEF_GENERATED',
+      });
+      const existingRecord = {
+        id: 'record-1',
+        sessionId: validSessionId,
+        patientId: validPatientId,
+        brief: { summary: 'Existing brief' },
+        intakeData: mockIntakeData,
+      };
+      mockPrisma.intakeRecord.findFirst.mockResolvedValue(existingRecord);
+
+      const result = await service.completeWithIntake(
+        validSessionId,
+        mockIntakeData,
+        'offline-mutation-42',
+      );
+
+      expect(result.intakeRecord).toEqual(existingRecord);
+      expect(result.brief).toEqual(existingRecord.brief);
+      // No re-transition, no duplicate record creation.
+      expect(mockSessionService.updateStatus).not.toHaveBeenCalled();
+      expect(mockPrisma.intakeRecord.create).not.toHaveBeenCalled();
+      expect(mockPrisma.intakeRecord.findFirst).toHaveBeenCalledWith({
+        where: { sessionId: validSessionId },
+        orderBy: { generatedAt: 'desc' },
+      });
+    });
+
+    it('should still throw when completed with a key but no existing record found', async () => {
+      mockPrisma.intakeSession.findUnique.mockResolvedValue({
+        ...mockSession,
+        status: 'COMPLETED',
+      });
+      mockPrisma.intakeRecord.findFirst.mockResolvedValue(null);
+
       await expect(
-        service.completeWithIntake(validSessionId, mockIntakeData),
+        service.completeWithIntake(validSessionId, mockIntakeData, 'offline-mutation-42'),
       ).rejects.toThrow('Session is already completed');
+    });
+
+    it('should throw BadRequestException on a completed session WITHOUT an idempotency key', async () => {
+      mockPrisma.intakeSession.findUnique.mockResolvedValue({
+        ...mockSession,
+        status: 'BRIEF_GENERATED',
+      });
+
+      await expect(service.completeWithIntake(validSessionId, mockIntakeData)).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(mockPrisma.intakeRecord.findFirst).not.toHaveBeenCalled();
     });
 
     it('should handle empty patientId by using empty string', async () => {
@@ -291,23 +343,17 @@ describe('IntakeService', () => {
 
   describe('startSession — error propagation', () => {
     it('should propagate Prisma errors during session creation', async () => {
-      mockPrisma.intakeSession.create.mockRejectedValue(
-        new Error('Database connection failed'),
-      );
+      mockPrisma.intakeSession.create.mockRejectedValue(new Error('Database connection failed'));
 
-      await expect(
-        service.startSession({ deviceId: 'cam-1', metadata: {} }),
-      ).rejects.toThrow('Database connection failed');
+      await expect(service.startSession({ deviceId: 'cam-1', metadata: {} })).rejects.toThrow(
+        'Database connection failed',
+      );
     });
 
     it('should propagate Prisma errors during session retrieval', async () => {
-      mockPrisma.intakeSession.findUnique.mockRejectedValue(
-        new Error('Query timeout'),
-      );
+      mockPrisma.intakeSession.findUnique.mockRejectedValue(new Error('Query timeout'));
 
-      await expect(
-        service.getSession(validSessionId),
-      ).rejects.toThrow('Query timeout');
+      await expect(service.getSession(validSessionId)).rejects.toThrow('Query timeout');
     });
 
     it('should propagate Prisma errors during intake record creation', async () => {
@@ -318,9 +364,7 @@ describe('IntakeService', () => {
         startedAt: new Date(),
       });
       mockSessionService.updateStatus.mockResolvedValue(undefined);
-      mockPrisma.intakeRecord.create.mockRejectedValue(
-        new Error('Record creation failed'),
-      );
+      mockPrisma.intakeRecord.create.mockRejectedValue(new Error('Record creation failed'));
 
       const mockIntakeData = {
         chiefComplaint: 'Test',
@@ -331,9 +375,9 @@ describe('IntakeService', () => {
         patientNotes: '',
       };
 
-      await expect(
-        service.completeWithIntake(validSessionId, mockIntakeData),
-      ).rejects.toThrow('Record creation failed');
+      await expect(service.completeWithIntake(validSessionId, mockIntakeData)).rejects.toThrow(
+        'Record creation failed',
+      );
     });
   });
 
@@ -359,9 +403,7 @@ describe('IntakeService', () => {
     it('should throw NotFoundException when session does not exist', async () => {
       mockPrisma.intakeSession.findUnique.mockResolvedValue(null);
 
-      await expect(
-        service.getSessionStatus('nonexistent-id'),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.getSessionStatus('nonexistent-id')).rejects.toThrow(NotFoundException);
     });
   });
 });

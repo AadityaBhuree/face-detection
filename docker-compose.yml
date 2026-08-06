@@ -67,7 +67,10 @@ services:
     volumes:
       - qdrant-storage:/qdrant/storage
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:6333/health"]
+      # The qdrant image has bash but no curl/wget, so probe /healthz
+      # over /dev/tcp instead of relying on external tools.
+      # (CMD-SHELL uses /bin/sh, which has no /dev/tcp — invoke bash.)
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/localhost/6333 && echo -e \"GET /healthz HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n\" >&3 && grep -q \"200 OK\" <&3'"]
       interval: 15s
       timeout: 10s
       retries: 5

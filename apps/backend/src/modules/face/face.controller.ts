@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Param, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, HttpCode, HttpStatus, Headers } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires runtime value import
@@ -77,8 +77,11 @@ export class FaceController {
     description:
       'Requires explicit consent (consent=true). Stores the embedding in Qdrant and the patient record in PostgreSQL.',
   })
-  async registerPatient(@Body() data: RegisterPatientDto) {
-    return this.registrationService.registerPatient(data);
+  async registerPatient(
+    @Body() data: RegisterPatientDto,
+    @Headers('idempotency-key') idempotencyKey?: string,
+  ) {
+    return this.registrationService.registerPatient(data, idempotencyKey);
   }
 
   @Get(':patientId/embeddings')

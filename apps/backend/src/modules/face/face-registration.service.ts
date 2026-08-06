@@ -17,14 +17,29 @@ export class FaceRegistrationService {
   /**
    * Register a new patient with their face embedding.
    * Creates the patient record in PostgreSQL and stores the embedding in Qdrant.
+   *
+   * When an `idempotencyKey` is supplied (offline outbox replay) and the
+   * patient already exists, the existing record is returned instead of a 409
+   * — the first delivery already created the patient even if its response was
+   * lost in transit.
    */
-  async registerPatient(data: RegisterPatientDto) {
+  async registerPatient(data: RegisterPatientDto, idempotencyKey?: string) {
     // Check for duplicate mobile
     const existing = await this.prisma.patient.findUnique({
       where: { mobile: data.mobile },
     });
 
     if (existing) {
+      if (idempotencyKey) {
+        this.logger.log(
+          `Idempotent replay: patient ${existing.id} already registered (key ${idempotencyKey})`,
+        );
+        return {
+          id: existing.id,
+          name: existing.name,
+          message: 'Patient already registered (idempotent replay)',
+        };
+      }
       throw new ConflictException(
         `Patient with mobile ${data.mobile} already exists (ID: ${existing.id})`,
       );
@@ -54,9 +69,7 @@ export class FaceRegistrationService {
       },
     });
 
-    this.logger.log(
-      `Registered patient ${patient.id} (${patient.name}) with face embedding`,
-    );
+    this.logger.log(`Registered patient ${patient.id} (${patient.name}) with face embedding`);
 
     await this.auditService.log({
       action: 'PATIENT_REGISTERED',
@@ -78,11 +91,7 @@ export class FaceRegistrationService {
   /**
    * Search for a patient by face embedding and return their details if matched.
    */
-  async searchWithDetails(
-    vector: number[],
-    threshold = 0.82,
-    limit = 5,
-  ) {
+  async searchWithDetails(vector: number[], threshold = 0.82, limit = 5) {
     const matches = await this.faceService.searchByFace({
       vector,
       threshold,

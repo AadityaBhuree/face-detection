@@ -50,11 +50,28 @@ const sessionMutation = {
   status: 'pending' as const,
 };
 
+const registerMutation = {
+  id: 2,
+  type: 'REGISTER_PATIENT' as const,
+  payload: {
+    name: 'Raj',
+    dob: '1990-01-01',
+    mobile: '+919999999999',
+    consent: true,
+    embedding: [0.1],
+  },
+  clientTimestamp: '2026-08-05T09:05:00.000Z',
+  createdAt: '2026-08-05T09:05:00.000Z',
+  attempts: 0,
+  status: 'pending' as const,
+};
+
 describe('offline sync service', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     useOfflineStore.getState().reset();
     dbMocks.getPendingMutationCount.mockResolvedValue(0);
+    // Queue drains after the first batch by default.
     dbMocks.getPendingMutations.mockResolvedValue([]);
   });
 
@@ -103,16 +120,15 @@ describe('offline sync service', () => {
       expect(dbMocks.getPendingMutations).not.toHaveBeenCalled();
     });
 
-    it('should replay pending mutations and mark them synced', async () => {
-      dbMocks.getPendingMutations.mockResolvedValue([sessionMutation]);
+    it('should replay pending mutations with an idempotency key and mark them synced', async () => {
+      dbMocks.getPendingMutations.mockResolvedValueOnce([sessionMutation]).mockResolvedValue([]);
       apiMocks.completeSession.mockResolvedValue({ brief: {} });
       dbMocks.getPendingMutationCount.mockResolvedValue(0);
 
       const result = await flushPendingMutations();
 
-      expect(apiMocks.completeSession).toHaveBeenCalledWith('s1', {
-        chiefComplaint: 'Fever',
-      });
+      // The replay carries the outbox row id as the Idempotency-Key.
+      expect(apiMocks.completeSession).toHaveBeenCalledWith('s1', { chiefComplaint: 'Fever' }, '1');
       expect(dbMocks.markMutationSynced).toHaveBeenCalledWith(1);
       expect(dbMocks.logSyncEntry).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -128,21 +144,8 @@ describe('offline sync service', () => {
       expect(useOfflineStore.getState().isSyncing).toBe(false);
     });
 
-    it('should replay REGISTER_PATIENT mutations', async () => {
-      const registerMutation = {
-        ...sessionMutation,
-        id: 2,
-        type: 'REGISTER_PATIENT' as const,
-        payload: {
-          name: 'Raj',
-          dob: '1990-01-01',
-          mobile: '+919999999999',
-          consent: true,
-          embedding: [0.1],
-        },
-        clientTimestamp: '2026-08-05T09:05:00.000Z',
-      };
-      dbMocks.getPendingMutations.mockResolvedValue([registerMutation]);
+    it('should replay REGISTER_PATIENT mutations with idempotency + PHI-free log id', async () => {
+      dbMocks.getPendingMutations.mockResolvedValueOnce([registerMutation]).mockResolvedValue([]);
       apiMocks.registerPatient.mockResolvedValue({ id: 'p-new', name: 'Raj' });
       dbMocks.getPendingMutationCount.mockResolvedValue(0);
 
@@ -154,8 +157,13 @@ describe('offline sync service', () => {
           consent: true,
           embedding: [0.1],
         }),
+        '2',
       );
       expect(dbMocks.markMutationSynced).toHaveBeenCalledWith(2);
+      // Sync log must never contain the patient's mobile number.
+      const logCall = dbMocks.logSyncEntry.mock.calls[0]?.[0] as Record<string, unknown>;
+      expect(logCall.entityId).toBe('mutation-2');
+      expect(JSON.stringify(logCall)).not.toContain('+919999999999');
     });
 
     it('should stop at the first failure and keep the rest queued', async () => {
@@ -186,7 +194,7 @@ describe('offline sync service', () => {
     it('should replay oldest-first (last-write-wins ordering)', async () => {
       const older = { ...sessionMutation, id: 1, clientTimestamp: '2026-08-05T08:00:00.000Z' };
       const newer = { ...sessionMutation, id: 2, clientTimestamp: '2026-08-05T10:00:00.000Z' };
-      dbMocks.getPendingMutations.mockResolvedValue([older, newer]);
+      dbMocks.getPendingMutations.mockResolvedValueOnce([older, newer]).mockResolvedValue([]);
       apiMocks.completeSession.mockResolvedValue({ brief: {} });
       dbMocks.getPendingMutationCount.mockResolvedValue(0);
 
@@ -196,6 +204,32 @@ describe('offline sync service', () => {
       expect(order).toEqual(['s1', 's1']);
       // Both marked synced in order
       expect(dbMocks.markMutationSynced.mock.calls.map((c) => c[0])).toEqual([1, 2]);
+    });
+
+    it('should pick up mutations enqueued during a flush (loop until drained)', async () => {
+      const first = { ...sessionMutation, id: 1 };
+      const enqueuedDuringFlush = {
+        ...sessionMutation,
+        id: 2,
+        clientTimestamp: '2026-08-05T09:02:00.000Z',
+        payload: { sessionId: 's2', intakeData: { chiefComplaint: 'Cough' } },
+      };
+      // First pass sees [first]; second pass sees the newly enqueued one;
+      // third pass sees an empty queue.
+      dbMocks.getPendingMutations
+        .mockResolvedValueOnce([first])
+        .mockResolvedValueOnce([enqueuedDuringFlush])
+        .mockResolvedValue([]);
+      apiMocks.completeSession.mockResolvedValue({ brief: {} });
+      dbMocks.getPendingMutationCount.mockResolvedValue(0);
+
+      const result = await flushPendingMutations();
+
+      expect(result.synced).toBe(2);
+      expect(apiMocks.completeSession).toHaveBeenCalledTimes(2);
+      expect(apiMocks.completeSession).toHaveBeenCalledWith('s2', { chiefComplaint: 'Cough' }, '2');
+      expect(dbMocks.markMutationSynced.mock.calls.map((c) => c[0])).toEqual([1, 2]);
+      expect(useOfflineStore.getState().lastSyncedAt).not.toBeNull();
     });
   });
 
@@ -210,6 +244,18 @@ describe('offline sync service', () => {
       cleanup();
     });
 
+    it('should be a no-op on double init (React StrictMode guard)', () => {
+      const cleanup1 = initOfflineSync();
+      const cleanup2 = initOfflineSync();
+
+      // Second init must not register duplicate listeners — calling its
+      // cleanup should not tear down the first init's listeners.
+      cleanup2();
+      window.dispatchEvent(new Event('online'));
+      expect(useOfflineStore.getState().isOnline).toBe(true);
+      cleanup1();
+    });
+
     it('should flush queued mutations when the online event fires', async () => {
       const addEventListenerSpy = vi.spyOn(window, 'addEventListener');
       const cleanup = initOfflineSync();
@@ -219,7 +265,7 @@ describe('offline sync service', () => {
         ([event]) => event === 'online',
       )?.[1] as EventListener;
 
-      dbMocks.getPendingMutations.mockResolvedValue([sessionMutation]);
+      dbMocks.getPendingMutations.mockResolvedValueOnce([sessionMutation]).mockResolvedValue([]);
       apiMocks.completeSession.mockResolvedValue({ brief: {} });
       dbMocks.getPendingMutationCount.mockResolvedValue(0);
 
@@ -228,9 +274,11 @@ describe('offline sync service', () => {
 
       // The flush is async (fire-and-forget) — wait for it
       await vi.waitFor(() => {
-        expect(apiMocks.completeSession).toHaveBeenCalledWith('s1', {
-          chiefComplaint: 'Fever',
-        });
+        expect(apiMocks.completeSession).toHaveBeenCalledWith(
+          's1',
+          { chiefComplaint: 'Fever' },
+          '1',
+        );
       });
 
       expect(useOfflineStore.getState().isOnline).toBe(true);

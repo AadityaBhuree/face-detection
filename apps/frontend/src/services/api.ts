@@ -437,6 +437,37 @@ export const auditApi = {
     ),
 };
 
+// ─── Monitoring API (ADMIN/SYSTEM) ────────────────────────────
+
+export interface LatencyPoint {
+  p50: number;
+  p95: number;
+  p99: number;
+  count: number;
+}
+
+export interface LatencySnapshot {
+  http: LatencyPoint;
+  qdrant: LatencyPoint;
+}
+
+export type AlertSeverity = 'ok' | 'warning' | 'critical';
+
+export interface MonitoredAlert {
+  key: string;
+  label: string;
+  severity: AlertSeverity;
+  value: number;
+  threshold: number;
+  message: string;
+}
+
+export const monitoringApi = {
+  getLatency: () => request<LatencySnapshot>('/monitoring/latency'),
+
+  getAlerts: () => request<MonitoredAlert[]>('/monitoring/alerts'),
+};
+
 // ─── Auth API ──────────────────────────────────────────────────
 
 export const authApi = {

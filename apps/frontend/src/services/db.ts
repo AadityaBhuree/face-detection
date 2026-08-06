@@ -333,17 +333,38 @@ export async function getPendingMutations(): Promise<OutboxMutation[]> {
     }
     return (a.id ?? 0) - (b.id ?? 0);
   });
-  return Promise.all(
-    sorted.map(async (row) => ({
-      id: row.id,
-      type: row.type,
-      payload: await decryptJson<Record<string, unknown>>(row.payloadEnc),
-      clientTimestamp: row.clientTimestamp,
-      createdAt: row.createdAt,
-      attempts: row.attempts,
-      status: row.status,
-    })),
-  );
+
+  const decrypted: OutboxMutation[] = [];
+  for (const row of sorted) {
+    try {
+      decrypted.push({
+        id: row.id,
+        type: row.type,
+        payload: await decryptJson<Record<string, unknown>>(row.payloadEnc),
+        clientTimestamp: row.clientTimestamp,
+        createdAt: row.createdAt,
+        attempts: row.attempts,
+        status: row.status,
+      });
+    } catch (error) {
+      // A single corrupt payload (key rotation, partial write) must NOT block
+      // the healthy mutations behind it. Terminate the unrecoverable row so
+      // it stops retrying forever, log it, and keep the rest of the queue
+      // replayable. The sync log note avoids embedding any raw payload text.
+      if (row.id !== undefined) {
+        await markMutationFailed(row.id, (row.attempts ?? 0) + 1);
+        await logSyncEntry({
+          entityId: `mutation-${row.id}`,
+          entityType: row.type,
+          action: 'DECRYPT_FAILED',
+          clientTimestamp: row.clientTimestamp,
+          status: 'failed',
+          note: error instanceof Error ? error.message : 'Unable to decrypt queued mutation',
+        });
+      }
+    }
+  }
+  return decrypted;
 }
 
 export async function getPendingMutationCount(): Promise<number> {

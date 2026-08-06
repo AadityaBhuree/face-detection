@@ -125,10 +125,11 @@ export const intakeApi = {
 
   getSession: (id: string) => request<Record<string, unknown>>(`/intake/session/${id}`),
 
-  completeSession: (id: string, intakeData: Record<string, unknown>) =>
+  completeSession: (id: string, intakeData: Record<string, unknown>, idempotencyKey?: string) =>
     request<Record<string, unknown>>(`/intake/session/${id}/complete`, {
       method: 'POST',
       body: intakeData,
+      headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
     }),
 
   getSessionStatus: (id: string) =>
@@ -165,16 +166,20 @@ export const faceApi = {
       body: data,
     }),
 
-  registerPatient: (data: {
-    name: string;
-    dob: string;
-    mobile: string;
-    consent: boolean;
-    embedding: number[];
-  }) =>
+  registerPatient: (
+    data: {
+      name: string;
+      dob: string;
+      mobile: string;
+      consent: boolean;
+      embedding: number[];
+    },
+    idempotencyKey?: string,
+  ) =>
     request<{ id: string; name: string; message: string }>('/face/register-patient', {
       method: 'POST',
       body: data,
+      headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
     }),
 };
 

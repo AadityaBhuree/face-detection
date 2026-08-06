@@ -1,0 +1,16 @@
+# Grafana dashboard provisioning — loads every JSON dashboard in the
+# mounted directory on startup. Updates propagate automatically (folder
+# is watched).
+apiVersion: 1
+
+providers:
+  - name: 'Jeevandata'
+    orgId: 1
+    folder: 'Jeevandata'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: false

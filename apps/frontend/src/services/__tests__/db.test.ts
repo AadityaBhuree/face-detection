@@ -392,6 +392,39 @@ describe('IndexedDB helpers (in-memory Dexie)', () => {
         intakeData: { chiefComplaint: 'Fever' },
       });
     });
+
+    it('should isolate a corrupt payload so it cannot brick healthy mutations', async () => {
+      // Healthy mutation first.
+      const healthyId = await enqueueMutation('COMPLETE_SESSION', {
+        sessionId: 's1',
+        intakeData: { chiefComplaint: 'Fever' },
+      });
+      // Manually inject a corrupt encrypted payload (tampered ciphertext).
+      const corruptId = await enqueueMutation('COMPLETE_SESSION', {
+        sessionId: 's2',
+        intakeData: { chiefComplaint: 'Cough' },
+      });
+      const mutationsTable = tables.get('mutations')!;
+      const corruptRow = mutationsTable.store.get(corruptId) as { payloadEnc: string };
+      corruptRow.payloadEnc = `${corruptRow.payloadEnc.split('.')[0]}.Zm9vYmFy`; // garbage ciphertext
+
+      // getPendingMutations must skip the corrupt row (marking it failed + log)
+      // and still return the healthy one.
+      const pending = await getPendingMutations();
+      expect(pending.map((m) => m.id)).toEqual([healthyId]);
+      expect(pending[0]!.payload.sessionId).toBe('s1');
+
+      // The corrupt row was terminated so it never retries forever.
+      const after = mutationsTable.store.get(corruptId) as { status: string; attempts: number };
+      expect(after.status).toBe('failed');
+      expect(after.attempts).toBeGreaterThan(0);
+
+      // And a DECRYPT_FAILED audit entry was logged (PHI-free).
+      const logs = await getSyncLogs();
+      const entry = logs.find((l) => l.action === 'DECRYPT_FAILED');
+      expect(entry).toBeDefined();
+      expect(entry!.entityId).toBe(`mutation-${corruptId}`);
+    });
   });
 
   // ─── Sync log ──────────────────────────────────────────────

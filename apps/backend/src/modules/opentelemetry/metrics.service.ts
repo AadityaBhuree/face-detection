@@ -31,6 +31,8 @@ const SESSION_TIMEOUT_RATE_THRESHOLD = 0.05; // 5%
 
 const ERROR_WINDOW_MS = 5 * 60 * 1000; // error-rate window: last 5 minutes
 const MAX_SAMPLES = 2000; // latency ring buffer cap
+const MIN_ERROR_SAMPLES = 20; // minimum requests before the error-rate alert is meaningful
+const MIN_LATENCY_SAMPLES = 5; // minimum samples before the latency alert is meaningful
 
 interface OutcomeSample {
   ts: number;
@@ -181,32 +183,36 @@ export class MetricsService {
 
   /** Evaluate the Phase 6.8 alert thresholds. */
   evaluateAlerts(): MonitoredAlert[] {
-    const { rate: errorRate } = this.getErrorRate();
+    const { rate: errorRate, sampleCount } = this.getErrorRate();
     const qdrant = this.percentiles(this.qdrantLatencySamples);
     const sessionTimeoutRate = 0; // resolved from DB in MonitoringService
+
+    // Minimum-sample guards: a single 5xx among a handful of requests (or a
+    // single slow search) must not fire a false alert in a low-traffic clinic.
+    const errorAlertFlagged = sampleCount >= MIN_ERROR_SAMPLES && errorRate > ERROR_RATE_THRESHOLD;
+    const latencyAlertFlagged =
+      qdrant.count >= MIN_LATENCY_SAMPLES && qdrant.p95 > FACE_LATENCY_P95_THRESHOLD_MS;
 
     const errorAlert: MonitoredAlert = {
       key: 'http_error_rate',
       label: 'HTTP error rate (5xx, last 5 min)',
-      severity: errorRate > ERROR_RATE_THRESHOLD ? 'critical' : 'ok',
+      severity: errorAlertFlagged ? 'critical' : 'ok',
       value: Math.round(errorRate * 1000) / 10,
       threshold: ERROR_RATE_THRESHOLD * 100,
-      message:
-        errorRate > ERROR_RATE_THRESHOLD
-          ? `Error rate ${(errorRate * 100).toFixed(1)}% exceeds ${ERROR_RATE_THRESHOLD * 100}% threshold`
-          : 'Error rate is within the 1% threshold',
+      message: errorAlertFlagged
+        ? `Error rate ${(errorRate * 100).toFixed(1)}% exceeds ${ERROR_RATE_THRESHOLD * 100}% threshold`
+        : 'Error rate is within the 1% threshold',
     };
 
     const latencyAlert: MonitoredAlert = {
       key: 'face_match_latency',
       label: 'Face match p95 latency',
-      severity: qdrant.p95 > FACE_LATENCY_P95_THRESHOLD_MS ? 'warning' : 'ok',
+      severity: latencyAlertFlagged ? 'warning' : 'ok',
       value: Math.round(qdrant.p95),
       threshold: FACE_LATENCY_P95_THRESHOLD_MS,
-      message:
-        qdrant.p95 > FACE_LATENCY_P95_THRESHOLD_MS
-          ? `p95 face-match latency ${Math.round(qdrant.p95)}ms exceeds 2s threshold`
-          : `p95 face-match latency is ${Math.round(qdrant.p95)}ms (≤ 2s)`,
+      message: latencyAlertFlagged
+        ? `p95 face-match latency ${Math.round(qdrant.p95)}ms exceeds 2s threshold`
+        : `p95 face-match latency is ${Math.round(qdrant.p95)}ms (≤ 2s)`,
     };
 
     const timeoutAlert: MonitoredAlert = {

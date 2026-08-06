@@ -146,6 +146,62 @@ services:
       - devtools
     logging: *default-logging
 
+  # ─── Prometheus (Metrics Scraper — Phase 7.6) ───────────────
+  # Scrapes the backend's GET /metrics. The backend runs on the Docker
+  # host in this stack, so we reach it via host.docker.internal:4000
+  # (the extra_hosts host-gateway mapping makes that resolve on Linux).
+  # If the backend is containerized later, point the target at its DNS
+  # name instead (see monitoring/prometheus.yml).
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    container_name: jeevandata-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=15d"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:9090/-/healthy"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    logging: *default-logging
+
+  # ─── Grafana (Dashboards — Phase 7.6) ───────────────────────
+  # Datasource + dashboards are auto-provisioned from ./monitoring/grafana.
+  # Default login: admin / ${GF_ADMIN_PASSWORD:-admin} — set GF_ADMIN_PASSWORD
+  # in your environment (or .env) before deploying anywhere shared.
+  grafana:
+    image: grafana/grafana:11.1.0
+    container_name: jeevandata-grafana
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GF_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GF_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:3000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    logging: *default-logging
+
 volumes:
   postgres-data:
     driver: local
@@ -156,4 +212,8 @@ volumes:
   minio-data:
     driver: local
   whisper-models:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
     driver: local

@@ -58,6 +58,7 @@ describe('SessionService', () => {
           provide: MetricsService,
           useValue: {
             incrementSessionTimeouts: jest.fn(),
+            incrementSessionsCompleted: jest.fn(),
             setActiveSessions: jest.fn(),
           },
         },
@@ -122,6 +123,25 @@ describe('SessionService', () => {
       await service.updateStatus(validSessionId, 'TIMED_OUT' as SessionStatus);
 
       expect(metrics.incrementSessionTimeouts).toHaveBeenCalledTimes(1);
+    });
+
+    it('should increment the completed metric when transitioning to COMPLETED', async () => {
+      mockPrisma.intakeSession.findUnique.mockResolvedValue({
+        id: validSessionId,
+        status: 'SYNCED',
+        updatedAt: new Date(),
+      });
+      mockPrisma.intakeSession.update.mockResolvedValue({
+        id: validSessionId,
+        status: 'COMPLETED',
+      });
+      mockRedis.set.mockResolvedValue('OK');
+      const metrics = module.get<MetricsService>(MetricsService);
+
+      await service.updateStatus(validSessionId, 'COMPLETED' as SessionStatus);
+
+      expect(metrics.incrementSessionsCompleted).toHaveBeenCalledTimes(1);
+      expect(metrics.incrementSessionTimeouts).not.toHaveBeenCalled();
     });
 
     it('should not increment the timeout metric for non-timeout transitions', async () => {

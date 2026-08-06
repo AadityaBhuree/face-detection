@@ -22,7 +22,7 @@ Each phase contains numbered steps. Every step is sized for a **single atomic co
 | **3** | Backend Production Hardening   | 🔶 **In progress** | 4/7          | 4–6h remain |
 | **4** | Authentication & Multi-Tenancy | ⬜ **Not started** | 6            | 8–10h       |
 | **5** | UI/UX Excellence               | ✅ **Done**        | 8/8          | Completed   |
-| **6** | Feature Expansion              | 🔶 **In progress** | 4/8          | 10–14h      |
+| **6** | Feature Expansion              | 🔶 **In progress** | 7/8          | 3–4h remain |
 | **7** | Infrastructure & Deployment    | ⬜ **Not started** | 6            | 8–12h       |
 |       | **Total remaining**            |                    | **19 steps** | **30–42h**  |
 
@@ -237,7 +237,7 @@ Validate all critical env vars at startup (both backend and frontend):
 
 ---
 
-## Phase 6 — Feature Expansion 🔶 (2 steps remain)
+## Phase 6 — Feature Expansion 🔶 (1 step remains)
 
 > **Goal:** Ship the remaining major features: patient registration UI, mobile support, multi-language, accessibility, admin dashboard, HIPAA compliance, offline mode, and monitoring.
 
@@ -294,13 +294,19 @@ Validate all critical env vars at startup (both backend and frontend):
 
 **Delivered:** `modules/audit/` controller + service extensions, `test/audit.e2e-spec.ts` (16 tests), `audit.service.spec.ts` (34 tests), `app/admin/audit/` (+13 frontend tests). Review fixes: inclusive date range, IP masking, keystroke-driven refetch elimination.
 
-### Step 6.7 — Offline mode with IndexedDB sync ⬜
+### Step 6.7 — Offline mode with IndexedDB sync ✅
 
-- Cache patient records + active session data (transcripts, briefs) in IndexedDB
-- Queue intake mutations offline, sync on reconnect (last-write-wins + log)
-- Offline indicator in header; PWA service worker with `NetworkFirst`
+- **IndexedDB (Dexie) v3 layer** — patient records, active sessions, transcripts, briefs, an outbox mutation queue (`COMPLETE_SESSION` / `REGISTER_PATIENT`), and a PHI-free sync log (ids are session/mutation ids — never mobile numbers)
+- **PHI encrypted at rest** — patients (name/dob/mobile/data), transcripts, briefs, session `localData`, and outbox payloads (incl. face embeddings) stored AES-256-GCM (WebCrypto, PBKDF2-derived non-extractable device key); v3 upgrade purges any legacy plaintext rows
+- **Outbox replay with idempotency** — every replay sends an `Idempotency-Key` header; backend returns existing records on re-delivery instead of 400/409 (both `completeSession` and `registerPatient`)
+- **Drain-until-empty flush** — loops (bounded) so mutations enqueued mid-flush sync immediately; first-failure stop preserves ordering
+- **`OfflineIndicator`** banner (queued count, syncing spinner, retry button, back-online confirmation) + `useOnlineStatus` hook; `initOfflineSync` guards against double init (StrictMode-safe)
+- **PWA** — `next-pwa` `NetworkFirst` for pages/static; SW registers in production only; `/api/` HTTP caching removed (auth'd PHI must not live in the HTTP cache — offline data flows through encrypted IndexedDB)
+- Wired into `useIntakeConversation` (offline completion queue + transcript/brief caching), intake page (patient/session caching), and `FaceRegistrationDialog` (offline registration queue)
 
-**Est. effort:** 3–4h
+**Delivered:** `services/crypto.ts`, `services/db.ts` (v3), `services/sync.ts`, `services/api.ts`, `hooks/useOnlineStatus.ts`, `components/ui/offline-indicator.tsx`, `next.config.js`; backend idempotency in `intake.*` + `face.*`; tests: `crypto.test.ts` (7), `db.test.ts` (+7), `sync.test.ts` (+4), `face-registration.service.spec.ts` (new, 6), `intake.service.spec.ts` (+4), E2E header passthrough ×4. Frontend 586 tests / backend 250 unit + 181 E2E.
+
+**Est. effort:** 3–4h (✅ complete)
 
 ### Step 6.8 — Performance monitoring & alerting ⬜
 
@@ -392,7 +398,7 @@ Validate all critical env vars at startup (both backend and frontend):
 | Login UI + frontend auth                    | Phase 4.5–4.6 | ⬜     |
 | Clinic admin dashboard with analytics       | Phase 6.5     | ⬜     |
 | HIPAA compliance audit module               | Phase 6.6     | ⬜     |
-| Offline mode with IndexedDB sync            | Phase 6.7     | ⬜     |
+| Offline mode with IndexedDB sync            | Phase 6.7     | ✅     |
 | Performance monitoring & alerting           | Phase 6.8     | ⬜     |
 | CI/CD pipeline                              | Phase 7.1     | ⬜     |
 | Container orchestration                     | Phase 7.2     | ⬜     |

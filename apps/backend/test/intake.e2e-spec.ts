@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- test mocks */
+
 // ─── ioredis Mock ──────────────────────────────────────────────
 // BullMQ uses ioredis internally for queue management. This mock
 // prevents BullMQ from attempting a real Redis connection during
@@ -84,7 +86,13 @@ jest.mock('ioredis', () => ({
 }));
 
 import { Test, type TestingModule } from '@nestjs/testing';
-import { type INestApplication, ValidationPipe, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import {
+  type INestApplication,
+  ValidationPipe,
+  NotFoundException,
+  BadRequestException,
+  Logger,
+} from '@nestjs/common';
 import request from 'supertest';
 import { ConfigModule } from '@nestjs/config';
 import { BullModule } from '@nestjs/bullmq';
@@ -282,17 +290,11 @@ describe('IntakeController (E2E)', () => {
     });
 
     it('should reject missing deviceId', async () => {
-      await request(app.getHttpServer())
-        .post('/intake/session')
-        .send({})
-        .expect(400);
+      await request(app.getHttpServer()).post('/intake/session').send({}).expect(400);
     });
 
     it('should reject empty deviceId string', async () => {
-      await request(app.getHttpServer())
-        .post('/intake/session')
-        .send({ deviceId: '' })
-        .expect(400);
+      await request(app.getHttpServer()).post('/intake/session').send({ deviceId: '' }).expect(400);
     });
 
     it('should reject invalid UUID for patientId', async () => {
@@ -303,9 +305,7 @@ describe('IntakeController (E2E)', () => {
     });
 
     it('should propagate service errors as 500', async () => {
-      mockIntakeService.startSession.mockRejectedValue(
-        new Error('Database connection failed'),
-      );
+      mockIntakeService.startSession.mockRejectedValue(new Error('Database connection failed'));
 
       await request(app.getHttpServer())
         .post('/intake/session')
@@ -337,19 +337,13 @@ describe('IntakeController (E2E)', () => {
         new NotFoundException('Session nonexistent-id not found'),
       );
 
-      await request(app.getHttpServer())
-        .get('/intake/session/nonexistent-id')
-        .expect(404);
+      await request(app.getHttpServer()).get('/intake/session/nonexistent-id').expect(404);
     });
 
     it('should propagate service errors as 500', async () => {
-      mockIntakeService.getSession.mockRejectedValue(
-        new Error('Query timeout'),
-      );
+      mockIntakeService.getSession.mockRejectedValue(new Error('Query timeout'));
 
-      await request(app.getHttpServer())
-        .get(`/intake/session/${validUuid}`)
-        .expect(500);
+      await request(app.getHttpServer()).get(`/intake/session/${validUuid}`).expect(500);
     });
   });
 
@@ -459,10 +453,39 @@ describe('IntakeController (E2E)', () => {
         .expect(400);
     });
 
-    it('should propagate service errors as 500', async () => {
-      mockIntakeService.completeWithIntake.mockRejectedValue(
-        new Error('Brief generation failed'),
+    it('should forward the Idempotency-Key header to the service', async () => {
+      mockIntakeService.completeWithIntake.mockResolvedValue(completeResponse);
+
+      await request(app.getHttpServer())
+        .post(`/intake/session/${validUuid}/complete`)
+        .set('Idempotency-Key', 'offline-mutation-42')
+        .send(validIntakeData)
+        .expect(200);
+
+      expect(mockIntakeService.completeWithIntake).toHaveBeenCalledWith(
+        validUuid,
+        validIntakeData,
+        'offline-mutation-42',
       );
+    });
+
+    it('should forward an empty idempotency key as undefined', async () => {
+      mockIntakeService.completeWithIntake.mockResolvedValue(completeResponse);
+
+      await request(app.getHttpServer())
+        .post(`/intake/session/${validUuid}/complete`)
+        .send(validIntakeData)
+        .expect(200);
+
+      expect(mockIntakeService.completeWithIntake).toHaveBeenCalledWith(
+        validUuid,
+        validIntakeData,
+        undefined,
+      );
+    });
+
+    it('should propagate service errors as 500', async () => {
+      mockIntakeService.completeWithIntake.mockRejectedValue(new Error('Brief generation failed'));
 
       await request(app.getHttpServer())
         .post(`/intake/session/${validUuid}/complete`)
@@ -491,19 +514,13 @@ describe('IntakeController (E2E)', () => {
         new NotFoundException('Session nonexistent-id not found'),
       );
 
-      await request(app.getHttpServer())
-        .get('/intake/session/nonexistent-id/status')
-        .expect(404);
+      await request(app.getHttpServer()).get('/intake/session/nonexistent-id/status').expect(404);
     });
 
     it('should propagate service errors as 500', async () => {
-      mockIntakeService.getSessionStatus.mockRejectedValue(
-        new Error('Cache unavailable'),
-      );
+      mockIntakeService.getSessionStatus.mockRejectedValue(new Error('Cache unavailable'));
 
-      await request(app.getHttpServer())
-        .get(`/intake/session/${validUuid}/status`)
-        .expect(500);
+      await request(app.getHttpServer()).get(`/intake/session/${validUuid}/status`).expect(500);
     });
   });
 });

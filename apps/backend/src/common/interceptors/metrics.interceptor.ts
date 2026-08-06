@@ -39,13 +39,26 @@ export class MetricsInterceptor implements NestInterceptor {
       tap({
         next: () => {
           const response = ctx.getResponse<Response>();
-          this.metrics.recordHttpRequest(method, route, response.statusCode, this.elapsedMs(start));
+          this.safeRecord(method, route, response.statusCode, this.elapsedMs(start));
         },
         error: (error: Error & { status?: number }) => {
-          this.metrics.recordHttpRequest(method, route, error.status ?? 500, this.elapsedMs(start));
+          this.safeRecord(method, route, error.status ?? 500, this.elapsedMs(start));
         },
       }),
     );
+  }
+
+  /**
+   * Observability must never break the request it is measuring. If the
+   * metrics registry throws (e.g. prom-client error, uninitialized state),
+   * log nothing and move on — the response is unaffected.
+   */
+  private safeRecord(method: string, route: string, statusCode: number, durationMs: number): void {
+    try {
+      this.metrics.recordHttpRequest(method, route, statusCode, durationMs);
+    } catch {
+      // swallow — metrics collection failures are non-fatal by design
+    }
   }
 
   private elapsedMs(start: bigint): number {

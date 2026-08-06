@@ -12,6 +12,7 @@ import {
 
 const TIMEOUT_RATE_THRESHOLD = 0.05; // 5%
 const TIMEOUT_WINDOW_HOURS = 24;
+const MIN_TIMEOUT_SESSIONS = 10; // minimum sessions before the timeout-rate alert is meaningful
 
 /**
  * MonitoringService — serves the admin latency panel and evaluates the
@@ -35,38 +36,40 @@ export class MonitoringService {
   /** Evaluate all alert thresholds, including the DB-backed timeout rate. */
   async getAlerts(): Promise<MonitoredAlert[]> {
     const alerts = this.metrics.evaluateAlerts();
-    const timeoutRate = await this.computeSessionTimeoutRate();
+    const { rate: timeoutRate, count: sessionCount } = await this.computeSessionTimeoutRate();
 
     return alerts.map((alert) => {
       if (alert.key !== 'session_timeout_rate') return alert;
 
-      const severity = timeoutRate > TIMEOUT_RATE_THRESHOLD ? 'warning' : 'ok';
+      // Min-sample guard: a single timed-out session among a handful must
+      // not fire a false warning in a low-traffic clinic.
+      const flagged = sessionCount >= MIN_TIMEOUT_SESSIONS && timeoutRate > TIMEOUT_RATE_THRESHOLD;
       return {
         ...alert,
-        severity,
+        severity: flagged ? 'warning' : 'ok',
         value: Math.round(timeoutRate * 1000) / 10,
-        message:
-          timeoutRate > TIMEOUT_RATE_THRESHOLD
-            ? `Session timeout rate ${(timeoutRate * 100).toFixed(1)}% exceeds 5% threshold (last ${TIMEOUT_WINDOW_HOURS}h)`
-            : `Session timeout rate is ${(timeoutRate * 100).toFixed(1)}% (≤ 5%)`,
+        message: flagged
+          ? `Session timeout rate ${(timeoutRate * 100).toFixed(1)}% exceeds 5% threshold (last ${TIMEOUT_WINDOW_HOURS}h)`
+          : `Session timeout rate is ${(timeoutRate * 100).toFixed(1)}% (≤ 5%)`,
       };
     });
   }
 
   /**
    * Fraction of intake sessions started in the last 24h that ended in
-   * TIMED_OUT. Returns 0 when there are no sessions in the window.
+   * TIMED_OUT. Returns { rate: 0, count: 0 } when there are no sessions
+   * in the window.
    */
-  private async computeSessionTimeoutRate(): Promise<number> {
+  private async computeSessionTimeoutRate(): Promise<{ rate: number; count: number }> {
     const since = new Date(Date.now() - TIMEOUT_WINDOW_HOURS * 60 * 60 * 1000);
     const sessions = (await this.prisma.intakeSession.findMany({
       where: { startedAt: { gte: since } },
       select: { status: true },
     })) as Array<{ status: string }>;
 
-    if (sessions.length === 0) return 0;
+    if (sessions.length === 0) return { rate: 0, count: 0 };
 
     const timedOut = sessions.filter((s) => s.status === 'TIMED_OUT').length;
-    return timedOut / sessions.length;
+    return { rate: timedOut / sessions.length, count: sessions.length };
   }
 }

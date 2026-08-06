@@ -53,13 +53,28 @@ function fromBase64(base64: string): Uint8Array {
 function getDeviceKey(): Promise<CryptoKey> {
   if (!cachedKeyPromise) {
     cachedKeyPromise = (async () => {
-      let secret = localStorage.getItem(SECRET_KEY);
-      let salt = localStorage.getItem(SALT_KEY);
+      // localStorage can be unavailable (Safari private mode, storage
+      // disabled). Fall back to an in-memory-only key — PHI is then not
+      // persisted across sessions, but encrypting in memory is still better
+      // than plaintext, and the offline feature keeps working for the
+      // session instead of crashing.
+      let storage: Storage | null = null;
+      try {
+        storage = window.localStorage;
+      } catch {
+        storage = null;
+      }
+      let secret = storage?.getItem(SECRET_KEY) ?? null;
+      let salt = storage?.getItem(SALT_KEY) ?? null;
       if (!secret || !salt) {
         secret = randomHex(32);
         salt = randomHex(16);
-        localStorage.setItem(SECRET_KEY, secret);
-        localStorage.setItem(SALT_KEY, salt);
+        try {
+          storage?.setItem(SECRET_KEY, secret);
+          storage?.setItem(SALT_KEY, salt);
+        } catch {
+          // Best-effort persistence — key stays in memory for this session.
+        }
       }
       const baseKey = await crypto.subtle.importKey(
         'raw',

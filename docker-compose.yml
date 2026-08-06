@@ -162,12 +162,43 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus-alerts.yml:/etc/prometheus/rules/jeevandata-alerts.yml:ro
       - prometheus-data:/prometheus
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.retention.time=15d"
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:9090/-/healthy"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    logging: *default-logging
+
+  # ─── Alertmanager (Alert Routing — Phase 7.6) ───────────────
+  # Receives fired alerts from Prometheus and notifies Slack via webhook.
+  # The placeholder webhook URL keeps the container bootable; replace
+  # SLACK_WEBHOOK_URL in your environment/.env with a real incoming webhook
+  # to enable Slack delivery. Alerts are always visible in the UI (:9093).
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    container_name: jeevandata-alertmanager
+    restart: unless-stopped
+    ports:
+      - "9093:9093"
+    environment:
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-https://hooks.slack.com/services/REPLACE_ME}
+    volumes:
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager-data:/alertmanager
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+      - "--storage.path=/alertmanager"
+      - "--log.level=info"
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:9093/-/healthy"]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -216,4 +247,6 @@ volumes:
   prometheus-data:
     driver: local
   grafana-data:
+    driver: local
+  alertmanager-data:
     driver: local

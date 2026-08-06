@@ -58,9 +58,13 @@ export class SessionService {
 
     await this.redis.set(`session:${sessionId}:status`, newStatus, 'EX', 900);
 
-    // Track timeouts for the session-timeout-rate alert (Phase 6.8).
+    // Track session outcomes for the timeout-rate alert (Phase 6.8 / 7.6).
+    // Completed + timed-out counts give Prometheus the denominator and
+    // numerator for the timeout-rate alert rule.
     if (newStatus === 'TIMED_OUT') {
       this.metrics.incrementSessionTimeouts();
+    } else if (newStatus === 'COMPLETED') {
+      this.metrics.incrementSessionsCompleted();
     }
 
     this.logger.debug(`Session ${sessionId} status: ${session.status} → ${newStatus}`);

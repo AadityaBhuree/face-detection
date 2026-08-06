@@ -1,0 +1,30 @@
+# Prometheus scrape configuration for Jeevandata.
+#
+# The NestJS backend exposes raw Prometheus exposition text at GET /metrics
+# (public, unthrottled). Scraped every 15s; retention is 15d.
+#
+# In this stack the backend runs on the Docker host (pnpm dev / start:prod),
+# so Prometheus reaches it via host.docker.internal:4000. When the backend is
+# containerized and joined to this compose network, change the target to the
+# backend service DNS name (e.g. backend:4000) instead.
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    environment: dev
+
+scrape_configs:
+  # ─── Jeevandata API ──────────────────────────────────────────
+  - job_name: 'jeevandata-backend'
+    metrics_path: /metrics
+    scheme: http
+    static_configs:
+      - targets: ['host.docker.internal:4000']
+        labels:
+          service: 'jeevandata-backend'
+          tier: 'api'
+    # The interceptor labels by Express route pattern (e.g. /intake/session/:id),
+    # not raw URLs, so series cardinality stays bounded. nodejs_*/process_*
+    # runtime metrics from collectDefaultMetrics are also scraped for the
+    # Node.js runtime panels on the dashboard.

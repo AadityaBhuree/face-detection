@@ -1,7 +1,7 @@
 # Jeevandata — Engineering Roadmap
 
 > **Version:** 0.2.0 | **Status:** Active Development
-> **Phases 1–6 Complete** — Phase 7 (Infrastructure & Deployment) remaining
+> **Phases 1–6 Complete** — Phase 7 (Infrastructure & Deployment) 1/6 steps done (7.6 monitoring stack ✅)
 
 ---
 
@@ -23,8 +23,8 @@ Each phase contains numbered steps. Every step is sized for a **single atomic co
 | **4** | Authentication & Multi-Tenancy | ✅ **Done**        | 6/6         | Completed   |
 | **5** | UI/UX Excellence               | ✅ **Done**        | 8/8         | Completed   |
 | **6** | Feature Expansion              | ✅ **Done**        | 8/8         | Completed   |
-| **7** | Infrastructure & Deployment    | ⬜ **Not started** | 6           | 8–12h       |
-|       | **Total remaining**            |                    | **6 steps** | **8–12h**   |
+| **7** | Infrastructure & Deployment    | 🔶 **In progress** | 1/6         | 8–12h       |
+|       | **Total remaining**            |                    | **5 steps** | **7–11h**   |
 
 ---
 
@@ -321,7 +321,7 @@ Validate all critical env vars at startup (both backend and frontend):
 
 ---
 
-## Phase 7 — Infrastructure & Deployment ⬜
+## Phase 7 — Infrastructure & Deployment 🔶 (1/6 steps done)
 
 > **Goal:** Production-ready deployment with CI/CD, container orchestration, secrets management, and disaster recovery.
 
@@ -454,7 +454,7 @@ git commit -m "feat: complete patient registration dialog with form validation"
 
 ## How to Use This Plan
 
-1. **Pick a phase** — Phase 7 (Infrastructure & Deployment) is the only remaining phase
+1. **Pick a phase** — Phase 7 (Infrastructure & Deployment) is the only remaining phase; **7.6 is done**, next up is 7.1 (CI/CD)
 2. **Pick a step** — Each step is self-contained and commit-sized
 3. **Implement** — Follow the Elite Engineer protocol: research → plan → implement → verify → report
 4. **Commit & push** — Use conventional commits, one logical change per commit

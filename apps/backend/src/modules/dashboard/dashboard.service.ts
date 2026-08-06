@@ -1,6 +1,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { MetricsService } from '../opentelemetry/metrics.service';
 
 @Injectable()
 export class DashboardService {
@@ -9,6 +10,7 @@ export class DashboardService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
+    private readonly metrics: MetricsService,
   ) {}
 
   async getLatestBrief(patientId: string) {
@@ -27,9 +29,7 @@ export class DashboardService {
     });
 
     if (!record) {
-      throw new NotFoundException(
-        `No intake records found for patient ${patientId}`,
-      );
+      throw new NotFoundException(`No intake records found for patient ${patientId}`);
     }
 
     await this.auditService.log({
@@ -160,11 +160,14 @@ export class DashboardService {
       throw new NotFoundException(`Brief ${briefId} not found`);
     }
 
-    // Update the session status to COMPLETED
+    // Update the session status to COMPLETED (this path bypasses
+    // SessionService.updateStatus, so count the completion here for the
+    // session-timeout-rate alert denominator).
     await this.prisma.intakeSession.update({
       where: { id: record.sessionId },
       data: { status: 'COMPLETED' },
     });
+    this.metrics.incrementSessionsCompleted();
 
     this.logger.log(`Brief ${briefId} reviewed, session ${record.sessionId} completed`);
 

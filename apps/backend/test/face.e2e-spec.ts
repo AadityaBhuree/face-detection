@@ -342,6 +342,43 @@ describe('FaceController (E2E)', () => {
         .send(validRegistration)
         .expect(500);
     });
+
+    it('should forward the Idempotency-Key header to the service', async () => {
+      mockFaceRegistrationService.registerPatient.mockResolvedValue({
+        id: validPatientId,
+        name: 'Priya Sharma',
+        message: 'Patient registered successfully',
+      });
+
+      await request(app.getHttpServer())
+        .post('/face/register-patient')
+        .set('Idempotency-Key', 'offline-mutation-7')
+        .send(validRegistration)
+        .expect(201);
+
+      expect(mockFaceRegistrationService.registerPatient).toHaveBeenCalledWith(
+        validRegistration,
+        'offline-mutation-7',
+      );
+    });
+
+    it('should forward a missing Idempotency-Key as undefined', async () => {
+      mockFaceRegistrationService.registerPatient.mockResolvedValue({
+        id: validPatientId,
+        name: 'Priya Sharma',
+        message: 'Patient registered successfully',
+      });
+
+      await request(app.getHttpServer())
+        .post('/face/register-patient')
+        .send(validRegistration)
+        .expect(201);
+
+      expect(mockFaceRegistrationService.registerPatient).toHaveBeenCalledWith(
+        validRegistration,
+        undefined,
+      );
+    });
   });
 
   // ─── GET /face/:patientId/embeddings ───────────────────────────

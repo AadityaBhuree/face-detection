@@ -7,6 +7,7 @@ import {
   logSyncEntry,
   clearSyncedMutations,
   type MutationType,
+  type OutboxMutation,
 } from './db';
 import { useOfflineStore } from '@/stores/offline-store';
 import { intakeApi, faceApi } from './api';
@@ -21,8 +22,17 @@ function browserIsOnline(): boolean {
 /**
  * Wires the offline store to the browser's connectivity events and hydrates
  * the queued-mutation count. Returns a cleanup function.
+ *
+ * Safe against double-init (React StrictMode, hot reload): a second call
+ * while already initialized is a no-op and returns an inert cleanup.
  */
+let initialized = false;
 export function initOfflineSync(): () => void {
+  if (initialized) {
+    return () => {};
+  }
+  initialized = true;
+
   const handleOnline = () => {
     useOfflineStore.getState().setOnline(true);
     logger.info('Network online — flushing queued mutations');
@@ -41,6 +51,7 @@ export function initOfflineSync(): () => void {
   window.addEventListener('offline', handleOffline);
 
   return () => {
+    initialized = false;
     window.removeEventListener('online', handleOnline);
     window.removeEventListener('offline', handleOffline);
   };
@@ -74,34 +85,47 @@ export async function enqueueIntakeMutation(
 
 // ─── Flush / replay ────────────────────────────────────────────
 
-/** Replays a single queued mutation against the backend. */
-async function replayMutation(mutation: {
-  id?: number;
-  type: MutationType;
-  payload: Record<string, unknown>;
-  clientTimestamp: string;
-}): Promise<void> {
-  const { type, payload, clientTimestamp } = mutation;
+/**
+ * Replays a single queued mutation against the backend.
+ *
+ * Every replay carries an `Idempotency-Key` header (the outbox row id) so a
+ * replay whose first attempt succeeded server-side but whose response was
+ * lost is a safe no-op instead of a double write.
+ */
+async function replayMutation(mutation: OutboxMutation): Promise<void> {
+  const { id, type, payload, clientTimestamp } = mutation;
+  const idempotencyKey = id !== undefined ? String(id) : clientTimestamp;
 
   if (type === 'COMPLETE_SESSION') {
     await intakeApi.completeSession(
       payload.sessionId as string,
       payload.intakeData as Record<string, unknown>,
+      idempotencyKey,
     );
   } else if (type === 'REGISTER_PATIENT') {
-    await faceApi.registerPatient({
-      name: String(payload.name ?? ''),
-      dob: String(payload.dob ?? ''),
-      mobile: String(payload.mobile ?? ''),
-      consent: Boolean(payload.consent),
-      embedding: (payload.embedding as number[]) ?? [],
-    });
+    await faceApi.registerPatient(
+      {
+        name: String(payload.name ?? ''),
+        dob: String(payload.dob ?? ''),
+        mobile: String(payload.mobile ?? ''),
+        consent: Boolean(payload.consent),
+        embedding: (payload.embedding as number[]) ?? [],
+      },
+      idempotencyKey,
+    );
   } else {
     throw new Error(`Unknown mutation type: ${String(type)}`);
   }
 
+  // Sync log ids are PHI-free: session ids for completions, mutation ids
+  // for registrations (never a mobile number or patient name).
+  const entityId =
+    type === 'COMPLETE_SESSION'
+      ? String(payload.sessionId ?? 'unknown')
+      : `mutation-${id ?? clientTimestamp}`;
+
   await logSyncEntry({
-    entityId: String(payload.sessionId ?? payload.mobile ?? 'unknown'),
+    entityId,
     entityType: type,
     action: 'REPLAYED',
     clientTimestamp,
@@ -113,6 +137,10 @@ async function replayMutation(mutation: {
  * Replays all pending outbox mutations (oldest first). Stops at the first
  * network failure so remaining mutations stay queued. Returns the counts
  * of synced/failed mutations.
+ *
+ * The flush loops until the queue drains (bounded by MAX_PASSES) so
+ * mutations enqueued while a flush is in flight are picked up immediately
+ * instead of waiting for the next reconnect event.
  */
 export async function flushPendingMutations(): Promise<{
   synced: number;
@@ -128,27 +156,36 @@ export async function flushPendingMutations(): Promise<{
   let failed = 0;
 
   try {
-    const pending = await getPendingMutations();
+    // Bound the loop so a pathological enqueue loop can't flush forever.
+    const MAX_PASSES = 10;
+    for (let pass = 0; pass < MAX_PASSES; pass += 1) {
+      const pending = await getPendingMutations();
+      if (pending.length === 0) break;
 
-    for (const mutation of pending) {
-      try {
-        await replayMutation(mutation);
-        if (mutation.id !== undefined) await markMutationSynced(mutation.id);
-        synced += 1;
-      } catch (error) {
-        // Network-level failures (offline, DNS, timeout) abort the flush so
-        // the rest stay queued. Non-network errors still abort — the queue is
-        // replayed in order and a permanent failure would block later entries.
-        failed += 1;
-        logger.error(`Outbox replay failed: ${mutation.type}`, error);
-        if (mutation.id !== undefined) {
-          await markMutationFailed(mutation.id, mutation.attempts + 1);
+      let passFailed = false;
+      for (const mutation of pending) {
+        try {
+          await replayMutation(mutation);
+          if (mutation.id !== undefined) await markMutationSynced(mutation.id);
+          synced += 1;
+        } catch (error) {
+          // Network-level failures (offline, DNS, timeout) abort the flush so
+          // the rest stay queued. Non-network errors still abort — the queue
+          // is replayed in order and a permanent failure would block later
+          // entries.
+          failed += 1;
+          logger.error(`Outbox replay failed: ${mutation.type}`, error);
+          if (mutation.id !== undefined) {
+            await markMutationFailed(mutation.id, mutation.attempts + 1);
+          }
+          store.setSyncError(
+            error instanceof Error ? error.message : 'Sync failed — will retry when online',
+          );
+          passFailed = true;
+          break;
         }
-        store.setSyncError(
-          error instanceof Error ? error.message : 'Sync failed — will retry when online',
-        );
-        break;
       }
+      if (passFailed) break;
     }
 
     if (failed === 0 && synced > 0) {

@@ -1,7 +1,7 @@
 # Jeevandata — Engineering Roadmap
 
 > **Version:** 0.2.0 | **Status:** Active Development
-> **Phases 1, 2, 5 Complete** — Phase 3 mostly complete — Proceeding through Phases 4, 6, 7
+> **Phases 1–6 Complete** — Phase 7 (Infrastructure & Deployment) remaining
 
 ---
 
@@ -15,16 +15,16 @@ Each phase contains numbered steps. Every step is sized for a **single atomic co
 
 ## Progress Overview
 
-| Phase | Title                          | Status             | Steps        | Est. Effort |
-| :---- | :----------------------------- | :----------------- | :----------- | :---------- |
-| **1** | Emergency Repairs              | ✅ **Done**        | 7/7          | Completed   |
-| **2** | Testing & Validation           | ✅ **Done**        | 8/8          | Completed   |
-| **3** | Backend Production Hardening   | 🔶 **In progress** | 4/7          | 4–6h remain |
-| **4** | Authentication & Multi-Tenancy | ⬜ **Not started** | 6            | 8–10h       |
-| **5** | UI/UX Excellence               | ✅ **Done**        | 8/8          | Completed   |
-| **6** | Feature Expansion              | 🔶 **In progress** | 7/8          | 3–4h remain |
-| **7** | Infrastructure & Deployment    | ⬜ **Not started** | 6            | 8–12h       |
-|       | **Total remaining**            |                    | **19 steps** | **30–42h**  |
+| Phase | Title                          | Status             | Steps       | Est. Effort |
+| :---- | :----------------------------- | :----------------- | :---------- | :---------- |
+| **1** | Emergency Repairs              | ✅ **Done**        | 7/7         | Completed   |
+| **2** | Testing & Validation           | ✅ **Done**        | 8/8         | Completed   |
+| **3** | Backend Production Hardening   | 🔶 **In progress** | 4/7         | 4–6h remain |
+| **4** | Authentication & Multi-Tenancy | ⬜ **Not started** | 6           | 8–10h       |
+| **5** | UI/UX Excellence               | ✅ **Done**        | 8/8         | Completed   |
+| **6** | Feature Expansion              | ✅ **Done**        | 8/8         | Completed   |
+| **7** | Infrastructure & Deployment    | ⬜ **Not started** | 6           | 8–12h       |
+|       | **Total remaining**            |                    | **6 steps** | **8–12h**   |
 
 ---
 
@@ -308,13 +308,16 @@ Validate all critical env vars at startup (both backend and frontend):
 
 **Est. effort:** 3–4h (✅ complete)
 
-### Step 6.8 — Performance monitoring & alerting ⬜
+### Step 6.8 — Performance monitoring & alerting ✅
 
-- Prometheus `GET /metrics`: request count, duration histogram, error count, active sessions, Qdrant latency
-- Error tracking (frontend + backend); admin latency panel (p50/p95/p99)
-- Alert thresholds: error rate > 1%, face match latency > 2s, session timeout rate > 5%
+- **Prometheus `GET /metrics`** — request counter, duration histogram, error counter, active-sessions gauge (from WebSocket gateway), Qdrant/face latency histogram (instrumented in `FaceService`), session-timeout counter; `MetricsInterceptor` records every request globally; `collectDefaultMetrics` for Node.js runtime
+- **Monitoring API** — `GET /monitoring/latency` (p50/p95/p99 + sample count for HTTP and Qdrant, windowed over 1h/24h/7d), `GET /monitoring/alerts` (evaluates thresholds: HTTP error rate > 1% over 5 min, face-match p95 > 2s, session timeout rate > 5%); `@Roles(ADMIN, SYSTEM)`
+- **Admin UI** — `LatencyPanel` (percentile bars with counts), `AlertsPanel` (severity badges OK/WARNING/CRITICAL, value vs threshold), wired into `/admin` with skeletons + error handling
+- `/metrics` is `@Public()` and skips the response envelope + throttle for scrape compatibility
 
-**Est. effort:** 3–4h
+**Delivered:** `modules/opentelemetry/metrics.service.ts` + `prometheus.controller.ts`, `common/interceptors/metrics.interceptor.ts`, `modules/monitoring/` (service + controller + module), FaceService/SessionService/gateway instrumentation, `test/prometheus.e2e-spec.ts` (10 tests), `metrics.service.spec.ts` + `monitoring.service.spec.ts` (18 tests); frontend `monitoringApi` + `LatencyPanel` + `AlertsPanel` (+11 tests). Backend 281 unit + 191 E2E, frontend 599 tests — all green.
+
+**Est. effort:** 3–4h (✅ complete)
 
 ---
 
@@ -399,7 +402,7 @@ Validate all critical env vars at startup (both backend and frontend):
 | Clinic admin dashboard with analytics       | Phase 6.5     | ⬜     |
 | HIPAA compliance audit module               | Phase 6.6     | ⬜     |
 | Offline mode with IndexedDB sync            | Phase 6.7     | ✅     |
-| Performance monitoring & alerting           | Phase 6.8     | ⬜     |
+| Performance monitoring & alerting           | Phase 6.8     | ✅     |
 | CI/CD pipeline                              | Phase 7.1     | ⬜     |
 | Container orchestration                     | Phase 7.2     | ⬜     |
 | Secrets management                          | Phase 7.3     | ⬜     |
@@ -411,13 +414,10 @@ Validate all critical env vars at startup (both backend and frontend):
 
 ## Effort Summary
 
-| Phase                               | Steps  | Min (h) | Max (h) |
-| :---------------------------------- | :----- | :------ | :------ |
-| **3 — Backend Hardening (remain)**  | 3      | 4       | 6       |
-| **4 — Auth & Multi-Tenancy**        | 6      | 8       | 10      |
-| **6 — Feature Expansion (remain)**  | 4      | 10      | 14      |
-| **7 — Infrastructure & Deployment** | 6      | 8       | 12      |
-| **Total remaining**                 | **19** | **30**  | **42**  |
+| Phase                               | Steps | Min (h) | Max (h) |
+| :---------------------------------- | :---- | :------ | :------ |
+| **7 — Infrastructure & Deployment** | 6     | 8       | 12      |
+| **Total remaining**                 | **6** | **8**   | **12**  |
 
 ---
 

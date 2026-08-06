@@ -149,6 +149,16 @@ describe('MetricsService', () => {
     it('should set the active sessions gauge without throwing', () => {
       expect(() => service.setActiveSessions(5)).not.toThrow();
       expect(() => service.incrementSessionTimeouts()).not.toThrow();
+      expect(() => service.incrementSessionsCompleted()).not.toThrow();
+    });
+
+    it('should expose the sessions completed counter on /metrics', async () => {
+      service.incrementSessionsCompleted();
+      service.incrementSessionsCompleted();
+
+      const text = await service.getMetricsText();
+      expect(text).toContain('jeevandata_sessions_completed_total');
+      expect(text).toMatch(/jeevandata_sessions_completed_total\s+2/);
     });
   });
 });

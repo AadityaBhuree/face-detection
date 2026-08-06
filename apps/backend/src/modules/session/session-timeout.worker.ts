@@ -2,10 +2,13 @@ import { Processor, WorkerHost, InjectQueue } from '@nestjs/bullmq';
 import type { Queue } from 'bullmq';
 import type { SessionStatus } from '@jeevandata/shared-types';
 import { Logger, type OnModuleInit } from '@nestjs/common';
-import type { ConfigService } from '@nestjs/config';
+// NOTE: these three are DI tokens injected via the constructor, so they
+// MUST be runtime imports (not `import type`) or NestJS resolves them as
+// bare `Function` and DI fails at boot.
+import { ConfigService } from '@nestjs/config';
 import type { Job } from 'bullmq';
-import type { PrismaService } from '../../prisma/prisma.service';
-import type { SessionService } from './session.service';
+import { PrismaService } from '../../prisma/prisma.service';
+import { SessionService } from './session.service';
 
 export const SESSION_TIMEOUT_QUEUE = 'session-timeout';
 

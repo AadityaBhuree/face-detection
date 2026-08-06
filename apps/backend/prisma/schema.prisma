@@ -4,9 +4,12 @@ generator client {
 }
 
 datasource db {
-  provider   = "postgresql"
-  url        = env("DATABASE_URL")
-  extensions = [uuid_ossp, pgcrypto, vector]
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  // Extensions (uuid-ossp, pgcrypto, vector) are created by the
+  // postgres-init.sql entrypoint script on first boot. They are not
+  // declared here because Prisma passes extension names literally and
+  // `uuid-ossp`/`vector` cannot be listed reliably across Prisma versions.
 }
 
 enum SessionStatus {

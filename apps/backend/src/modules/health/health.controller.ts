@@ -21,12 +21,12 @@ export class HealthController {
     return this.healthService.getLiveness();
   }
 
-  /** Readiness probe — checks all critical dependencies (DB, Redis, Qdrant) */
+  /** Readiness probe — checks all critical dependencies (DB, Redis, Qdrant, Whisper) */
   @Get('ready')
   @ApiOperation({
     summary: 'Readiness probe',
     description:
-      'Checks PostgreSQL, Redis, and Qdrant. Returns 503 when any dependency is unhealthy.',
+      'Checks PostgreSQL, Redis, Qdrant, and the Whisper STT service. Returns 503 when any dependency is unhealthy.',
   })
   async getReadiness() {
     const result = await this.healthService.getReadiness();

@@ -48,16 +48,18 @@ export class HealthService {
   /** Detailed readiness — checks all critical dependencies in parallel */
   async getReadiness(): Promise<HealthCheckResult> {
     return this.otel.withSpan('health.get-readiness', async () => {
-      const [database, redis, qdrant] = await Promise.all([
+      const [database, redis, qdrant, whisper] = await Promise.all([
         this.checkDatabase(),
         this.checkRedis(),
         this.checkQdrant(),
+        this.checkWhisper(),
       ]);
 
       const checks: HealthCheckResult['checks'] = {
         database,
         redis,
         qdrant,
+        whisper,
       };
 
       const allHealthy = Object.values(checks).every((c) => c.status === 'healthy');
@@ -175,6 +177,46 @@ export class HealthService {
         status: 'unhealthy',
         latencyMs: Date.now() - start,
         error: error instanceof Error ? error.message : 'Qdrant connection failed',
+      };
+    }
+  }
+
+  private async checkWhisper(): Promise<CheckResult> {
+    const whisperApiUrl = this.configService.get<string>(
+      'openai.whisperApiUrl',
+      'http://localhost:9001/inference',
+    );
+    if (!whisperApiUrl) {
+      return { status: 'unhealthy', latencyMs: 0, error: 'Whisper URL not configured' };
+    }
+
+    const start = Date.now();
+    try {
+      // whisperApiUrl points at the inference route (e.g. http://localhost:9001/inference).
+      // whisper.cpp serves its health endpoint at the same origin root (/health).
+      const baseUrl = new URL(whisperApiUrl);
+      baseUrl.pathname = '/health';
+      baseUrl.search = '';
+
+      const response = await Promise.race([
+        fetch(baseUrl.toString()),
+        new Promise<never>((_, reject) =>
+          setTimeout(
+            () => reject(new Error('Whisper health check timed out after 3s')),
+            3_000,
+          ).unref(),
+        ),
+      ]);
+
+      return {
+        status: response.ok ? 'healthy' : 'unhealthy',
+        latencyMs: Date.now() - start,
+      };
+    } catch (error) {
+      return {
+        status: 'unhealthy',
+        latencyMs: Date.now() - start,
+        error: error instanceof Error ? error.message : 'Whisper health check failed',
       };
     }
   }

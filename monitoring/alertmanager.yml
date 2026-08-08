@@ -14,7 +14,7 @@ global:
   # How long to wait before re-notifying on a still-firing alert.
   resolve_timeout: 5m
   # Fallback Slack channel for notifications (overridable per-route).
-  slack_api_url: '${SLACK_WEBHOOK_URL}'
+  slack_api_url: 'https://hooks.slack.com/services/REPLACE_ME'
 
 route:
   group_by: ['alertname', 'severity', 'service']
@@ -35,7 +35,7 @@ route:
 receivers:
   - name: 'slack'
     slack_configs:
-      - api_url: '${SLACK_WEBHOOK_URL}'
+      - api_url: 'https://hooks.slack.com/services/REPLACE_ME'
         channel: '#jeevandata-alerts'
         send_resolved: true
         title: '[{{ .Status | toUpper }}] {{ .CommonAnnotations.summary }}'

@@ -83,7 +83,7 @@ services:
     restart: unless-stopped
     ports:
       - "9000:9000"
-      - "9001:9001"
+      - "9002:9001"  # console moved to 9002; 9001 reserved for whisper
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
@@ -116,23 +116,28 @@ services:
     logging: *default-logging
 
   # ─── Whisper Server (STT) ───────────────────────────────────
+  # Image: ghcr.io/ggml-org/whisper.cpp:main bundles ggml-base.en.bin at
+  # /app/models/ and the whisper-server binary at /app/build/bin/ (ENV PATH).
+  # The old ggerganov/whisper.cpp:server-latest tag no longer exists upstream.
   whisper:
-    image: ghcr.io/ggerganov/whisper.cpp:server-latest
+    image: ghcr.io/ggml-org/whisper.cpp:main
     container_name: jeevandata-whisper
     restart: unless-stopped
     ports:
       - "9001:9001"
-    volumes:
-      - whisper-models:/models
-    environment:
-      WHISPER_MODEL: base
-      WHISPER_LANGUAGE: en
-      WHISPER_N_THREADS: 4
     command: >
-      --port 9001
-      --model /models/ggml-base.bin
+      whisper-server
       --host 0.0.0.0
+      --port 9001
+      --model /app/models/ggml-base.en.bin
+      --threads 4
       --convert
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:9001/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     logging: *default-logging
 
   # ─── Redis Commander (Admin UI — dev only) ──────────────────
@@ -246,8 +251,6 @@ volumes:
   qdrant-storage:
     driver: local
   minio-data:
-    driver: local
-  whisper-models:
     driver: local
   prometheus-data:
     driver: local

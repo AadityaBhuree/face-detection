@@ -30,6 +30,8 @@ const mockQdrantInstance = {
   getCollections: jest.fn().mockResolvedValue({ collections: [] }),
 };
 
+const mockFetch = jest.fn();
+
 jest.mock('@qdrant/js-client-rest', () => ({
   QdrantClient: jest.fn(() => mockQdrantInstance),
 }));
@@ -41,10 +43,15 @@ describe('HealthService', () => {
     'redis.url': 'redis://localhost:6379',
     'qdrant.url': 'http://localhost:6333',
     'qdrant.apiKey': '',
+    'openai.whisperApiUrl': 'http://localhost:9001/inference',
   };
 
   beforeEach(async () => {
     jest.clearAllMocks();
+
+    // Whisper/STT health check calls global fetch
+    global.fetch = mockFetch as unknown as typeof fetch;
+    mockFetch.mockResolvedValue({ ok: true });
 
     // Reset singleton mock implementations (clearAllMocks doesn't undo mockRejectedValue)
     mockRedisInstance.ping.mockResolvedValue('PONG');
@@ -55,6 +62,7 @@ describe('HealthService', () => {
     mockConfig['redis.url'] = 'redis://localhost:6379';
     mockConfig['qdrant.url'] = 'http://localhost:6333';
     mockConfig['qdrant.apiKey'] = '';
+    mockConfig['openai.whisperApiUrl'] = 'http://localhost:9001/inference';
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -122,9 +130,11 @@ describe('HealthService', () => {
       expect(result.checks).toHaveProperty('database');
       expect(result.checks).toHaveProperty('redis');
       expect(result.checks).toHaveProperty('qdrant');
+      expect(result.checks).toHaveProperty('whisper');
       expect(result.checks.database!.status).toBe('healthy');
       expect(result.checks.redis!.status).toBe('healthy');
       expect(result.checks.qdrant!.status).toBe('healthy');
+      expect(result.checks.whisper!.status).toBe('healthy');
       expect(result.checks.database!.latencyMs).toBeGreaterThanOrEqual(0);
       expect(typeof result.timestamp).toBe('string');
     });
@@ -192,6 +202,50 @@ describe('HealthService', () => {
       expect(result.checks.qdrant!.error).toBe('Connection refused');
     });
 
+    it('should return unhealthy when Whisper/STT health check fails', async () => {
+      mockPrisma.$queryRaw.mockResolvedValue([{ '1': 1 }]);
+
+      const mockRedis = jest.requireMock('ioredis').Redis;
+      const mockRedisInstance = mockRedis();
+      mockRedisInstance.ping.mockResolvedValue('PONG');
+      mockRedisInstance.quit.mockResolvedValue('OK');
+
+      const mockQdrant = jest.requireMock('@qdrant/js-client-rest').QdrantClient;
+      const mockQdrantInstance = mockQdrant();
+      mockQdrantInstance.getCollections.mockResolvedValue({ collections: [] });
+
+      mockFetch.mockRejectedValue(new Error('ECONNREFUSED'));
+
+      const result = await service.getReadiness();
+
+      expect(result.status).toBe('unhealthy');
+      expect(result.checks.database!.status).toBe('healthy');
+      expect(result.checks.redis!.status).toBe('healthy');
+      expect(result.checks.qdrant!.status).toBe('healthy');
+      expect(result.checks.whisper!.status).toBe('unhealthy');
+      expect(result.checks.whisper!.error).toBe('ECONNREFUSED');
+    });
+
+    it('should return unhealthy when Whisper URL is not configured', async () => {
+      mockConfig['openai.whisperApiUrl'] = '';
+      mockPrisma.$queryRaw.mockResolvedValue([{ '1': 1 }]);
+
+      const mockRedis = jest.requireMock('ioredis').Redis;
+      const mockRedisInstance = mockRedis();
+      mockRedisInstance.ping.mockResolvedValue('PONG');
+      mockRedisInstance.quit.mockResolvedValue('OK');
+
+      const mockQdrant = jest.requireMock('@qdrant/js-client-rest').QdrantClient;
+      const mockQdrantInstance = mockQdrant();
+      mockQdrantInstance.getCollections.mockResolvedValue({ collections: [] });
+
+      const result = await service.getReadiness();
+
+      expect(result.status).toBe('unhealthy');
+      expect(result.checks.whisper!.status).toBe('unhealthy');
+      expect(result.checks.whisper!.error).toBe('Whisper URL not configured');
+    });
+
     it('should return unhealthy when Redis URL is not configured', async () => {
       mockConfig['redis.url'] = '';
       mockPrisma.$queryRaw.mockResolvedValue([{ '1': 1 }]);
@@ -226,6 +280,7 @@ describe('HealthService', () => {
       expect(result.checks.database!.latencyMs).toBeGreaterThanOrEqual(0);
       expect(result.checks.redis!.latencyMs).toBeGreaterThanOrEqual(0);
       expect(result.checks.qdrant!.latencyMs).toBeGreaterThanOrEqual(0);
+      expect(result.checks.whisper!.latencyMs).toBeGreaterThanOrEqual(0);
     });
 
     it('should include database error details on failure', async () => {
@@ -264,7 +319,7 @@ describe('HealthService', () => {
       const result = await service.getHealth();
 
       expect(result.status).toBe('healthy');
-      expect(result.dependencies).toBe('3/3 healthy');
+      expect(result.dependencies).toBe('4/4 healthy');
       expect(result.uptimeMs).toBeGreaterThanOrEqual(0);
       expect(typeof result.timestamp).toBe('string');
     });
@@ -280,12 +335,13 @@ describe('HealthService', () => {
       const result = await service.getHealth();
 
       expect(result.status).toBe('unhealthy');
-      expect(result.dependencies).toBe('1/3 healthy');
+      expect(result.dependencies).toBe('2/4 healthy');
     });
 
-    it('should report 0/3 when all dependencies are down', async () => {
+    it('should report 0/4 when all dependencies are down', async () => {
       mockPrisma.$queryRaw.mockRejectedValue(new Error('Down'));
       mockConfig['redis.url'] = '';
+      mockFetch.mockRejectedValue(new Error('Down'));
 
       const mockQdrant = jest.requireMock('@qdrant/js-client-rest').QdrantClient;
       const mockQdrantInstance = mockQdrant();
@@ -294,7 +350,7 @@ describe('HealthService', () => {
       const result = await service.getHealth();
 
       expect(result.status).toBe('unhealthy');
-      expect(result.dependencies).toBe('0/3 healthy');
+      expect(result.dependencies).toBe('0/4 healthy');
     });
 
     it('should preserve readiness timestamp in health result', async () => {

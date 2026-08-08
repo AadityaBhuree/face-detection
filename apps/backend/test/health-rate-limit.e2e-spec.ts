@@ -47,6 +47,7 @@ const mockHealthyReadiness = {
     database: { status: 'healthy', latencyMs: 5 },
     redis: { status: 'healthy', latencyMs: 2 },
     qdrant: { status: 'healthy', latencyMs: 3 },
+    whisper: { status: 'healthy', latencyMs: 4 },
   },
   timestamp: '2025-07-28T12:00:00.000Z',
 };
@@ -54,7 +55,7 @@ const mockHealthyReadiness = {
 const mockHealthyHealth = {
   status: 'healthy',
   uptimeMs: 12345,
-  dependencies: '3/3 healthy',
+  dependencies: '4/4 healthy',
   timestamp: '2025-07-28T12:00:00.000Z',
 };
 
@@ -104,9 +105,7 @@ describe('HealthController Rate Limiting (e2e)', () => {
   describe('@SkipThrottle() on HealthController', () => {
     it('should never return 429 on /health/live after 10 rapid requests', async () => {
       const promises = Array.from({ length: 10 }, () =>
-        request(app.getHttpServer())
-          .get('/health/live')
-          .expect(HttpStatus.OK),
+        request(app.getHttpServer()).get('/health/live').expect(HttpStatus.OK),
       );
       const results = await Promise.all(promises);
 
@@ -119,9 +118,7 @@ describe('HealthController Rate Limiting (e2e)', () => {
 
     it('should never return 429 on /health/ready after 10 rapid requests', async () => {
       const promises = Array.from({ length: 10 }, () =>
-        request(app.getHttpServer())
-          .get('/health/ready')
-          .expect(HttpStatus.OK),
+        request(app.getHttpServer()).get('/health/ready').expect(HttpStatus.OK),
       );
       const results = await Promise.all(promises);
 
@@ -133,9 +130,7 @@ describe('HealthController Rate Limiting (e2e)', () => {
 
     it('should never return 429 on /health after 10 rapid requests', async () => {
       const promises = Array.from({ length: 10 }, () =>
-        request(app.getHttpServer())
-          .get('/health')
-          .expect(HttpStatus.OK),
+        request(app.getHttpServer()).get('/health').expect(HttpStatus.OK),
       );
       const results = await Promise.all(promises);
 
@@ -151,12 +146,8 @@ describe('HealthController Rate Limiting (e2e)', () => {
   describe('Rate limiting still applies to non-health routes', () => {
     it('should block /test-limited after 2 requests while health endpoints remain accessible', async () => {
       // ── Phase 1: Exhaust the 2-request limit on the control endpoint ──
-      await request(app.getHttpServer())
-        .get('/test-limited')
-        .expect(HttpStatus.OK);
-      await request(app.getHttpServer())
-        .get('/test-limited')
-        .expect(HttpStatus.OK);
+      await request(app.getHttpServer()).get('/test-limited').expect(HttpStatus.OK);
+      await request(app.getHttpServer()).get('/test-limited').expect(HttpStatus.OK);
 
       // ── Phase 2: 3rd request to test-limited = 429 ──
       const res = await request(app.getHttpServer())
@@ -170,15 +161,9 @@ describe('HealthController Rate Limiting (e2e)', () => {
       });
 
       // ── Phase 3: Health endpoints are NOT affected ──
-      await request(app.getHttpServer())
-        .get('/health/live')
-        .expect(HttpStatus.OK);
-      await request(app.getHttpServer())
-        .get('/health/ready')
-        .expect(HttpStatus.OK);
-      await request(app.getHttpServer())
-        .get('/health')
-        .expect(HttpStatus.OK);
+      await request(app.getHttpServer()).get('/health/live').expect(HttpStatus.OK);
+      await request(app.getHttpServer()).get('/health/ready').expect(HttpStatus.OK);
+      await request(app.getHttpServer()).get('/health').expect(HttpStatus.OK);
     });
   });
 });

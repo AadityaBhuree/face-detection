@@ -31,6 +31,7 @@ const mockHealthyReadiness = {
     database: { status: 'healthy', latencyMs: 5 },
     redis: { status: 'healthy', latencyMs: 2 },
     qdrant: { status: 'healthy', latencyMs: 3 },
+    whisper: { status: 'healthy', latencyMs: 4 },
   },
   timestamp: '2025-07-28T12:00:00.000Z',
 };
@@ -41,6 +42,7 @@ const mockUnhealthyReadiness = {
     database: { status: 'unhealthy', latencyMs: 3000, error: 'Connection refused' },
     redis: { status: 'unhealthy', latencyMs: 0, error: 'Redis URL not configured' },
     qdrant: { status: 'unhealthy', latencyMs: 0, error: 'Qdrant URL not configured' },
+    whisper: { status: 'unhealthy', latencyMs: 0, error: 'Whisper health check failed' },
   },
   timestamp: '2025-07-28T12:00:00.000Z',
 };
@@ -48,14 +50,14 @@ const mockUnhealthyReadiness = {
 const mockHealthyHealth = {
   status: 'healthy',
   uptimeMs: 12345,
-  dependencies: '3/3 healthy',
+  dependencies: '4/4 healthy',
   timestamp: '2025-07-28T12:00:00.000Z',
 };
 
 const mockUnhealthyHealth = {
   status: 'unhealthy',
   uptimeMs: 12345,
-  dependencies: '0/3 healthy',
+  dependencies: '0/4 healthy',
   timestamp: '2025-07-28T12:00:00.000Z',
 };
 
@@ -88,9 +90,7 @@ describe('HealthController (e2e)', () => {
     it('should return alive status with uptime', async () => {
       mockHealthService.getLiveness.mockReturnValue(mockLivenessResponse);
 
-      const res = await request(app.getHttpServer())
-        .get('/health/live')
-        .expect(HttpStatus.OK);
+      const res = await request(app.getHttpServer()).get('/health/live').expect(HttpStatus.OK);
 
       expect(res.body).toMatchObject({
         status: 'alive',
@@ -114,14 +114,13 @@ describe('HealthController (e2e)', () => {
     it('should return 200 with healthy status when all deps are up', async () => {
       mockHealthService.getReadiness.mockResolvedValue(mockHealthyReadiness);
 
-      const res = await request(app.getHttpServer())
-        .get('/health/ready')
-        .expect(HttpStatus.OK);
+      const res = await request(app.getHttpServer()).get('/health/ready').expect(HttpStatus.OK);
 
       expect(res.body.status).toBe('healthy');
       expect(res.body.checks.database).toMatchObject({ status: 'healthy' });
       expect(res.body.checks.redis).toMatchObject({ status: 'healthy' });
       expect(res.body.checks.qdrant).toMatchObject({ status: 'healthy' });
+      expect(res.body.checks.whisper).toMatchObject({ status: 'healthy' });
     });
 
     it('should return 503 when any dependency is down', async () => {
@@ -141,13 +140,12 @@ describe('HealthController (e2e)', () => {
     it('should report all dependency statuses in response', async () => {
       mockHealthService.getReadiness.mockResolvedValue(mockHealthyReadiness);
 
-      const res = await request(app.getHttpServer())
-        .get('/health/ready')
-        .expect(HttpStatus.OK);
+      const res = await request(app.getHttpServer()).get('/health/ready').expect(HttpStatus.OK);
 
       expect(res.body.checks).toHaveProperty('database');
       expect(res.body.checks).toHaveProperty('redis');
       expect(res.body.checks).toHaveProperty('qdrant');
+      expect(res.body.checks).toHaveProperty('whisper');
     });
 
     it('should call getReadiness service method', async () => {
@@ -173,13 +171,11 @@ describe('HealthController (e2e)', () => {
     it('should return 200 with summary when all deps are healthy', async () => {
       mockHealthService.getHealth.mockResolvedValue(mockHealthyHealth);
 
-      const res = await request(app.getHttpServer())
-        .get('/health')
-        .expect(HttpStatus.OK);
+      const res = await request(app.getHttpServer()).get('/health').expect(HttpStatus.OK);
 
       expect(res.body).toMatchObject({
         status: 'healthy',
-        dependencies: '3/3 healthy',
+        dependencies: '4/4 healthy',
       });
     });
 

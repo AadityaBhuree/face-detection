@@ -43,4 +43,4 @@ ENV LD_LIBRARY_PATH=/usr/local/bin
 
 EXPOSE 9001
 
-CMD ["whisper-server", "--host", "0.0.0.0", "--port", "9001", "--model", "/models/ggml-base.en.bin", "--no-gpu", "--threads", "4", "--convert"]
+CMD whisper-server --host 0.0.0.0 --port 9001 --model ${WHISPER_MODEL:-/models/ggml-base.en.bin} --no-gpu --threads ${WHISPER_THREADS:-4} --language ${WHISPER_LANGUAGE:-en} --no-speech-thold ${WHISPER_NO_SPEECH_THOLD:-0.6} --convert

@@ -36,7 +36,7 @@ services:
     container_name: jeevandata-redis
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "6380:6379"  # host 6380; backend .env REDIS_URL uses localhost:6380
     command: >
       redis-server
       --requirepass redis_secret
@@ -55,7 +55,7 @@ services:
 
   # ─── Qdrant (Vector Database for Face Embeddings) ────────────
   qdrant:
-    image: qdrant/qdrant:v1.13.0
+    image: qdrant/qdrant:v1.18.0  # matches backend @qdrant/js-client-rest ^1.13.0 (installed 1.18.0)
     container_name: jeevandata-qdrant
     restart: unless-stopped
     ports:
@@ -63,7 +63,8 @@ services:
       - "6334:6334"
     environment:
       QDRANT__SERVICE__GRPC_PORT: 6334
-      QDRANT__SERVICE__API_KEY: ""
+      # No QDRANT__SERVICE__API_KEY -> auth disabled (backend QDRANT_API_KEY is empty).
+      # NB: an empty-string key enables auth in newer Qdrant, breaking the healthcheck.
     volumes:
       - qdrant-storage:/qdrant/storage
     healthcheck:
@@ -116,11 +117,15 @@ services:
     logging: *default-logging
 
   # ─── Whisper Server (STT) ───────────────────────────────────
-  # Image: ghcr.io/ggml-org/whisper.cpp:main bundles ggml-base.en.bin at
-  # /app/models/ and the whisper-server binary at /app/build/bin/ (ENV PATH).
-  # The old ggerganov/whisper.cpp:server-latest tag no longer exists upstream.
+  # Source-built (docker/whisper.Dockerfile): the upstream image is compiled
+  # with AVX-512 (-march=native on GH runners) and SIGILLs on CPUs without it.
+  # GGML_NATIVE=OFF gives portable x86-64 with runtime CPU dispatch. Model
+  # (ggml-base.en.bin) is baked into the image at /models.
   whisper:
-    image: ghcr.io/ggml-org/whisper.cpp:main
+    build:
+      context: .
+      dockerfile: docker/whisper.Dockerfile
+    image: jeevandata-whisper:local
     container_name: jeevandata-whisper
     restart: unless-stopped
     ports:
@@ -129,7 +134,8 @@ services:
       whisper-server
       --host 0.0.0.0
       --port 9001
-      --model /app/models/ggml-base.en.bin
+      --model /models/ggml-base.en.bin
+      --no-gpu
       --threads 4
       --convert
     healthcheck:

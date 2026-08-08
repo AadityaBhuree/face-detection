@@ -134,6 +134,22 @@ docker compose up -d
 
 This boots PostgreSQL 16, Redis 7, Qdrant, MinIO, the Whisper.cpp server, and Redis Commander.
 
+| Service             | Container name               | Host port       | Notes                                                        |
+| :------------------ | :--------------------------- | :-------------- | :----------------------------------------------------------- |
+| **PostgreSQL**      | `jeevandata-postgres`        | `5432`          | Relational DB (pgvector image)                               |
+| **Redis**           | `jeevandata-redis`           | `6380`          | BullMQ + session cache (matches `.env` `REDIS_URL`)          |
+| **Qdrant**          | `jeevandata-qdrant`          | `6333` / `6334` | Vector search REST / gRPC                                    |
+| **MinIO**           | `jeevandata-minio`           | `9000` / `9002` | S3 API (`9000`) · console (`9002`)                           |
+| **Whisper STT**     | `jeevandata-whisper`         | `9001`          | Speech-to-text (`WHISPER_API_URL`) — source-built, see below |
+| **Prometheus**      | `jeevandata-prometheus`      | `9090`          | Metrics scraping                                             |
+| **Grafana**         | `jeevandata-grafana`         | `3001`          | Dashboards (`admin`/`admin`)                                 |
+| **Alertmanager**    | `jeevandata-alertmanager`    | `9093`          | Alerting → Slack webhook                                     |
+| **Redis Commander** | `jeevandata-redis-commander` | `8081`          | Redis admin UI (dev only)                                    |
+
+> **Port changes from the original layout:** the MinIO console moved from host `9001` → `9002` (Whisper now owns `9001`), and Redis publishes on host `6380` to match the backend's `REDIS_URL` default and avoid colliding with other projects on `6379`.
+
+**Whisper STT container** — built from source via `docker/whisper.Dockerfile` (`GGML_NATIVE=OFF` → portable x86-64 binary with ggml runtime CPU dispatch). The upstream `ghcr.io/ggml-org/whisper.cpp:main` image is compiled with AVX-512 (`-march=native` on GitHub Actions runners) and crashes with SIGILL on CPUs without AVX-512. The `ggml-base.en.bin` model is baked into the image at `/models`.
+
 ### 3. Configure environment
 
 ```bash
@@ -161,26 +177,26 @@ pnpm dev           # starts frontend (:3000) + backend (:4000) in parallel via T
 
 Copy `.env.example` to `.env` and set the values below. **Never commit the real `.env`** — it is git-ignored.
 
-| Variable                                                    | Description                                    | Required | Default                                                 |
-| :---------------------------------------------------------- | :--------------------------------------------- | :------: | :------------------------------------------------------ |
-| `APP_PORT`                                                  | Backend HTTP port                              |          | `4000`                                                  |
-| `FRONTEND_URL` / `BACKEND_URL`                              | CORS origins for cross-origin requests         |          | `http://localhost:3000` / `:4000`                       |
-| `DATABASE_URL`                                              | PostgreSQL connection string                   |    ✅    | `postgresql://jeevandata:...@localhost:5432/jeevandata` |
-| `REDIS_URL`                                                 | Redis connection string (BullMQ + cache)       |    ✅    | `redis://default:...@localhost:6379`                    |
-| `QDRANT_URL`                                                | Qdrant REST endpoint                           |    ✅    | `http://localhost:6333`                                 |
-| `GOOGLE_GEMINI_API_KEY`                                     | Gemini API key for the intake agent            |    ✅    | —                                                       |
-| `GEMINI_MODEL`                                              | LLM model name                                 |          | `gemini-2.0-flash`                                      |
-| `ANTHROPIC_API_KEY` / `ANTHROPIC_MODEL`                     | Optional Claude fallback                       |          | —                                                       |
-| `WHISPER_API_URL`                                           | Whisper.cpp inference endpoint                 | ✅ (STT) | `http://localhost:9001/inference`                       |
-| `R2_ENDPOINT` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` | S3-compatible object storage                   |          | `http://localhost:9000` / `minioadmin`                  |
-| `JWT_SECRET` / `JWT_REFRESH_SECRET`                         | JWT signing secrets (use strong random values) |    ✅    | dev placeholders                                        |
-| `JWT_EXPIRATION`                                            | Access-token lifetime                          |          | `24h`                                                   |
-| `FACE_MATCH_THRESHOLD`                                      | Qdrant cosine match threshold                  |          | `0.82`                                                  |
-| `FACE_EMBEDDING_DIM`                                        | Vector dimension                               |          | `512`                                                   |
-| `LIVENESS_THRESHOLD`                                        | Blink/liveness EAR threshold                   |          | `0.7`                                                   |
-| `CORS_ORIGINS`                                              | Comma-separated allowed origins                |          | `http://localhost:3000`                                 |
-| `RATE_LIMIT_WINDOW_MS` / `RATE_LIMIT_MAX_REQUESTS`          | Throttler window / max requests                |          | `60000` / `100`                                         |
-| `LOG_LEVEL` / `LOG_FORMAT`                                  | Logging verbosity and format                   |          | `debug` / `json`                                        |
+| Variable                                                    | Description                                                           | Required | Default                                                 |
+| :---------------------------------------------------------- | :-------------------------------------------------------------------- | :------: | :------------------------------------------------------ |
+| `APP_PORT`                                                  | Backend HTTP port                                                     |          | `4000`                                                  |
+| `FRONTEND_URL` / `BACKEND_URL`                              | CORS origins for cross-origin requests                                |          | `http://localhost:3000` / `:4000`                       |
+| `DATABASE_URL`                                              | PostgreSQL connection string                                          |    ✅    | `postgresql://jeevandata:...@localhost:5432/jeevandata` |
+| `REDIS_URL`                                                 | Redis connection string (BullMQ + cache)                              |    ✅    | `redis://default:...@localhost:6380`                    |
+| `QDRANT_URL`                                                | Qdrant REST endpoint                                                  |    ✅    | `http://localhost:6333`                                 |
+| `GOOGLE_GEMINI_API_KEY`                                     | Gemini API key for the intake agent                                   |    ✅    | —                                                       |
+| `GEMINI_MODEL`                                              | LLM model name                                                        |          | `gemini-2.0-flash`                                      |
+| `ANTHROPIC_API_KEY` / `ANTHROPIC_MODEL`                     | Optional Claude fallback                                              |          | —                                                       |
+| `WHISPER_API_URL`                                           | Whisper.cpp inference endpoint                                        | ✅ (STT) | `http://localhost:9001/inference`                       |
+| `R2_ENDPOINT` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` | S3-compatible object storage (MinIO console: `http://localhost:9002`) |          | `http://localhost:9000` / `minioadmin`                  |
+| `JWT_SECRET` / `JWT_REFRESH_SECRET`                         | JWT signing secrets (use strong random values)                        |    ✅    | dev placeholders                                        |
+| `JWT_EXPIRATION`                                            | Access-token lifetime                                                 |          | `24h`                                                   |
+| `FACE_MATCH_THRESHOLD`                                      | Qdrant cosine match threshold                                         |          | `0.82`                                                  |
+| `FACE_EMBEDDING_DIM`                                        | Vector dimension                                                      |          | `512`                                                   |
+| `LIVENESS_THRESHOLD`                                        | Blink/liveness EAR threshold                                          |          | `0.7`                                                   |
+| `CORS_ORIGINS`                                              | Comma-separated allowed origins                                       |          | `http://localhost:3000`                                 |
+| `RATE_LIMIT_WINDOW_MS` / `RATE_LIMIT_MAX_REQUESTS`          | Throttler window / max requests                                       |          | `60000` / `100`                                         |
+| `LOG_LEVEL` / `LOG_FORMAT`                                  | Logging verbosity and format                                          |          | `debug` / `json`                                        |
 
 Frontend public variables (in `apps/frontend/.env.local`):
 
@@ -354,6 +370,8 @@ jeevandata/
 │   ├── shared-schemas/           # shared Zod validation schemas
 │   ├── shared-types/             # shared TS interfaces & DTOs
 │   └── shared-utils/             # retry helpers, formatters, crypto
+├── docker/
+│   └── whisper.Dockerfile        # portable whisper.cpp server build (no AVX-512)
 ├── docker-init/                  # postgres-init.sql
 ├── docker-compose.yml            # postgres, redis, qdrant, minio, whisper, redis-commander
 ├── Dockerfile.backend            # multi-stage NestJS build
@@ -454,6 +472,7 @@ docker compose up -d --build        # build + start the full stack
 
 - `Dockerfile.backend` — multi-stage NestJS build (compile → slim runtime image).
 - `Dockerfile.frontend` — multi-stage Next.js build (compile → standalone runtime).
+- `docker/whisper.Dockerfile` — source-builds the portable Whisper STT server (used by the `whisper` compose service).
 - The infra stack (Postgres, Redis, Qdrant, MinIO, Whisper) runs via `docker-compose.yml`.
 
 ### Manual (VPS / PaaS)

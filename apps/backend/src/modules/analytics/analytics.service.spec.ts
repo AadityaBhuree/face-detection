@@ -169,8 +169,8 @@ describe('AnalyticsService', () => {
     it('counts sessions into their day bucket', async () => {
       // One session today, one yesterday (approximate hour offsets).
       mockPrisma.intakeSession.findMany.mockResolvedValue([
-        session({ hoursAgo: 0.5 }),
-        session({ hoursAgo: 25 }),
+        session({ hoursAgo: 0 }),
+        session({ hoursAgo: 24 }),
       ]);
 
       const result = await service.getVolume(7);
@@ -275,8 +275,8 @@ describe('AnalyticsService', () => {
   describe('exportCsv', () => {
     it('produces a BOM-prefixed CSV with header and rows', async () => {
       mockPrisma.intakeSession.findMany.mockResolvedValue([
-        session({ hoursAgo: 0.5 }),
-        session({ hoursAgo: 0.5 }),
+        session({ hoursAgo: 0 }),
+        session({ hoursAgo: 0 }),
       ]);
 
       const { filename, csv } = await service.exportCsv(7);

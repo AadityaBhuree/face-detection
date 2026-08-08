@@ -1,19 +1,19 @@
 # Coverage Report — Jeevandata
 
-**Generated:** August 3, 2026
-**Test totals:** 162 unit (9 suites) + 129 E2E (9 suites) backend · 448 frontend (25 test files)
+**Generated:** August 8, 2026 (fresh coverage runs, no cache)
+**Test totals:** 287 unit (20 suites) + 191 E2E (13 suites) backend · 599 frontend (45 test files) = **1,077 tests, all passing**
 
 ## Overall Coverage
 
 | Layer             |  % Stmts   |  % Branch  |  % Funcs   |  % Lines   | Files measured |
 | :---------------- | :--------: | :--------: | :--------: | :--------: | :------------: |
-| Backend (unit)    | **36.72%** | **24.21%** | **34.74%** | **36.7%**  |       45       |
+| Backend (unit)    | **52.30%** | **42.45%** | **48.69%** | **52.33%** |       45       |
 | Backend (E2E)     |    0%¹     |     0%     |     0%     |     0%     |       —        |
-| Frontend (vitest) | **45.02%** | **79.87%** | **76.53%** | **45.02%** |       54       |
+| Frontend (vitest) | **64.61%** | **79.89%** | **75.93%** | **64.61%** |       54       |
 
-> ¹ E2E suites mock the entire service layer, so jest instruments nothing — see [E2E section](#e2e-test-coverage) for why this is expected.
+> ¹ E2E suites mock the entire service layer, so jest instruments nothing — see [E2E Test Coverage](#e2e-test-coverage) for why this is expected.
 >
-> **Progress vs July 28 baseline:** backend statements 16.4% → **36.72%** (+20 pts), driven by new unit tests for `auth.service`, `dashboard.service`, `pms.service`, `health.service` and `validation.schema` (all previously 0%). Frontend coverage is measured for the first time.
+> **Progress vs August 3 baseline:** backend statements 36.72% → **52.30%** (+16 pts, driven by new suites for `analytics`, `api-keys`, `clinics`, `monitoring`, `metrics.service`, and expanded `face`, `intake`, `audit` specs). Frontend 45.02% → **64.61%** (+20 pts, 25 → 45 test files). Backend unit tests 162 → **287**; E2E 129 → **191**; frontend 448 → **599**.
 
 ---
 
@@ -21,83 +21,72 @@
 
 ### ✅ High Coverage (≥80% Statements)
 
-| Module        | File                   | % Stmts | % Branch | % Funcs | % Lines |
-| :------------ | :--------------------- | :-----: | :------: | :-----: | :-----: |
-| **Audit**     | `audit.service.ts`     |  100%   |   100%   |  100%   |  100%   |
-| **Dashboard** | `dashboard.service.ts` |  100%   |   100%   |  100%   |  100%   |
-| **Session**   | `session.service.ts`   |  100%   |   100%   |  100%   |  100%   |
-| **Face**      | `face.service.ts`      |  100%   |  81.25%  |  100%   |  100%   |
-| **Config**    | `validation.schema.ts` | 98.07%  |  96.15%  |  100%   | 97.72%  |
-| **Auth**      | `auth.service.ts`      | 94.11%  |  72.72%  |  100%   | 95.12%  |
-| **PMS**       | `pms.service.ts`       | 94.28%  |  55.55%  |  100%   | 93.93%  |
-| **Intake**    | `intake.service.ts`    | 94.11%  |  81.81%  | 88.88%  | 95.83%  |
-| **Health**    | `health.service.ts`    | 92.85%  |  64.28%  | 82.35%  |   96%   |
+| Module            | File                           | % Stmts | % Branch | % Funcs | % Lines |
+| :---------------- | :----------------------------- | :-----: | :------: | :-----: | :-----: |
+| **Analytics**     | `analytics.service.ts`         |  100%   |  93.33%  |  100%   |  100%   |
+| **API Keys**      | `api-keys.service.ts`          |  100%   |   100%   |  100%   |  100%   |
+| **Clinics**       | `clinics.service.ts`           |  100%   |  63.33%  |  100%   |  100%   |
+| **Dashboard**     | `dashboard.service.ts`         |  100%   |   100%   |  100%   |  100%   |
+| **Face**          | `face.service.ts`              |  100%   |  81.25%  |  100%   |  100%   |
+| **Face**          | `face-registration.service.ts` |  100%   |   100%   |  100%   |  100%   |
+| **Monitoring**    | `monitoring.service.ts`        |  100%   |   100%   |  100%   |  100%   |
+| **Session**       | `session.service.ts`           |  100%   |   100%   |  100%   |  100%   |
+| **Audit**         | `audit.service.ts`             | 92.78%  |  84.61%  | 94.44%  | 93.61%  |
+| **Health**        | `health.service.ts`            | 92.85%  |  64.28%  | 82.35%  |   96%   |
+| **Intake**        | `intake.service.ts`            | 94.64%  |  83.33%  | 88.88%  | 96.22%  |
+| **PMS**           | `pms.service.ts`               | 94.28%  |  55.55%  |  100%   | 93.93%  |
+| **OpenTelemetry** | `metrics.service.ts`           | 81.91%  |  86.95%  | 83.33%  | 81.81%  |
 
 ### ⚠️ Partial Coverage (1–79% Statements)
 
-| Module        | File                             | % Stmts | % Branch | % Funcs | % Lines |
-| :------------ | :------------------------------- | :-----: | :------: | :-----: | :-----: |
-| **Prisma**    | `prisma.service.ts`              | 35.71%  |    0%    |   0%    |   25%   |
-| **PMS**       | `adapters/custom-api.adapter.ts` | 26.08%  |    0%    |   0%    | 19.04%  |
-| **AI**        | `brief-generator.service.ts`     | 21.05%  |    0%    |   0%    | 17.64%  |
-| **PMS**       | `adapters/hl7-fhir.adapter.ts`   | 14.28%  |    0%    |   0%    | 10.52%  |
-| **PMS**       | `utils/retry.util.ts`            | 13.63%  |    0%    |   0%    |   15%   |
-| **Telemetry** | `opentelemetry.service.ts`       |  11.9%  |    0%    |   0%    |  7.69%  |
+| Module            | File                         | % Stmts | % Branch | % Funcs | % Lines |
+| :---------------- | :--------------------------- | :-----: | :------: | :-----: | :-----: |
+| **Analytics**     | `analytics.controller.ts`    |   0%    |   100%   |   0%    |   0%    |
+| **API Keys**      | `api-keys.controller.ts`     |   0%    |   100%   |   0%    |   0%    |
+| **Audit**         | `audit.controller.ts`        |   0%    |   100%   |   0%    |   0%    |
+| **Clinics**       | `clinics.controller.ts`      |   0%    |   100%   |   0%    |   0%    |
+| **Dashboard**     | `dashboard.controller.ts`    |   0%    |   100%   |   0%    |   0%    |
+| **Face**          | `face.controller.ts`         |   0%    |   100%   |   0%    |   0%    |
+| **Face/DTO**      | `register-patient.dto.ts`    |   0%    |   100%   |  100%   |   0%    |
+| **Health**        | `health.controller.ts`       |   0%    |    0%    |   0%    |   0%    |
+| **Intake**        | `intake.controller.ts`       |   0%    |   100%   |   0%    |   0%    |
+| **Monitoring**    | `monitoring.controller.ts`   |   0%    |   100%   |   0%    |   0%    |
+| **OpenTelemetry** | `prometheus.controller.ts`   |   0%    |   100%   |   0%    |   0%    |
+| **OpenTelemetry** | `opentelemetry.service.ts`   | 11.90%  |    0%    |   0%    |  7.69%  |
+| **PMS**           | `pms.controller.ts`          |   0%    |   100%   |   0%    |   0%    |
+| **PMS/Adapters**  | `hl7-fhir.adapter.ts`        | 14.28%  |    0%    |   0%    | 10.52%  |
+| **PMS/Adapters**  | `custom-api.adapter.ts`      | 26.08%  |    0%    |   0%    | 19.04%  |
+| **PMS/Utils**     | `retry.util.ts`              | 13.63%  |    0%    |   0%    |   15%   |
+| **Prisma**        | `prisma.service.ts`          | 35.71%  |    0%    |   0%    |   25%   |
+| **AI**            | `brief-generator.service.ts` | 21.05%  |    0%    |   0%    | 17.64%  |
 
-### ❌ Zero Coverage
+### ❌ Zero Coverage Files
 
-| Module              | File                                                                                                          | Stmts | Notes                                     |
-| :------------------ | :------------------------------------------------------------------------------------------------------------ | :---: | :---------------------------------------- |
-| **AI**              | `intake-agent.service.ts`                                                                                     |  0%   | LLM conversation orchestration (37 stmts) |
-| **AI**              | `ai.service.ts`                                                                                               |  0%   | API orchestration w/ retry (18 stmts)     |
-| **Transcription**   | `transcription.service.ts`                                                                                    |  0%   | Audio + Whisper calls (50 stmts)          |
-| **Face**            | `face-registration.service.ts`                                                                                |  0%   | Qdrant upsert transaction (34 stmts)      |
-| **Session**         | `session.gateway.ts`                                                                                          |  0%   | WebSocket gateway (61 stmts)              |
-| **Session**         | `session-timeout.worker.ts`                                                                                   |  0%   | BullMQ worker (33 stmts)                  |
-| **Telemetry**       | `tracing.ts`                                                                                                  |  0%   | OTel bootstrap (49 stmts)                 |
-| **Logger**          | `logger.service.ts`                                                                                           |  0%   | Winston wrapper (14 stmts)                |
-| **Config**          | `configuration.ts`                                                                                            |  0%   | env loader (3 stmts)                      |
-| **Controllers** (7) | `auth`, `ai`, `dashboard`, `face`, `intake`, `pms`, `transcription`                                           |  0%   | thin HTTP layer, exercised by E2E instead |
-| **Guards**          | `jwt-auth.guard.ts`, `roles.guard.ts`, `throttler.guard.ts`                                                   |  0%   | security-critical, no unit tests          |
-| **Common**          | `http-exception.filter.ts`, `zod-validation.pipe.ts`, interceptors, middleware, decorators, `jwt.strategy.ts` |  0%   | pipeline infra (≈150 stmts)               |
+| Module            | File                          | % Stmts |            Priority             |
+| :---------------- | :---------------------------- | :-----: | :-----------------------------: |
+| **AI**            | `intake-agent.service.ts`     | **0%**  |   🔴 High (LLM orchestration)   |
+| **Session**       | `session-timeout.worker.ts`   | **0%**  |    🟡 Medium (BullMQ worker)    |
+| **Session**       | `session.gateway.ts`          | **0%**  |  🟡 Medium (WebSocket, 244 ln)  |
+| **Transcription** | `transcription.service.ts`    | **0%**  | 🔴 High (audio/Whisper, 198 ln) |
+| **Transcription** | `transcription.controller.ts` | **0%**  |          🟢 Low (thin)          |
 
----
-
-## Frontend — Coverage by Area (vitest + v8)
-
-| Area               | File                                                                                         | % Stmts | % Branch | % Funcs |
-| :----------------- | :------------------------------------------------------------------------------------------- | :-----: | :------: | :-----: |
-| **Stores**         | `stores/face-store.ts`                                                                       | 53.85%  |  11.11%  |  7.14%  |
-| **Stores**         | `stores/session-store.ts`                                                                    | 52.94%  |    0%    |   0%    |
-| **Services**       | `services/api.ts`                                                                            | 52.89%  |  42.86%  | 58.82%  |
-| **Services**       | `services/socket.ts`                                                                         | 35.24%  |  38.46%  | 42.86%  |
-| **UI**             | `components/ui/badge.tsx`                                                                    | 73.44%  |  8.33%   |   0%    |
-| **UI**             | `components/ui/button.tsx`                                                                   | 57.50%  |  16.67%  |   n/a   |
-| **UI**             | `components/ui/card.tsx`                                                                     | 40.58%  |   30%    |   0%    |
-| **UI**             | `components/ui/dark-mode-toggle.tsx`                                                         | 36.54%  |    0%    |   0%    |
-| **UI**             | `components/ui/language-selector.tsx`                                                        | 18.90%  |  15.56%  | 11.11%  |
-| **Intake**         | `components/intake/transcript-view.tsx`                                                      | 34.57%  |    5%    |   0%    |
-| **Lib**            | `lib/face-geometry.ts`                                                                       | 36.23%  |  11.54%  | 14.29%  |
-| **Lib**            | `lib/env.ts`, `lib/utils.ts`                                                                 |  ~35%   |   ~15%   |  ~10%   |
-| **Hooks**          | `useFaceDetection.ts`                                                                        | 11.46%  |  21.21%  |   0%    |
-| **Hooks**          | `useLivenessDetection.ts`, `useCamera.ts`, `useIntakeConversation.ts`, `useFaceEmbedding.ts` |   0%    |    0%    |   0%    |
-| **App pages**      | `app/*/page.tsx`, `providers.tsx`, `layout.tsx`                                              |   0%    |    0%    |   0%    |
-| **Services**       | `services/db.ts` (Dexie)                                                                     |   0%    |    0%    |   0%    |
-| **Radix wrappers** | `dialog`, `select`, `tabs`, `toast`, `tooltip`, etc.                                         |   0%    |    0%    |   0%    |
+> Controllers intentionally show 0% in unit runs — their behavior is validated by the E2E suite (191 tests, 13 suites).
 
 ---
 
 ## E2E Test Coverage
 
-**All 129 E2E tests pass across 9 suites** (`face`, `intake`, `ai`, `dashboard`, `pms`, `health`, `health-rate-limit`, `rate-limit`, `auth`), but they **contribute 0% to statement/branch/function coverage** — every E2E test mocks the service layer entirely. This is by design: the E2E layer validates
+**All 191 E2E tests pass** across 13 suites (`face`, `intake`, `ai`, `dashboard`, `pms`, `health`, `rate-limit`, `health-rate-limit`, `auth`, `auth-rbac`, `analytics`, `audit`, `prometheus`), but contribute **0%** to statement/branch/function coverage because every E2E test mocks the service layer entirely. E2E validates:
 
 - ✅ HTTP routing and status codes
 - ✅ Zod validation (missing fields, invalid types, out-of-range values)
 - ✅ Error propagation (500 on service errors)
 - ✅ Response shapes
-- ✅ Auth guard enforcement & rate-limit behavior
+- ✅ Auth guard / RBAC enforcement (`auth-rbac.e2e-spec.ts`)
+- ✅ Rate limiting behavior (`rate-limit`, `health-rate-limit`)
+- ✅ Metrics exposure (`prometheus.e2e-spec.ts`)
 
-What E2E tests DON'T cover:
+**What E2E tests DON'T cover:**
 
 - ❌ Service business logic
 - ❌ Database interactions
@@ -106,51 +95,57 @@ What E2E tests DON'T cover:
 
 ---
 
-## Gap Analysis — Where Tests Are Still Needed
+## Frontend — Coverage by Area (Vitest, 45 files, 599 tests)
 
-### 🔴 Priority 1: Core business logic still at 0%
+| Area                  | % Stmts | % Branch | % Funcs | % Lines |
+| :-------------------- | :-----: | :------: | :-----: | :-----: |
+| **Stores**            |  100%   |   100%   | 97.29%  |  100%   |
+| **Components/Auth**   |  100%   |   100%   |  100%   |  100%   |
+| **Lib**               | 85.39%  |  90.26%  | 93.93%  | 85.39%  |
+| **Services**          | 89.37%  |  83.69%  |   78%   | 89.37%  |
+| **Components/Camera** | 98.73%  |  95.45%  |  100%   | 98.73%  |
+| **Components/Intake** |   91%   |  83.78%  |   50%   |   91%   |
+| **Components/Face**   | 59.66%  |  86.48%  |  91.3%  | 59.66%  |
+| **Components/UI**     | 53.59%  |  78.75%  |   60%   | 53.59%  |
+| **Hooks**             | 27.49%  |  77.31%  | 66.66%  | 27.49%  |
 
-| Service                        | Stmts | Business Risk                             |
-| :----------------------------- | :---: | :---------------------------------------- |
-| `intake-agent.service.ts`      |  37   | Gemini conversation orchestration         |
-| `transcription.service.ts`     |  50   | Audio processing / Whisper                |
-| `face-registration.service.ts` |  34   | Patient registration + Qdrant transaction |
-| `session.gateway.ts`           |  61   | WebSocket session lifecycle               |
-| `session-timeout.worker.ts`    |  33   | BullMQ background job                     |
-| `ai.service.ts`                |  18   | AI API orchestration                      |
-
-### 🔴 Priority 2: Security-critical infrastructure (0%)
-
-| Component                  | Stmts | Risk                    |
-| :------------------------- | :---: | :---------------------- |
-| `jwt-auth.guard.ts`        |  14   | Auth bypass             |
-| `roles.guard.ts`           |  16   | Privilege escalation    |
-| `jwt.strategy.ts`          |   9   | Token validation        |
-| `zod-validation.pipe.ts`   |  12   | Input validation bypass |
-| `http-exception.filter.ts` |  36   | Info leakage in errors  |
-
-### 🟡 Priority 3: Frontend hooks & libs (0–15%)
-
-| File                                                                  | Risk                         |
-| :-------------------------------------------------------------------- | :--------------------------- |
-| `useLivenessDetection.ts`, `useCamera.ts`, `useIntakeConversation.ts` | core patient-flow logic      |
-| `useFaceEmbedding.ts`                                                 | 512-dim vector correctness   |
-| `lib/face-embedding.ts` (7%)                                          | geometric feature extraction |
-| `services/db.ts`                                                      | offline Dexie cache          |
+> Weakest areas: **Hooks** (27.49%) and **Components/UI** (53.59%) — the next best frontend coverage wins are `useFaceDetection`/`useLivenessDetection` deep paths and remaining UI primitives.
 
 ---
 
-## How to Regenerate
+## Gap Analysis: What Needs Tests Most
 
-```bash
-# Backend unit (writes apps/backend/coverage/)
-cd apps/backend && npx jest --coverage --coverageReporters=json-summary --coverageReporters=text --no-cache
+### 🔴 Backend priorities (by risk × coverage gap)
 
-# Backend E2E (writes apps/backend/test/coverage-e2e/) — expected: 0 files, tests mocked
-cd apps/backend && npx jest --config ./test/jest-e2e.json --coverage --no-cache
+| Priority | File                         | Coverage | Business Risk                               |
+| :------- | :--------------------------- | :------: | :------------------------------------------ |
+| P1       | `intake-agent.service.ts`    |    0%    | Gemini LLM conversation orchestration       |
+| P1       | `transcription.service.ts`   |    0%    | Audio processing & Whisper API calls        |
+| P1       | `session.gateway.ts`         |    0%    | WebSocket session management (244 lines)    |
+| P1       | `session-timeout.worker.ts`  |    0%    | BullMQ background job (timeout enforcement) |
+| P2       | `hl7-fhir.adapter.ts`        |  14.28%  | PMS/EMR sync mapping (282 lines)            |
+| P2       | `custom-api.adapter.ts`      |  26.08%  | PMS/EMR sync mapping                        |
+| P2       | `retry.util.ts`              |  13.63%  | Sync resilience — failure behavior          |
+| P3       | `brief-generator.service.ts` |  21.05%  | Clinical brief generation                   |
+| P3       | `opentelemetry.service.ts`   |  11.90%  | Trace export (degraded path)                |
 
-# Frontend (writes apps/frontend/coverage/)
-cd apps/frontend && npx vitest run --coverage
-```
+### 🔴 Frontend priorities
 
-> Note: pass `--coverageReporters` as repeated flags — a comma-joined value (`json-summary,text`) is parsed by jest as a single reporter module name and fails with _"Cannot find module"_.
+| Area              | Coverage | Notes                                |
+| :---------------- | :------: | :----------------------------------- |
+| `hooks`           |  27.49%  | Face detection / liveness deep paths |
+| `components/ui`   |  53.59%  | Remaining UI primitives              |
+| `components/face` |  59.66%  | FaceOverlay / detection visuals      |
+
+---
+
+## Combined Test Inventory
+
+| Layer        | Suites / Files |   Tests   | % Stmts | % Funcs |    Status    |
+| :----------- | :------------- | :-------: | :-----: | :-----: | :----------: |
+| Backend unit | 20 suites      |    287    | 52.30%  | 48.69%  | ✅ All green |
+| Backend E2E  | 13 suites      |    191    |   0%    |   0%    | ✅ All green |
+| Frontend     | 45 files       |    599    | 64.61%  | 75.93%  | ✅ All green |
+| **Total**    |                | **1,077** |         |         |              |
+
+> Next target: `intake-agent.service.ts` + `transcription.service.ts` unit suites would lift backend statements past ~58% and close the two highest-risk zero-coverage services.
